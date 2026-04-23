@@ -1,0 +1,134 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Acceso denegado{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-shield-halved"></i>
+{% endblock %}
+
+{% block header_title %}
+Acceso denegado
+{% endblock %}
+
+{% block header_subtitle %}
+No tienes permisos para acceder a este recurso
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+.denegado-wrap{
+display:flex;
+justify-content:center;
+align-items:center;
+padding:60px 20px;
+}
+
+.denegado-card{
+
+max-width:520px;
+width:100%;
+
+background:var(--surface-2);
+border-radius:20px;
+
+border:1px solid rgba(148,163,184,.18);
+
+padding:40px 32px;
+
+text-align:center;
+
+box-shadow:0 20px 50px rgba(0,0,0,.08);
+
+}
+
+.denegado-icon{
+
+font-size:64px;
+color:#ef4444;
+
+margin-bottom:18px;
+
+}
+
+.denegado-title{
+
+font-size:22px;
+font-weight:700;
+
+margin-bottom:10px;
+
+}
+
+.denegado-text{
+
+color:#64748b;
+font-size:14px;
+
+margin-bottom:28px;
+
+}
+
+.denegado-actions{
+
+display:flex;
+justify-content:center;
+gap:12px;
+
+flex-wrap:wrap;
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="denegado-wrap">
+
+<div class="denegado-card">
+
+<div class="denegado-icon">
+<i class="fa-solid fa-lock"></i>
+</div>
+
+<div class="denegado-title">
+Acceso restringido
+</div>
+
+<div class="denegado-text">
+
+No tienes permisos para acceder a esta sección del sistema.
+
+Si crees que esto es un error, contacta al administrador.
+
+</div>
+
+<div class="denegado-actions">
+
+<a href="/" class="btn-ax primary">
+
+<i class="fa-solid fa-house"></i>
+Ir al inicio
+
+</a>
+
+<a href="javascript:history.back()" class="btn-ax ghost">
+
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Signos vitales{% endblock %}
+
+{% block header_title %}
+Signos vitales
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax primary"
+href="/hc/signos/nuevo/{{ paciente_id }}">
+
+<i class="fa-solid fa-plus"></i>
+Registrar signos
+
+</a>
+
+{% endblock %}
+
+
+{% block content %}
+
+<table class="table-ax">
+
+<tr>
+<th>Fecha</th>
+<th>Peso</th>
+<th>Talla</th>
+<th>IMC</th>
+<th>Presión</th>
+<th>Temp</th>
+</tr>
+
+{% for s in signos %}
+
+<tr>
+
+<td>{{ s.fecha }}</td>
+
+<td>{{ s.peso }}</td>
+
+<td>{{ s.talla }}</td>
+
+<td>{{ s.imc }}</td>
+
+<td>{{ s.presion_sistolica }}/{{ s.presion_diastolica }}</td>
+
+<td>{{ s.temperatura }}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+{% endblock %}

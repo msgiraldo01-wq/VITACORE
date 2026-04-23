@@ -1,0 +1,338 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Municipios{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-location-dot"></i>
+{% endblock %}
+
+{% block header_title %}
+Configuración · Municipios
+{% endblock %}
+
+{% block header_subtitle %}
+Catálogo de municipios del sistema
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/municipios/nuevo">
+<i class="fa-solid fa-plus"></i>
+Nuevo municipio
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.toolbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+gap:12px;
+flex-wrap:wrap;
+}
+
+.search-box{
+display:flex;
+align-items:center;
+gap:8px;
+border:1px solid rgba(203,213,225,.9);
+border-radius:12px;
+padding:8px 12px;
+background:#fff;
+}
+
+.search-box input{
+border:none;
+outline:none;
+font-size:.9rem;
+width:240px;
+}
+
+.table-wrap{
+max-height:520px;
+overflow:auto;
+border-radius:18px;
+border:1px solid rgba(226,232,240,.95);
+background:var(--surface-2);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:900px;
+}
+
+th,td{
+padding:14px 12px;
+border-bottom:1px solid rgba(226,232,240,.9);
+text-align:left;
+font-size:.93rem;
+}
+
+th{
+background:rgba(14,165,255,.08);
+font-size:.84rem;
+text-transform:uppercase;
+letter-spacing:.05em;
+position:sticky;
+top:0;
+}
+
+.badge{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:7px 10px;
+border-radius:999px;
+font-size:.78rem;
+font-weight:800;
+}
+
+.badge.ok{
+background:rgba(34,197,94,.12);
+color:#166534;
+}
+
+.badge.off{
+background:rgba(239,68,68,.12);
+color:#991b1b;
+}
+
+.actions{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+}
+
+.btn-mini{
+display:inline-flex;
+align-items:center;
+gap:6px;
+border:none;
+cursor:pointer;
+padding:8px 10px;
+border-radius:12px;
+font-size:.82rem;
+font-weight:700;
+}
+
+.btn-mini.edit{
+background:rgba(14,165,255,.12);
+color:#0c4a6e;
+}
+
+.btn-mini.toggle{
+background:rgba(15,23,42,.08);
+color:var(--text);
+}
+
+.empty-box{
+border:1px dashed rgba(148,163,184,.5);
+border-radius:18px;
+padding:30px;
+text-align:center;
+color:var(--muted);
+}
+
+.msg-search{
+text-align:center;
+padding:25px;
+color:var(--muted);
+font-size:.95rem;
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+{% if items %}
+
+<div class="toolbar">
+
+<div class="search-box">
+<i class="fa-solid fa-magnifying-glass"></i>
+<input type="text" id="searchInput" placeholder="Buscar municipio o departamento...">
+</div>
+
+</div>
+
+
+<div class="table-wrap" id="tableWrap">
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Código</th>
+<th>Municipio</th>
+<th>Departamento</th>
+<th>Estado</th>
+<th style="width:220px;">Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tableBody">
+
+{% for item in items %}
+
+<tr class="data-row">
+
+<td>{{ item.id }}</td>
+<td>{{ item.codigo or '—' }}</td>
+<td>{{ item.nombre }}</td>
+<td>{{ item.departamento_nombre or '—' }}</td>
+
+<td>
+{% if item.estado == "ACTIVO" %}
+<span class="badge ok">
+<i class="fa-solid fa-circle-check"></i> Activo
+</span>
+{% else %}
+<span class="badge off">
+<i class="fa-solid fa-circle-xmark"></i> Inactivo
+</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="actions">
+
+<a class="btn-mini edit"
+href="/hc/configuracion/municipios/{{ item.id }}/editar">
+<i class="fa-solid fa-pen"></i>
+Editar
+</a>
+
+<form method="POST"
+action="/hc/configuracion/municipios/toggle/{{ item.id }}"
+class="formToggle">
+
+<button class="btn-mini toggle" type="button">
+<i class="fa-solid fa-power-off"></i>
+{{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+</table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+
+<h3>Aún no hay municipios registrados</h3>
+
+<p>Agrega el primer municipio para comenzar la configuración territorial.</p>
+
+<a class="btn-ax primary"
+href="/hc/configuracion/municipios/nuevo">
+<i class="fa-solid fa-plus"></i>
+Crear municipio
+</a>
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* ================= BUSCADOR LOCAL ================= */
+
+const input = document.getElementById("searchInput")
+const rows = document.querySelectorAll(".data-row")
+
+input?.addEventListener("keyup", function(){
+
+let q = this.value.toLowerCase()
+
+rows.forEach(row=>{
+let txt = row.innerText.toLowerCase()
+row.style.display = txt.includes(q) ? "" : "none"
+})
+
+})
+
+
+/* ================= SCROLL INFINITO ================= */
+
+let visible = 20
+
+function updateRows(){
+rows.forEach((row,i)=>{
+row.style.display = i < visible ? "" : "none"
+})
+}
+
+updateRows()
+
+const wrap = document.getElementById("tableWrap")
+
+wrap?.addEventListener("scroll",function(){
+if(wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 10){
+visible += 20
+updateRows()
+}
+})
+
+
+/* ================= SWEET ALERT TOGGLE ================= */
+
+document.addEventListener("click",function(e){
+
+if(e.target.closest(".formToggle button")){
+
+const form = e.target.closest("form")
+
+Swal.fire({
+title:"¿Cambiar estado?",
+text:"El municipio será activado/inactivado.",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Sí, continuar",
+cancelButtonText:"Cancelar",
+confirmButtonColor:"#0ea5ff"
+}).then((r)=>{
+if(r.isConfirmed){
+form.submit()
+}
+})
+
+}
+
+})
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Nuevo diagnóstico CIE10' if modo=='crear' else 'Editar diagnóstico CIE10' }}{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-stethoscope"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo diagnóstico CIE10' if modo=='crear' else 'Editar diagnóstico CIE10' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de diagnósticos médicos del sistema
+{% endblock %}
+
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion/cie10">
+
+<i class="fa-solid fa-arrow-left"></i>
+Volver al listado
+
+</a>
+
+{% endblock %}
+
+
+
+{% block extra_css %}
+
+<style>
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:16px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.field.full{
+grid-column:1 / -1;
+}
+
+.field label{
+font-weight:700;
+font-size:.92rem;
+}
+
+.field input,
+.field select,
+.field textarea{
+
+border:1px solid rgba(203,213,225,.95);
+border-radius:14px;
+padding:12px 14px;
+font-size:.95rem;
+outline:none;
+background:#fff;
+color:#0f172a;
+
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+
+border-color:rgba(14,165,255,.7);
+box-shadow:0 0 0 3px rgba(14,165,255,.12);
+
+}
+
+textarea{
+min-height:100px;
+resize:vertical;
+}
+
+.help{
+color:var(--muted);
+font-size:.84rem;
+}
+
+.form-actions{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-top:20px;
+}
+
+@media (max-width:860px){
+
+.form-grid{
+grid-template-columns:1fr;
+}
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<form method="POST" id="formCie10">
+
+<div class="form-grid">
+
+<div class="field">
+
+<label for="codigo">Código *</label>
+
+<input
+type="text"
+id="codigo"
+name="codigo"
+maxlength="20"
+required
+autocomplete="off"
+value="{{ item.codigo or '' }}"
+>
+
+<div class="help">
+Ejemplo: J18.9, E11.9, I10.
+</div>
+
+</div>
+
+
+
+<div class="field">
+
+<label for="categoria">Categoría</label>
+
+<input
+type="text"
+id="categoria"
+name="categoria"
+maxlength="50"
+autocomplete="off"
+value="{{ item.categoria or '' }}"
+>
+
+<div class="help">
+Capítulo o agrupación del diagnóstico.
+</div>
+
+</div>
+
+
+
+<div class="field full">
+
+<label for="nombre">Nombre *</label>
+
+<input
+type="text"
+id="nombre"
+name="nombre"
+maxlength="200"
+required
+autocomplete="off"
+value="{{ item.nombre or '' }}"
+>
+
+</div>
+
+
+
+<div class="field full">
+
+<label for="descripcion">Descripción</label>
+
+<textarea
+id="descripcion"
+name="descripcion"
+maxlength="300"
+autocomplete="off"
+>
+
+{{ item.descripcion or '' }}
+
+</textarea>
+
+</div>
+
+
+
+<div class="field">
+
+<label for="estado">Estado</label>
+
+<select id="estado" name="estado">
+
+<option value="ACTIVO"
+{{ 'selected' if (item.estado or 'ACTIVO') == 'ACTIVO' else '' }}>
+
+ACTIVO
+
+</option>
+
+<option value="INACTIVO"
+{{ 'selected' if item.estado == 'INACTIVO' else '' }}>
+
+INACTIVO
+
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+
+<div class="form-actions">
+
+<button class="btn-ax primary" type="submit">
+
+<i class="fa-solid fa-floppy-disk"></i>
+
+{{ 'Guardar diagnóstico' if modo=='crear' else 'Actualizar diagnóstico' }}
+
+</button>
+
+
+<a class="btn-ax ghost" href="/hc/configuracion/cie10">
+
+<i class="fa-solid fa-xmark"></i>
+
+Cancelar
+
+</a>
+
+</div>
+
+</form>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+const form = document.getElementById("formCie10")
+
+form.addEventListener("submit",function(e){
+
+e.preventDefault()
+
+Swal.fire({
+
+title:"¿Guardar diagnóstico?",
+text:"{{ 'Se registrará un nuevo diagnóstico CIE10.' if modo=='crear' else 'Se actualizará el diagnóstico.' }}",
+icon:"question",
+showCancelButton:true,
+confirmButtonText:"Sí, guardar",
+cancelButtonText:"Cancelar",
+confirmButtonColor:"#0ea5ff"
+
+}).then((result)=>{
+
+if(result.isConfirmed){
+
+form.submit()
+
+}
+
+})
+
+})
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,574 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Nuevo profesional' if modo == 'crear' else 'Editar profesional' }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-user-doctor"></i>{% endblock %}
+{% block header_title %}{{ 'Nuevo profesional' if modo == 'crear' else 'Editar profesional' }}{% endblock %}
+{% block header_subtitle %}Registro base de profesionales del sistema{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/profesionales">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al listado
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ── tabs ─────────────────────────────────────────── */
+.tabs-wrap {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(226,232,240,.9);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color .15s, border-color .15s;
+}
+
+.tab-btn:hover { color: #0ea5ff; }
+.tab-btn.active { color: #0ea5ff; border-bottom-color: #0ea5ff; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── form grid ────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 16px;
+}
+
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-weight: 700; font-size: .92rem; }
+
+.field input,
+.field select {
+  border: 1px solid rgba(203,213,225,.95);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: .95rem;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: rgba(14,165,255,.7);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.12);
+}
+
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+
+/* ── buscador cups ────────────────────────────────── */
+.cups-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.cups-search-wrap input {
+  width: 100%;
+  border: 1px solid rgba(203,213,225,.95);
+  border-radius: 14px;
+  padding: 11px 14px 11px 38px;
+  font-size: .92rem;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cups-search-wrap input:focus {
+  border-color: rgba(14,165,255,.7);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.12);
+}
+
+.cups-search-wrap .ico-search {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.cups-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cups-dropdown.open { display: block; }
+
+.cups-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .88rem;
+  border-bottom: 1px solid rgba(226,232,240,.6);
+  transition: background .12s;
+}
+
+.cups-option:hover { background: rgba(14,165,255,.07); }
+.cups-option:last-child { border-bottom: none; }
+.cups-option .cod { font-weight: 700; color: #0c4a6e; margin-right: 6px; }
+
+/* ── tabla procedimientos ─────────────────────────── */
+.proc-table-wrap {
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.proc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.proc-table th,
+.proc-table td {
+  padding: 11px 12px;
+  text-align: left;
+  font-size: .88rem;
+  border-bottom: 1px solid rgba(226,232,240,.8);
+}
+
+.proc-table th {
+  background: rgba(14,165,255,.08);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+}
+
+.proc-table tr:last-child td { border-bottom: none; }
+
+.proc-table .dur-input {
+  width: 70px;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: .88rem;
+  text-align: center;
+  outline: none;
+}
+
+.proc-table .dur-input:focus {
+  border-color: #0ea5ff;
+  box-shadow: 0 0 0 2px rgba(14,165,255,.15);
+}
+
+.btn-del-proc {
+  background: rgba(239,68,68,.1);
+  color: #991b1b;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.btn-del-proc:hover { background: rgba(239,68,68,.2); }
+
+.empty-proc {
+  text-align: center;
+  padding: 28px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.proc-hint {
+  font-size: .83rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+@media (max-width:860px) { .form-grid { grid-template-columns: 1fr; } }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Tabs ─────────────────────────────────────────── -->
+<div class="tabs-wrap">
+  <button class="tab-btn active" data-tab="datos">
+    <i class="fa-solid fa-id-card"></i> Datos generales
+  </button>
+  <button class="tab-btn" data-tab="procedimientos">
+    <i class="fa-solid fa-syringe"></i> Procedimientos
+  </button>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 1 — DATOS GENERALES
+════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-datos">
+
+  <form method="POST" id="formProfesional">
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label for="tipo_documento_id">Tipo de documento *</label>
+        <select id="tipo_documento_id" name="tipo_documento_id" required>
+          <option value="">Selecciona un tipo</option>
+          {% for td in tipos_documento %}
+          <option value="{{ td.id }}"
+            {{ 'selected' if (item.tipo_documento_id|string) == (td.id|string) else '' }}>
+            {{ td.codigo }} · {{ td.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="numero_documento">Número de documento *</label>
+        <input type="text" id="numero_documento" name="numero_documento"
+               maxlength="30" required autocomplete="off"
+               value="{{ item.numero_documento or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="nombres">Nombres *</label>
+        <input type="text" id="nombres" name="nombres"
+               maxlength="120" required autocomplete="off"
+               value="{{ item.nombres or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="apellidos">Apellidos *</label>
+        <input type="text" id="apellidos" name="apellidos"
+               maxlength="120" required autocomplete="off"
+               value="{{ item.apellidos or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="especialidad_id">Especialidad</label>
+        <select id="especialidad_id" name="especialidad_id">
+          <option value="">Selecciona una especialidad</option>
+          {% for esp in especialidades %}
+          <option value="{{ esp.id }}"
+            {{ 'selected' if (item.especialidad_id|string) == (esp.id|string) else '' }}>
+            {{ esp.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sede_id">Sede</label>
+        <select id="sede_id" name="sede_id">
+          <option value="">Selecciona una sede</option>
+          {% for sede in sedes %}
+          <option value="{{ sede.id }}"
+            {{ 'selected' if (item.sede_id|string) == (sede.id|string) else '' }}>
+            {{ sede.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="consultorio_id">Consultorio</label>
+        <select id="consultorio_id" name="consultorio_id">
+          <option value="">Selecciona un consultorio</option>
+          {% for cons in consultorios %}
+          <option value="{{ cons.id }}"
+            {{ 'selected' if (item.consultorio_id|string) == (cons.id|string) else '' }}>
+            {{ cons.sede_nombre }} · {{ cons.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="registro_profesional">Registro profesional</label>
+        <input type="text" id="registro_profesional" name="registro_profesional"
+               maxlength="60" autocomplete="off"
+               value="{{ item.registro_profesional or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" name="correo"
+               maxlength="150" autocomplete="off"
+               value="{{ item.correo or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="telefono">Teléfono</label>
+        <input type="text" id="telefono" name="telefono"
+               maxlength="50" autocomplete="off"
+               value="{{ item.telefono or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="ACTIVO"   {{ 'selected' if (item.estado or 'ACTIVO') == 'ACTIVO' }}>ACTIVO</option>
+          <option value="INACTIVO" {{ 'selected' if item.estado == 'INACTIVO' }}>INACTIVO</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-ax primary" type="submit">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {{ 'Guardar profesional' if modo == 'crear' else 'Actualizar profesional' }}
+      </button>
+      <a class="btn-ax ghost" href="/hc/configuracion/profesionales">
+        <i class="fa-solid fa-xmark"></i>
+        Cancelar
+      </a>
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 2 — PROCEDIMIENTOS
+════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-procedimientos">
+
+  {% if modo == 'crear' %}
+  <div style="background:rgba(14,165,255,.07);border:1px solid rgba(14,165,255,.3);
+              border-radius:14px;padding:16px 20px;margin-bottom:16px;font-size:.9rem;">
+    <i class="fa-solid fa-circle-info" style="color:#0ea5ff;margin-right:8px;"></i>
+    Guarda primero los datos generales para poder asignar procedimientos.
+  </div>
+  {% else %}
+
+  <p class="proc-hint">
+    Busca y agrega los procedimientos CUPS que puede realizar este profesional. 
+    Ajusta la duración en minutos de cada uno.
+  </p>
+
+  <!-- Buscador CUPS -->
+  <div class="cups-search-wrap">
+    <i class="fa-solid fa-magnifying-glass ico-search"></i>
+    <input type="text" id="cupsSearch"
+           placeholder="Buscar procedimiento por código o nombre...">
+    <div class="cups-dropdown" id="cupsDropdown"></div>
+  </div>
+
+  <!-- Tabla de procedimientos asignados -->
+  <div class="proc-table-wrap">
+    <table class="proc-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descripción</th>
+          <th style="width:120px;">Duración (min)</th>
+          <th style="width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody id="procTableBody">
+        <tr>
+          <td colspan="4" class="empty-proc">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+/* ── constantes ──────────────────────────────────── */
+// ✅ DESPUÉS — maneja modo crear correctamente
+const PROF_ID = {{ (item.id if item and item.id else None) | tojson }}
+const MODO    = {{ modo | tojson }}
+const BASE_PROC = `/hc/configuracion/profesionales/${PROF_ID}/procedimientos`
+// ✅ CORRECTO — usa la ruta que ya tienes funcionando
+const BASE_CUPS = `/hc/configuracion/cups/buscar`
+
+/* ── tabs ────────────────────────────────────────── */
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"))
+    btn.classList.add("active")
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active")
+    if (btn.dataset.tab === "procedimientos" && MODO === "editar") cargarProcs()
+  })
+})
+
+/* ── form submit ─────────────────────────────────── */
+const form = document.getElementById("formProfesional")
+form?.addEventListener("submit", function(e) {
+  e.preventDefault()
+  Swal.fire({
+    title: "¿Guardar cambios?",
+    text:  MODO === "crear" ? "Se creará el profesional." : "Se actualizará el profesional.",
+    icon:  "question",
+    showCancelButton:  true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText:  "Cancelar",
+    confirmButtonColor:"#0ea5ff"
+  }).then(r => { if (r.isConfirmed) form.submit() })
+})
+
+/* ══════════════════════════════════════════════════
+   PROCEDIMIENTOS
+══════════════════════════════════════════════════ */
+
+/* cargar tabla */
+async function cargarProcs() {
+  const tbody = document.getElementById("procTableBody")
+  if (!tbody) return
+  tbody.innerHTML = `<tr><td colspan="4" class="empty-proc"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>`
+  const res  = await fetch(BASE_PROC)
+  const data = await res.json()
+  renderProcs(data)
+}
+
+function renderProcs(data) {
+  const tbody = document.getElementById("procTableBody")
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-proc">
+      <i class="fa-solid fa-syringe"></i><br><br>
+      No hay procedimientos asignados.<br>Usa el buscador para agregar.
+    </td></tr>`
+    return
+  }
+  tbody.innerHTML = data.map(p => `
+    <tr data-id="${p.id}">
+      <td><strong>${p.hc_cups?.codigo || "—"}</strong></td>
+      <td>${p.hc_cups?.descripcion || "—"}</td>
+      <td>
+        <input class="dur-input" type="number" min="1" max="480"
+               value="${p.duracion_min}"
+               onchange="guardarDuracion(${p.id}, this.value)">
+      </td>
+      <td>
+        <button class="btn-del-proc" onclick="eliminarProc(${p.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join("")
+}
+
+/* guardar duración inline */
+async function guardarDuracion(id, val) {
+  await fetch(`/hc/configuracion/profesionales/procedimientos/${id}/duracion`, {
+    method:  "POST",
+    headers: {"Content-Type": "application/json"},
+    body:    JSON.stringify({ duracion_min: parseInt(val) })
+  })
+}
+
+/* eliminar */
+async function eliminarProc(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar procedimiento?",
+    text:  "Se quitará de este profesional.",
+    icon:  "warning",
+    showCancelButton:  true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText:  "Cancelar",
+    confirmButtonColor:"#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/profesionales/procedimientos/${id}/eliminar`,
+              { method: "POST" })
+  cargarProcs()
+}
+
+/* ── buscador CUPS ───────────────────────────────── */
+const cupsSearch   = document.getElementById("cupsSearch")
+const cupsDropdown = document.getElementById("cupsDropdown")
+let   cupsTimeout  = null
+
+cupsSearch?.addEventListener("input", function() {
+  clearTimeout(cupsTimeout)
+  const q = this.value.trim()
+  if (q.length < 2) { cupsDropdown.classList.remove("open"); return }
+  cupsTimeout = setTimeout(async () => {
+    const res  = await fetch(`${BASE_CUPS}?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    if (!data.length) {
+      cupsDropdown.innerHTML = `<div class="cups-option" style="color:var(--muted);">Sin resultados</div>`
+    } else {
+      cupsDropdown.innerHTML = data.map(c => `
+        <div class="cups-option"
+             data-id="${c.id}"
+             data-codigo="${c.codigo}"
+             data-desc="${c.descripcion}">
+          <span class="cod">${c.codigo}</span>${c.descripcion}
+        </div>`).join("")
+    }
+    cupsDropdown.classList.add("open")
+  }, 300)
+})
+
+cupsDropdown?.addEventListener("click", async function(e) {
+  const opt = e.target.closest(".cups-option")
+  if (!opt || !opt.dataset.id) return
+  cupsDropdown.classList.remove("open")
+  cupsSearch.value = ""
+  const res  = await fetch(BASE_PROC + "/agregar", {
+    method:  "POST",
+    headers: {"Content-Type": "application/json"},
+    body:    JSON.stringify({ cups_id: parseInt(opt.dataset.id), duracion_min: 20 })
+  })
+  const data = await res.json()
+  if (data.ok) {
+    cargarProcs()
+  } else {
+    Swal.fire({
+      title: "No se pudo agregar",
+      text:  data.msg || "Es posible que ya esté asignado.",
+      icon:  "warning",
+      confirmButtonColor: "#0ea5ff"
+    })
+  }
+})
+
+/* cerrar dropdown al click fuera */
+document.addEventListener("click", e => {
+  if (!e.target.closest(".cups-search-wrap")) cupsDropdown?.classList.remove("open")
+})
+
+/* cargar al inicio si es editar y tab activo */
+if (MODO === "editar") {
+  const tabActive = document.querySelector(".tab-btn.active")
+  if (tabActive?.dataset.tab === "procedimientos") cargarProcs()
+}
+
+</script>
+{% endblock %}

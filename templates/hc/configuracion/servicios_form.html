@@ -1,0 +1,201 @@
+{% extends "hc/base.html" %}
+
+{% block title %}
+HC · {{ 'Nuevo servicio' if modo == 'crear' else 'Editar servicio' }}
+{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-stethoscope"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo servicio' if modo == 'crear' else 'Editar servicio' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de servicios médicos
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/servicios">
+<i class="fa-solid fa-arrow-left"></i>
+Volver al listado
+</a>
+{% endblock %}
+
+
+
+{% block extra_css %}
+<style>
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field.full{
+  grid-column:1 / -1;
+}
+
+input, select, textarea{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:10px;
+  padding:10px;
+}
+
+textarea{
+  min-height:100px;
+}
+
+.form-actions{
+  margin-top:18px;
+  display:flex;
+  gap:10px;
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<form id="form-servicio"
+method="POST"
+action="{{ '/hc/configuracion/servicios/crear' if modo=='crear' else '/hc/configuracion/servicios/' ~ servicio.id ~ '/actualizar' }}">
+
+<div class="form-grid">
+
+
+<div class="field">
+
+<label>Código</label>
+
+<input
+type="text"
+name="codigo"
+required
+value="{{ servicio.codigo if servicio }}"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>Nombre</label>
+
+<input
+type="text"
+name="nombre"
+required
+value="{{ servicio.nombre if servicio }}"
+>
+
+</div>
+
+
+
+<div class="field">
+
+<label>Especialidad</label>
+
+<select name="especialidad_id">
+
+<option value="">---</option>
+
+{% for e in especialidades %}
+
+<option value="{{ e.id }}"
+{% if servicio and servicio.especialidad_id == e.id %}
+selected
+{% endif %}
+>
+
+{{ e.nombre }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</div>
+
+
+
+<div class="field full">
+
+<label>Descripción</label>
+
+<textarea name="descripcion">
+
+{{ servicio.descripcion if servicio }}
+
+</textarea>
+
+</div>
+
+
+
+</div>
+
+
+<div class="form-actions">
+
+<button type="submit" class="btn-ax primary">
+<i class="fa-solid fa-save"></i>
+Guardar
+</button>
+
+</div>
+
+</form>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+const form = document.getElementById("form-servicio")
+
+form.addEventListener("submit", function(e){
+
+e.preventDefault()
+
+Swal.fire({
+
+title: "Confirmar",
+text: "¿Deseas guardar este servicio?",
+icon: "question",
+showCancelButton: true,
+confirmButtonText: "Guardar",
+cancelButtonText: "Cancelar"
+
+}).then((result)=>{
+
+if(result.isConfirmed){
+
+form.submit()
+
+}
+
+})
+
+})
+
+</script>
+
+{% endblock %}

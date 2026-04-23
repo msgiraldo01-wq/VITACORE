@@ -1,0 +1,489 @@
+{% extends "hc/base.html" %}
+
+{% block title %}
+HC · {{ 'Nuevo paciente' if modo == 'crear' else 'Editar paciente' }}
+{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-user-injured"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo paciente' if modo == 'crear' else 'Editar paciente' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de pacientes del sistema
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/pacientes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+
+<style>
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field.full{
+  grid-column:1 / -1;
+}
+
+.field.third{
+  grid-column:span 1;
+}
+
+input, select, textarea{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:10px;
+  padding:10px;
+  font-size:.95rem;
+}
+
+.readonly-field{
+  background:#f1f5f9;
+  color:#334155;
+  font-weight:500;
+}
+
+textarea{
+  min-height:80px;
+  resize:vertical;
+}
+
+.form-actions{
+  margin-top:24px;
+  display:flex;
+  gap:10px;
+  padding-top:20px;
+  border-top:1px solid rgba(226,232,240,.9);
+}
+
+.edad-box{
+  margin-top:6px;
+  font-size:13px;
+  color:#64748b;
+}
+
+.section-title{
+  grid-column:1 / -1;
+  font-size:1rem;
+  font-weight:700;
+  color:#0f172a;
+  margin-top:16px;
+  padding-bottom:8px;
+  border-bottom:2px solid rgba(14,165,255,.2);
+}
+
+.section-title:first-of-type{
+  margin-top:0;
+}
+
+/* Estilo para Tom Select */
+.ts-control{
+  border-radius:10px !important;
+  border:1px solid rgba(0,0,0,.08) !important;
+  padding:8px 10px !important;
+}
+
+.ts-dropdown{
+  border-radius:10px !important;
+  margin-top:4px !important;
+}
+
+label{
+  font-size:.9rem;
+  font-weight:600;
+  color:#374151;
+}
+
+label .required{
+  color:#ef4444;
+}
+
+</style>
+
+{% endblock %}
+
+{% block content %}
+
+<form
+  id="form-paciente"
+  method="POST"
+  action="{{ '/hc/pacientes/crear' if modo=='crear' else '/hc/pacientes/actualizar/' ~ paciente.id }}"
+>
+
+  <div class="form-grid">
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: IDENTIFICACIÓN -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-id-card"></i> Identificación
+    </div>
+
+    <div class="field">
+      <label>Tipo documento <span class="required">*</span></label>
+      <select name="tipo_documento_id" required>
+        <option value="">Seleccionar</option>
+        {% for t in tipos_doc %}
+        <option value="{{ t.id }}"
+          {{ 'selected' if paciente and paciente.tipo_documento_id == t.id else '' }}>
+          {{ t.codigo }} - {{ t.nombre }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Número documento <span class="required">*</span></label>
+      <input type="text" name="numero_documento" required
+        value="{{ paciente.numero_documento if paciente }}">
+    </div>
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: NOMBRES -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-user"></i> Nombres
+    </div>
+
+    <div class="field">
+      <label>Primer nombre <span class="required">*</span></label>
+      <input type="text" name="primer_nombre" required
+        value="{{ paciente.primer_nombre if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Segundo nombre</label>
+      <input type="text" name="segundo_nombre"
+        value="{{ paciente.segundo_nombre if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Primer apellido <span class="required">*</span></label>
+      <input type="text" name="primer_apellido" required
+        value="{{ paciente.primer_apellido if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Segundo apellido</label>
+      <input type="text" name="segundo_apellido"
+        value="{{ paciente.segundo_apellido if paciente }}">
+    </div>
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: DATOS DEMOGRÁFICOS -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-person"></i> Datos demográficos
+    </div>
+
+    <div class="field">
+      <label>Fecha nacimiento</label>
+      <input type="date" id="fecha_nacimiento" name="fecha_nacimiento"
+        value="{{ paciente.fecha_nacimiento if paciente }}">
+      <div class="edad-box" id="edad"></div>
+    </div>
+
+    <div class="field">
+      <label>Sexo</label>
+      <select name="sexo">
+        <option value="">Seleccionar</option>
+        <option value="M" {{ 'selected' if paciente and paciente.sexo == 'M' else '' }}>Masculino</option>
+        <option value="F" {{ 'selected' if paciente and paciente.sexo == 'F' else '' }}>Femenino</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Estado civil</label>
+      <select name="estado_civil">
+        <option value="">Seleccionar</option>
+        <option value="Soltero" {{ 'selected' if paciente and paciente.estado_civil == 'Soltero' else '' }}>Soltero</option>
+        <option value="Casado" {{ 'selected' if paciente and paciente.estado_civil == 'Casado' else '' }}>Casado</option>
+        <option value="Unión libre" {{ 'selected' if paciente and paciente.estado_civil == 'Unión libre' else '' }}>Unión libre</option>
+        <option value="Divorciado" {{ 'selected' if paciente and paciente.estado_civil == 'Divorciado' else '' }}>Divorciado</option>
+        <option value="Viudo" {{ 'selected' if paciente and paciente.estado_civil == 'Viudo' else '' }}>Viudo</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Ocupación</label>
+      <input type="text" name="ocupacion" placeholder="Ej: Ingeniero, Ama de casa, Estudiante"
+        value="{{ paciente.ocupacion if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Nivel educativo</label>
+      <select name="nivel_educativo">
+        <option value="">Seleccionar</option>
+        <option value="Ninguno" {{ 'selected' if paciente and paciente.nivel_educativo == 'Ninguno' else '' }}>Ninguno</option>
+        <option value="Preescolar" {{ 'selected' if paciente and paciente.nivel_educativo == 'Preescolar' else '' }}>Preescolar</option>
+        <option value="Primaria" {{ 'selected' if paciente and paciente.nivel_educativo == 'Primaria' else '' }}>Primaria</option>
+        <option value="Secundaria" {{ 'selected' if paciente and paciente.nivel_educativo == 'Secundaria' else '' }}>Secundaria</option>
+        <option value="Técnico" {{ 'selected' if paciente and paciente.nivel_educativo == 'Técnico' else '' }}>Técnico</option>
+        <option value="Tecnológico" {{ 'selected' if paciente and paciente.nivel_educativo == 'Tecnológico' else '' }}>Tecnológico</option>
+        <option value="Universitario" {{ 'selected' if paciente and paciente.nivel_educativo == 'Universitario' else '' }}>Universitario</option>
+        <option value="Posgrado" {{ 'selected' if paciente and paciente.nivel_educativo == 'Posgrado' else '' }}>Posgrado</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Grupo poblacional</label>
+      <select name="grupo_poblacional">
+        <option value="">Ninguno</option>
+        <option value="Indígena" {{ 'selected' if paciente and paciente.grupo_poblacional == 'Indígena' else '' }}>Indígena</option>
+        <option value="Afrocolombiano" {{ 'selected' if paciente and paciente.grupo_poblacional == 'Afrocolombiano' else '' }}>Afrocolombiano</option>
+        <option value="Raizal" {{ 'selected' if paciente and paciente.grupo_poblacional == 'Raizal' else '' }}>Raizal</option>
+        <option value="Palenquero" {{ 'selected' if paciente and paciente.grupo_poblacional == 'Palenquero' else '' }}>Palenquero</option>
+        <option value="Gitano" {{ 'selected' if paciente and paciente.grupo_poblacional == 'Gitano' else '' }}>Gitano</option>
+      </select>
+    </div>
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: UBICACIÓN -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-location-dot"></i> Ubicación
+    </div>
+
+    <div class="field">
+      <label>País</label>
+      <select name="pais_id">
+        <option value="">Seleccionar</option>
+        {% for p in paises %}
+        <option value="{{ p.id }}"
+          {{ 'selected' if (paciente and paciente.pais_id == p.id) or p.codigo_iso2 == 'CO' else '' }}>
+          {{ p.codigo_iso2 }} - {{ p.nombre }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Zona <span class="required">*</span></label>
+      <select name="zona" required>
+        <option value="">Seleccionar</option>
+        <option value="Urbano" {{ 'selected' if paciente and paciente.zona == 'Urbano' else '' }}>Urbano</option>
+        <option value="Rural" {{ 'selected' if paciente and paciente.zona == 'Rural' else '' }}>Rural</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Municipio <span class="required">*</span></label>
+      <select id="municipio_id" name="municipio_id" required>
+        <option value="">Seleccione...</option>
+        {% for m in municipios %}
+          <option value="{{ m.id }}"
+          data-departamento="{{ m.departamento_nombre }}"
+          {{ 'selected' if paciente and paciente.municipio_id == m.id else '' }}>
+            {{ m.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Departamento</label>
+      <input type="text" id="departamento_nombre" readonly class="readonly-field"
+        value="{{ paciente.hc_municipios.departamento_nombre if paciente and paciente.hc_municipios else '' }}">
+    </div>
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: CONTACTO -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-address-book"></i> Contacto
+    </div>
+
+    <div class="field">
+      <label>Teléfono</label>
+      <input type="text" name="telefono"
+        value="{{ paciente.telefono if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Celular</label>
+      <input type="text" name="celular"
+        value="{{ paciente.celular if paciente }}">
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="email"
+        value="{{ paciente.email if paciente }}">
+    </div>
+
+    <div class="field full">
+      <label>Dirección</label>
+      <textarea name="direccion" placeholder="Dirección completa">{{ paciente.direccion if paciente }}</textarea>
+    </div>
+
+    <!-- ===================== -->
+    <!-- SECCIÓN: EPS / ASEGURADORA -->
+    <!-- ===================== -->
+    
+    <div class="section-title">
+      <i class="fa-solid fa-hospital"></i> EPS / Aseguradora
+    </div>
+
+    <div class="field">
+      <label>EPS / Aseguradora</label>
+      <select id="eps_id" name="eps_id">
+        <option value="">Seleccione...</option>
+        {% for e in eps_lista %}
+          <option value="{{ e.id }}"
+            data-codigo="{{ e.codigo }}"
+            data-nit="{{ e.nit }}"
+            {{ 'selected' if paciente and paciente.eps_id == e.id else '' }}>
+            {{ e.codigo }} - {{ e.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Régimen de afiliación</label>
+      <select name="regimen_afiliacion">
+        <option value="">Seleccionar</option>
+        <option value="Contributivo" {{ 'selected' if paciente and paciente.regimen_afiliacion == 'Contributivo' else '' }}>Contributivo</option>
+        <option value="Subsidiado" {{ 'selected' if paciente and paciente.regimen_afiliacion == 'Subsidiado' else '' }}>Subsidiado</option>
+        <option value="Vinculado" {{ 'selected' if paciente and paciente.regimen_afiliacion == 'Vinculado' else '' }}>Vinculado</option>
+        <option value="Particular" {{ 'selected' if paciente and paciente.regimen_afiliacion == 'Particular' else '' }}>Particular</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button class="btn-ax primary" type="submit">
+      <i class="fa-solid fa-save"></i>
+      Guardar
+    </button>
+  </div>
+<input type="hidden" name="return_url" id="returnUrlInput" value=""> 
+       value="{{ request.referrer or '' }}">
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+// ===============================
+// CALCULAR EDAD
+// ===============================
+const fechaInput = document.getElementById("fecha_nacimiento")
+const edadBox = document.getElementById("edad")
+
+function calcularEdad(){
+  if(!fechaInput.value) return
+
+  const fecha = new Date(fechaInput.value)
+  const hoy = new Date()
+
+  let edad = hoy.getFullYear() - fecha.getFullYear()
+
+  const m = hoy.getMonth() - fecha.getMonth()
+
+  if(m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())){
+    edad--
+  }
+
+  edadBox.innerText = "Edad aproximada: " + edad + " años"
+}
+
+fechaInput?.addEventListener("change", calcularEdad)
+calcularEdad()
+
+// ===============================
+// MUNICIPIO -> DEPARTAMENTO
+// ===============================
+const municipioSelect = document.getElementById("municipio_id")
+const depInput = document.getElementById("departamento_nombre")
+
+function actualizarDepartamento(){
+  const selected = municipioSelect.options[municipioSelect.selectedIndex]
+  const dep = selected.getAttribute("data-departamento") || ""
+  depInput.value = dep
+}
+
+municipioSelect?.addEventListener("change", actualizarDepartamento)
+actualizarDepartamento()
+
+// Tom Select para Municipios
+new TomSelect("#municipio_id", {
+  create: false,
+  sortField: {
+    field: "text",
+    direction: "asc"
+  },
+  placeholder: 'Seleccione un municipio...'
+})
+
+// ===============================
+// EPS CON BÚSQUEDA
+// ===============================
+new TomSelect("#eps_id", {
+  create: false,
+  sortField: {
+    field: "text",
+    direction: "asc"
+  },
+  placeholder: 'Seleccione una EPS...'
+})
+
+// ===============================
+// CONFIRMACIÓN GUARDAR
+// ===============================
+const form = document.getElementById("form-paciente")
+
+form?.addEventListener("submit", function(e){
+  e.preventDefault()
+
+  Swal.fire({
+    title: "Confirmar",
+    text: "¿Deseas guardar este paciente?",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#0ea5ff"
+  }).then((result)=>{
+    if(result.isConfirmed){
+      form.submit()
+    }
+  })
+})
+ // Lee la URL guardada en sessionStorage cuando vino desde otra página
+const savedUrl = sessionStorage.getItem("returnUrl");
+if (savedUrl) {
+        document.getElementById("returnUrlInput").value = savedUrl;
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Signos vitales{% endblock %}
+
+{% block header_title %}
+Registro de signos vitales
+{% endblock %}
+
+{% block content %}
+
+<form method="POST" action="/hc/signos/crear/{{ paciente_id }}">
+
+<label>Peso (kg)</label>
+<input type="number" step="0.01" name="peso">
+
+<label>Talla (cm)</label>
+<input type="number" step="0.01" name="talla">
+
+<label>Presión sistólica</label>
+<input type="number" name="presion_sistolica">
+
+<label>Presión diastólica</label>
+<input type="number" name="presion_diastolica">
+
+<label>Frecuencia cardiaca</label>
+<input type="number" name="frecuencia_cardiaca">
+
+<label>Frecuencia respiratoria</label>
+<input type="number" name="frecuencia_respiratoria">
+
+<label>Temperatura</label>
+<input type="number" step="0.01" name="temperatura">
+
+<label>Observaciones</label>
+<textarea name="observaciones"></textarea>
+
+<br><br>
+
+<button class="btn-ax primary">
+Guardar
+</button>
+
+</form>
+
+{% endblock %}

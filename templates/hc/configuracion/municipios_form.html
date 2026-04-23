@@ -1,0 +1,151 @@
+{% extends "hc/base.html" %}
+
+{% block title %}
+HC · Configuración · {{ 'Nuevo municipio' if modo=='crear' else 'Editar municipio' }}
+{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-location-dot"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo municipio' if modo=='crear' else 'Editar municipio' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de municipios por departamento
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion/municipios">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:16px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.field.full{
+grid-column:1 / -1;
+}
+
+.field label{
+font-weight:700;
+}
+
+.field input,
+.field select{
+border:1px solid rgba(203,213,225,.95);
+border-radius:14px;
+padding:12px;
+}
+
+.form-actions{
+display:flex;
+gap:10px;
+margin-top:20px;
+}
+
+@media(max-width:860px){
+.form-grid{grid-template-columns:1fr;}
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<form method="POST" id="formMuni">
+
+<div class="form-grid">
+
+<div class="field">
+<label>Departamento *</label>
+
+<select name="departamento_id" required>
+
+<option value="">Seleccionar</option>
+
+{% for d in departamentos %}
+<option value="{{ d.id }}"
+{{ 'selected' if item and item.departamento_id|string == d.id|string else '' }}>
+{{ d.nombre }}
+</option>
+{% endfor %}
+
+</select>
+
+</div>
+
+
+<div class="field">
+<label>Código</label>
+<input name="codigo" value="{{ item.codigo or '' }}">
+</div>
+
+
+<div class="field full">
+<label>Nombre *</label>
+<input name="nombre" required value="{{ item.nombre or '' }}">
+</div>
+
+</div>
+
+
+<div class="form-actions">
+
+<button class="btn-ax primary" type="submit">
+<i class="fa-solid fa-floppy-disk"></i>
+{{ 'Guardar municipio' if modo=='crear' else 'Actualizar municipio' }}
+</button>
+
+<a class="btn-ax ghost" href="/hc/configuracion/municipios">
+Cancelar
+</a>
+
+</div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+document.getElementById("formMuni").addEventListener("submit",function(e){
+
+e.preventDefault()
+
+Swal.fire({
+title:"¿Guardar municipio?",
+icon:"question",
+showCancelButton:true,
+confirmButtonText:"Sí, guardar"
+}).then((r)=>{
+if(r.isConfirmed) this.submit()
+})
+
+})
+
+</script>
+{% endblock %}

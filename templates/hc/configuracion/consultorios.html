@@ -1,0 +1,178 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Consultorios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-door-closed"></i>{% endblock %}
+{% block header_title %}Configuración · Consultorios{% endblock %}
+{% block header_subtitle %}Espacios físicos y funcionales de atención{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax primary" href="/hc/configuracion/consultorios/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo consultorio
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .table-wrap{
+    overflow:auto;
+    border-radius:18px;
+    border:1px solid rgba(226,232,240,.95);
+    background:var(--surface-2);
+  }
+
+  body.dark-mode .table-wrap{
+    background:#0f172a;
+    border-color:rgba(51,65,85,.7);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:980px;
+  }
+
+  th, td{
+    padding:14px 12px;
+    border-bottom:1px solid rgba(226,232,240,.9);
+    text-align:left;
+    font-size:.93rem;
+  }
+
+  body.dark-mode th, body.dark-mode td{
+    border-bottom-color:rgba(51,65,85,.7);
+  }
+
+  th{
+    background:rgba(14,165,255,.08);
+    font-size:.84rem;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 10px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:800;
+  }
+
+  .badge.ok{
+    background:rgba(34,197,94,.12);
+    color:#166534;
+  }
+
+  .badge.off{
+    background:rgba(239,68,68,.12);
+    color:#991b1b;
+  }
+
+  .actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .btn-mini{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:none;
+    text-decoration:none;
+    cursor:pointer;
+    padding:8px 10px;
+    border-radius:12px;
+    font-size:.82rem;
+    font-weight:700;
+  }
+
+  .btn-mini.edit{
+    background:rgba(14,165,255,.12);
+    color:#0c4a6e;
+  }
+
+  .btn-mini.toggle{
+    background:rgba(15,23,42,.08);
+    color:var(--text);
+  }
+
+  .empty-box{
+    border:1px dashed rgba(148,163,184,.5);
+    border-radius:18px;
+    padding:30px;
+    text-align:center;
+    color:var(--muted);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if items %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sede</th>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Piso</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th style="width:220px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.sede_nombre or '—' }}</td>
+          <td>{{ item.codigo }}</td>
+          <td>{{ item.nombre }}</td>
+          <td>{{ item.piso or '—' }}</td>
+          <td>{{ item.descripcion or '—' }}</td>
+          <td>
+            {% if item.estado == "ACTIVO" %}
+              <span class="badge ok"><i class="fa-solid fa-circle-check"></i> Activo</span>
+            {% else %}
+              <span class="badge off"><i class="fa-solid fa-circle-xmark"></i> Inactivo</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a class="btn-mini edit" href="/hc/configuracion/consultorios/editar/{{ item.id }}">
+                <i class="fa-solid fa-pen"></i>
+                Editar
+              </a>
+
+              <form method="POST" action="/hc/configuracion/consultorios/toggle/{{ item.id }}">
+                <button class="btn-mini toggle" type="submit">
+                  <i class="fa-solid fa-power-off"></i>
+                  {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-box">
+    <h3 style="margin-top:0;">Aún no hay consultorios registrados</h3>
+    <p style="margin-bottom:16px;">Crea el primero para continuar parametrizando agendas y servicios.</p>
+    <a class="btn-ax primary" href="/hc/configuracion/consultorios/nuevo">
+      <i class="fa-solid fa-plus"></i>
+      Crear primer consultorio
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "hc/base.html" %}
+{% block title %}Vitacore · Editar usuario{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-user-pen"></i>{% endblock %}
+{% block header_title %}Editar usuario{% endblock %}
+{% block header_subtitle %}Actualiza datos, rol y estado del usuario{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="{{ url_for('configuracion_usuarios.index') }}">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ue-wrap{
+    max-width:760px;
+    margin:0 auto;
+  }
+
+  .ue-card{
+    background:var(--surface-2);
+    border:1px solid rgba(226,232,240,.95);
+    border-radius:20px;
+    padding:20px;
+  }
+
+  body.dark-mode .ue-card{
+    background:#0f172a;
+    border-color:rgba(51,65,85,.7);
+  }
+
+  .ue-form{
+    display:grid;
+    gap:14px;
+  }
+
+  .ue-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .field label{
+    font-size:.86rem;
+    font-weight:700;
+    color:var(--text);
+  }
+
+  .field input,
+  .field select{
+    width:100%;
+    border:1px solid rgba(148,163,184,.28);
+    background:rgba(255,255,255,.82);
+    color:var(--text);
+    border-radius:12px;
+    padding:11px 12px;
+    outline:none;
+  }
+
+  body.dark-mode .field input,
+  body.dark-mode .field select{
+    background:rgba(2,6,23,.72);
+    border-color:rgba(71,85,105,.55);
+    color:var(--text);
+  }
+
+  .field input:focus,
+  .field select:focus{
+    border-color:rgba(14,165,255,.55);
+    box-shadow:0 0 0 3px rgba(14,165,255,.10);
+  }
+
+  .switch-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:4px;
+  }
+
+  .ue-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:6px;
+  }
+
+  @media (max-width: 720px){
+    .ue-grid{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ue-wrap">
+  <div class="ue-card">
+    <form method="POST" class="ue-form" id="editarUsuarioForm">
+      <div class="ue-grid">
+        <div class="field">
+          <label for="username">Usuario</label>
+          <input id="username" name="username" type="text" value="{{ usuario.username }}" required>
+        </div>
+
+        <div class="field">
+          <label for="full_name">Nombre completo</label>
+          <input id="full_name" name="full_name" type="text" value="{{ usuario.full_name }}" required>
+        </div>
+      </div>
+
+      <div class="ue-grid">
+        <div class="field">
+          <label for="email">Correo</label>
+          <input id="email" name="email" type="email" value="{{ usuario.email }}" required>
+        </div>
+
+        <div class="field">
+          <label for="role_id">Rol</label>
+          <select id="role_id" name="role_id" required>
+            {% for rol in roles %}
+              <option value="{{ rol.id }}" {% if usuario.role_id == rol.id %}selected{% endif %}>
+                {{ rol.name }} ({{ rol.code }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="switch-row">
+        <input
+          id="is_active"
+          name="is_active"
+          type="checkbox"
+          value="1"
+          {% if usuario.is_active %}checked{% endif %}
+        >
+        <label for="is_active" style="margin:0;">Usuario activo</label>
+      </div>
+
+      <div class="ue-actions">
+        <a class="btn-ax ghost" href="{{ url_for('configuracion_usuarios.index') }}">
+          <i class="fa-solid fa-xmark"></i>
+          Cancelar
+        </a>
+
+        <button class="btn-ax primary" type="submit">
+          <i class="fa-solid fa-floppy-disk"></i>
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const editarUsuarioForm = document.getElementById("editarUsuarioForm");
+    const usernameInput = document.getElementById("username");
+
+    if (editarUsuarioForm) {
+      editarUsuarioForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const username = usernameInput ? usernameInput.value.trim() : "este usuario";
+
+        Swal.fire({
+          title: "¿Guardar cambios?",
+          text: `Se actualizará la información del usuario "${username}".`,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Sí, guardar",
+          cancelButtonText: "Cancelar",
+          confirmButtonColor: "#0ea5ff",
+          cancelButtonColor: "#64748b",
+          reverseButtons: true
+        }).then((result) => {
+          if (result.isConfirmed) {
+            editarUsuarioForm.submit();
+          }
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,485 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Mi perfil · Vitacore{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-user"></i>
+{% endblock %}
+
+{% block header_title %}
+Mi perfil
+{% endblock %}
+
+{% block header_subtitle %}
+Información de tu cuenta
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.profile-wrap{
+max-width:780px;
+margin:auto;
+padding:30px 20px 50px;
+}
+
+.profile-card{
+background:rgba(255,255,255,.85);
+border-radius:24px;
+padding:34px;
+box-shadow:0 20px 50px rgba(2,6,23,.10);
+border:1px solid rgba(148,163,184,.2);
+}
+
+.profile-header{
+display:flex;
+align-items:center;
+gap:18px;
+margin-bottom:30px;
+}
+
+.profile-avatar{
+width:72px;
+height:72px;
+border-radius:50%;
+display:grid;
+place-items:center;
+font-size:24px;
+font-weight:700;
+color:white;
+background:linear-gradient(135deg,#0ea5ff,#6366f1);
+}
+
+.profile-name{
+font-size:22px;
+font-weight:700;
+}
+
+.profile-role{
+font-size:13px;
+color:#64748b;
+margin-top:2px;
+}
+
+.profile-section{
+margin-top:25px;
+}
+
+.profile-section-title{
+font-size:13px;
+font-weight:700;
+color:#64748b;
+margin-bottom:12px;
+letter-spacing:.05em;
+}
+
+.profile-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+}
+
+.profile-field{
+background:#f8fafc;
+border-radius:12px;
+padding:12px 14px;
+border:1px solid rgba(148,163,184,.18);
+}
+
+.profile-label{
+font-size:11px;
+color:#64748b;
+margin-bottom:3px;
+}
+
+.profile-value{
+font-size:14px;
+font-weight:600;
+}
+
+/* PASSWORD */
+
+.password-box{
+background:#f8fafc;
+border-radius:14px;
+padding:18px;
+border:1px solid rgba(148,163,184,.2);
+}
+
+.password-field{
+position:relative;
+}
+
+.password-field input{
+width:100%;
+padding:12px 44px 12px 12px;
+border-radius:8px;
+border:1px solid rgba(148,163,184,.3);
+margin-top:6px;
+margin-bottom:12px;
+font-size:16px;
+}
+
+.password-toggle{
+position:absolute;
+right:12px;
+top:38px;
+cursor:pointer;
+color:#64748b;
+}
+
+.password-strength{
+font-size:12px;
+margin-top:-6px;
+margin-bottom:10px;
+}
+
+.strength-weak{color:#ef4444;}
+.strength-medium{color:#f59e0b;}
+.strength-strong{color:#22c55e;}
+
+.password-match{
+font-size:12px;
+margin-top:-6px;
+margin-bottom:10px;
+}
+
+.match-ok{color:#22c55e;}
+.match-bad{color:#ef4444;}
+
+.profile-actions{
+margin-top:26px;
+display:flex;
+gap:12px;
+}
+
+.btn{
+padding:10px 16px;
+border-radius:10px;
+font-weight:600;
+border:none;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.btn-primary{
+background:#0ea5ff;
+color:white;
+}
+
+.btn-logout{
+background:#ef4444;
+color:white;
+}
+
+.btn-back{
+background:#e2e8f0;
+}
+
+
+/* MOBILE FIX */
+
+@media (max-width:640px){
+
+.profile-wrap{
+padding:20px 14px 40px;
+}
+
+.profile-card{
+padding:22px 18px;
+}
+
+.profile-header{
+flex-direction:column;
+align-items:flex-start;
+gap:12px;
+}
+
+.profile-avatar{
+width:60px;
+height:60px;
+font-size:20px;
+}
+
+.profile-grid{
+grid-template-columns:1fr;
+}
+
+.password-box{
+padding:16px;
+}
+
+.profile-actions{
+flex-direction:column;
+}
+
+.profile-actions .btn{
+width:100%;
+justify-content:center;
+}
+
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="profile-wrap">
+
+<div class="profile-card">
+
+<div class="profile-header">
+
+<div class="profile-avatar">
+{{ user.full_name[0] }}
+</div>
+
+<div>
+<div class="profile-name">{{ user.full_name }}</div>
+<div class="profile-role">{{ user.role_name }}</div>
+</div>
+
+</div>
+
+
+
+<div class="profile-section">
+
+<div class="profile-section-title">
+INFORMACIÓN
+</div>
+
+<div class="profile-grid">
+
+<div class="profile-field">
+<div class="profile-label">Usuario</div>
+<div class="profile-value">{{ user.username }}</div>
+</div>
+
+<div class="profile-field">
+<div class="profile-label">Correo</div>
+<div class="profile-value">{{ user.email }}</div>
+</div>
+
+<div class="profile-field">
+<div class="profile-label">Rol</div>
+<div class="profile-value">{{ user.role_name }}</div>
+</div>
+
+<div class="profile-field">
+<div class="profile-label">ID usuario</div>
+<div class="profile-value">{{ user.id }}</div>
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="profile-section">
+
+<div class="profile-section-title">
+SEGURIDAD
+</div>
+
+<div class="password-box">
+
+<form method="POST" action="/auth/cambiar-password" onsubmit="return validarPassword()">
+
+<label>Contraseña actual</label>
+
+<div class="password-field">
+<input type="password" name="password_actual" id="passActual" required>
+<i class="fa-solid fa-eye password-toggle" onclick="togglePass('passActual')"></i>
+</div>
+
+
+<label>Nueva contraseña</label>
+
+<div class="password-field">
+<input type="password" name="password_nueva" id="passNueva" required onkeyup="checkStrength()">
+<i class="fa-solid fa-eye password-toggle" onclick="togglePass('passNueva')"></i>
+</div>
+
+<div id="passwordStrength" class="password-strength"></div>
+
+
+<label>Confirmar nueva contraseña</label>
+
+<div class="password-field">
+<input type="password" id="passConfirm" required onkeyup="checkMatch()">
+<i class="fa-solid fa-eye password-toggle" onclick="togglePass('passConfirm')"></i>
+</div>
+
+<div id="passwordMatch" class="password-match"></div>
+
+
+<button class="btn btn-primary">
+<i class="fa-solid fa-key"></i>
+Cambiar contraseña
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+
+
+<div class="profile-actions">
+
+<a class="btn btn-back" href="/">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn btn-logout logout-btn" href="/auth/logout">
+<i class="fa-solid fa-power-off"></i>
+Cerrar sesión
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* mostrar contraseña */
+
+function togglePass(id){
+
+const input = document.getElementById(id)
+
+input.type = input.type === "password" ? "text" : "password"
+
+}
+
+
+/* fuerza de contraseña */
+
+function checkStrength(){
+
+const pass = document.getElementById("passNueva").value
+const meter = document.getElementById("passwordStrength")
+
+let strength = 0
+
+if(pass.length >= 8) strength++
+if(/[A-Z]/.test(pass)) strength++
+if(/[0-9]/.test(pass)) strength++
+if(/[^A-Za-z0-9]/.test(pass)) strength++
+
+if(strength <= 1){
+meter.innerHTML = "Seguridad: débil"
+meter.className="password-strength strength-weak"
+}
+else if(strength <=3){
+meter.innerHTML = "Seguridad: media"
+meter.className="password-strength strength-medium"
+}
+else{
+meter.innerHTML = "Seguridad: fuerte"
+meter.className="password-strength strength-strong"
+}
+
+}
+
+
+/* confirmar contraseña */
+
+function checkMatch(){
+
+const pass = document.getElementById("passNueva").value
+const confirm = document.getElementById("passConfirm").value
+const msg = document.getElementById("passwordMatch")
+
+if(confirm.length === 0){
+msg.innerHTML=""
+return
+}
+
+if(pass === confirm){
+msg.innerHTML="Las contraseñas coinciden"
+msg.className="password-match match-ok"
+}else{
+msg.innerHTML="Las contraseñas no coinciden"
+msg.className="password-match match-bad"
+}
+
+}
+
+
+/* validación antes de enviar */
+
+function validarPassword(){
+
+const pass = document.getElementById("passNueva").value
+const confirm = document.getElementById("passConfirm").value
+
+if(pass !== confirm){
+alert("Las contraseñas no coinciden")
+return false
+}
+
+if(pass.length < 8){
+alert("La contraseña debe tener al menos 8 caracteres")
+return false
+}
+
+return true
+
+}
+
+/* confirmar cerrar sesion */
+
+document.querySelectorAll(".logout-btn").forEach(btn => {
+
+btn.addEventListener("click", function(e){
+
+e.preventDefault()
+
+const url = this.href
+
+Swal.fire({
+title: "Cerrar sesión",
+text: "¿Seguro que deseas salir de Vitacore?",
+icon: "question",
+showCancelButton: true,
+confirmButtonColor: "#ef4444",
+cancelButtonColor: "#64748b",
+confirmButtonText: "Sí, cerrar sesión",
+cancelButtonText: "Cancelar",
+reverseButtons: true
+}).then((result) => {
+
+if(result.isConfirmed){
+
+window.location.href = url
+
+}
+
+})
+
+})
+
+})
+
+</script>
+
+{% endblock %}

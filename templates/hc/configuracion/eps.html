@@ -1,0 +1,451 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · EPS{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-hospital-user"></i>
+{% endblock %}
+
+{% block header_title %}Configuración · EPS{% endblock %}
+
+{% block header_subtitle %}Catálogo de aseguradoras de salud{% endblock %}
+
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/eps/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nueva EPS
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+.toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.search-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(203,213,225,.9);
+  border-radius:12px;
+  padding:8px 12px;
+  background:#fff;
+}
+
+.search-box input{
+  border:none;
+  outline:none;
+  font-size:.9rem;
+  width:240px;
+}
+
+.table-wrap{
+  max-height:520px;
+  overflow:auto;
+  border-radius:18px;
+  border:1px solid rgba(226,232,240,.95);
+  background:var(--surface-2);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:850px;
+}
+
+th,td{
+  padding:14px 12px;
+  border-bottom:1px solid rgba(226,232,240,.9);
+  text-align:left;
+  font-size:.93rem;
+}
+
+th{
+  background:rgba(14,165,255,.08);
+  font-size:.84rem;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  position:sticky;
+  top:0;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:800;
+}
+
+.badge.ok{
+  background:rgba(34,197,94,.12);
+  color:#166534;
+}
+
+.badge.off{
+  background:rgba(239,68,68,.12);
+  color:#991b1b;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.btn-mini{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:none;
+  cursor:pointer;
+  padding:8px 10px;
+  border-radius:12px;
+  font-size:.82rem;
+  font-weight:700;
+  text-decoration:none;
+}
+
+.btn-mini.edit{
+  background:rgba(14,165,255,.12);
+  color:#0c4a6e;
+}
+
+.btn-mini.toggle{
+  background:rgba(15,23,42,.08);
+  color:var(--text);
+}
+
+.empty-box{
+  border:1px dashed rgba(148,163,184,.5);
+  border-radius:18px;
+  padding:30px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.msg-search{
+  text-align:center;
+  padding:25px;
+  color:var(--muted);
+  font-size:.95rem;
+}
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+{% if items %}
+
+<div class="toolbar">
+
+  <div class="search-box">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="searchInput" placeholder="Buscar código, nombre o NIT...">
+  </div>
+
+</div>
+
+
+<div class="table-wrap" id="tableWrap">
+
+  <table>
+
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>NIT</th>
+        <th>Régimen</th>
+        <th>Estado</th>
+        <th style="width:220px;">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody id="tableBody">
+
+      {% for item in items %}
+
+      <tr class="data-row">
+
+        <td>{{ item.id }}</td>
+        <td>{{ item.codigo }}</td>
+        <td>{{ item.nombre }}</td>
+        <td>{{ item.nit }}</td>
+        <td>
+          <span class="badge" style="background:rgba(14,165,255,.1);color:#0369a1;">
+            {{ item.regimen }}
+          </span>
+        </td>
+
+        <td>
+          {% if item.estado == "ACTIVO" %}
+          <span class="badge ok">
+            <i class="fa-solid fa-circle-check"></i> Activo
+          </span>
+          {% else %}
+          <span class="badge off">
+            <i class="fa-solid fa-circle-xmark"></i> Inactivo
+          </span>
+          {% endif %}
+        </td>
+
+        <td>
+
+          <div class="actions">
+
+            <!-- ✅ URL CORREGIDA: /eps/editar/{id} -->
+            <a class="btn-mini edit"
+               href="/hc/configuracion/eps/editar/{{ item.id }}">
+              <i class="fa-solid fa-pen"></i>
+              Editar
+            </a>
+
+            <form method="POST"
+                  action="/hc/configuracion/eps/toggle/{{ item.id }}"
+                  class="formToggle">
+              <button class="btn-mini toggle" type="button">
+                <i class="fa-solid fa-power-off"></i>
+                {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+              </button>
+            </form>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+
+  <h3 style="margin-top:0;">
+    Aún no hay EPS registradas
+  </h3>
+
+  <p style="margin-bottom:16px;">
+    Agrega la primera aseguradora para comenzar a parametrizar el sistema.
+  </p>
+
+  <a class="btn-ax primary"
+     href="/hc/configuracion/eps/nuevo">
+    <i class="fa-solid fa-plus"></i>
+    Crear EPS
+  </a>
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* ===============================
+   VARIABLES
+   ================================ */
+
+let allData = []
+let visible = 20
+
+/* ===============================
+   CARGAR DATOS
+   ================================ */
+
+async function cargarDatos() {
+  try {
+    let res = await fetch(`/hc/configuracion/eps/buscar`)
+    allData = await res.json()
+    renderTable(allData)
+  } catch (error) {
+    console.error("Error cargando datos:", error)
+  }
+}
+
+/* ===============================
+   RENDERIZAR TABLA
+   ================================ */
+
+function renderTable(data) {
+  const tableBody = document.getElementById("tableBody")
+  
+  if (data.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="msg-search">
+          <i class="fa-solid fa-magnifying-glass"></i><br><br>
+          No se encontraron EPS
+        </td>
+      </tr>
+    `
+    visible = 20
+    return
+  }
+
+  let html = ""
+  data.forEach(item => {
+    let estado = (item.estado || "").toUpperCase()
+    
+    let estadoBadge = estado === "ACTIVO"
+      ? `<span class="badge ok"><i class="fa-solid fa-circle-check"></i> Activo</span>`
+      : `<span class="badge off"><i class="fa-solid fa-circle-xmark"></i> Inactivo</span>`
+
+    html += `
+      <tr class="data-row">
+        <td>${item.id}</td>
+        <td>${item.codigo}</td>
+        <td>${item.nombre}</td>
+        <td>${item.nit}</td>
+        <td>
+          <span class="badge" style="background:rgba(14,165,255,.1);color:#0369a1;">
+            ${item.regimen}
+          </span>
+        </td>
+        <td>${estadoBadge}</td>
+        <td>
+          <div class="actions">
+            <a class="btn-mini edit"
+               href="/hc/configuracion/eps/editar/${item.id}">
+              <i class="fa-solid fa-pen"></i>
+              Editar
+            </a>
+            <form method="POST"
+                  action="/hc/configuracion/eps/toggle/${item.id}"
+                  class="formToggle">
+              <button class="btn-mini toggle" type="button">
+                <i class="fa-solid fa-power-off"></i>
+                ${estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    `
+  })
+
+  tableBody.innerHTML = html
+  visible = 20  // Resetear paginación
+  updateRows()
+}
+
+/* ===============================
+   BUSCADOR
+   ================================ */
+
+const input = document.getElementById("searchInput")
+let timeout = null
+
+input?.addEventListener("input", function() {
+  clearTimeout(timeout)
+  
+  let q = this.value.trim().toLowerCase()
+  
+  timeout = setTimeout(() => {
+    if (q.length === 0) {
+      // Vacío: mostrar todos
+      renderTable(allData)
+    } else if (q.length < 2) {
+      // Menos de 2 caracteres: no hacer nada (o puedes mostrar mensaje)
+      return
+    } else {
+      // Filtrar localmente
+      let filtered = allData.filter(item => 
+        (item.codigo || "").toLowerCase().includes(q) ||
+        (item.nombre || "").toLowerCase().includes(q) ||
+        (item.nit || "").toLowerCase().includes(q)
+      )
+      renderTable(filtered)
+    }
+  }, 300)
+})
+
+/* ===============================
+   SCROLL INFINITO
+   ================================ */
+
+function updateRows() {
+  const rows = document.querySelectorAll(".data-row")
+  rows.forEach((row, index) => {
+    row.style.display = index < visible ? "" : "none"
+  })
+}
+
+const wrap = document.getElementById("tableWrap")
+
+wrap?.addEventListener("scroll", function() {
+  if (wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 10) {
+    visible += 20
+    updateRows()
+  }
+})
+
+/* ===============================
+   CONFIRMAR TOGGLE
+   ================================ */
+
+document.addEventListener("click", function(e) {
+  if (e.target.closest(".formToggle button")) {
+    const btn = e.target.closest("button")
+    const form = btn.closest("form")
+
+    Swal.fire({
+      title: "¿Confirmar cambio?",
+      text: "El estado de la EPS será modificado.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#0ea5ff"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit()
+      }
+    })
+  }
+})
+
+/* ===============================
+   INICIAR
+   ================================ */
+
+cargarDatos()
+
+</script>
+
+{% endblock %}

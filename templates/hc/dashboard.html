@@ -1,0 +1,52 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Dashboard clínico{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-chart-line"></i>{% endblock %}
+{% block header_title %}Dashboard clínico{% endblock %}
+{% block header_subtitle %}Vista general inicial del proyecto de historia clínica{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-gear"></i>
+  Configuración
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-block">
+  <h3 style="margin-top:0;">Proyecto Historia Clínica</h3>
+  <p style="margin-bottom:12px; color:var(--muted);">
+    La base visual ya está operativa. Desde aquí comenzaremos a construir los módulos funcionales del sistema.
+  </p>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:16px;">
+    <div class="content-block">
+      <h4 style="margin-top:0;">Configuración</h4>
+      <p style="margin:0; color:var(--muted);">
+        Maestros base del sistema: sedes, especialidades, consultorios, servicios y más.
+      </p>
+    </div>
+
+    <div class="content-block">
+      <h4 style="margin-top:0;">Pacientes</h4>
+      <p style="margin:0; color:var(--muted);">
+        Registro, búsqueda y administración de pacientes.
+      </p>
+    </div>
+
+    <div class="content-block">
+      <h4 style="margin-top:0;">Citas</h4>
+      <p style="margin:0; color:var(--muted);">
+        Agenda médica, programación y control de atención.
+      </p>
+    </div>
+
+    <div class="content-block">
+      <h4 style="margin-top:0;">Historia clínica</h4>
+      <p style="margin:0; color:var(--muted);">
+        Registro clínico, evolución, antecedentes y trazabilidad asistencial.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

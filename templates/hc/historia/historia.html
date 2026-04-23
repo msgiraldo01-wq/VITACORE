@@ -1,0 +1,83 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Historia clínica{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-book-medical"></i>
+{% endblock %}
+
+{% block header_title %}
+Historia clínica
+{% endblock %}
+
+
+{% block header_subtitle %}
+Folio completo del paciente
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <h2>
+    {{ paciente.apellidos }} {{ paciente.nombres }}
+  </h2>
+
+  <p>
+    Documento: {{ paciente.numero_documento }}
+  </p>
+
+</div>
+
+<br>
+
+{% for e in evoluciones %}
+
+<div class="card" style="margin-bottom:14px; border-left:4px solid #3b82f6;">
+
+  <!-- HEADER -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    
+    <h4 style="margin:0;">
+      EV-{{ "%05d"|format(loop.index) }}
+    </h4>
+
+    <small style="opacity:.7;">
+      {{ e.fecha }}
+    </small>
+
+  </div>
+
+  <!-- CONTENIDO -->
+  <p><strong>Diagnóstico:</strong> {{ e.cie10_codigo or '-' }}</p>
+  <p><strong>Motivo:</strong> {{ e.motivo_consulta or '-' }}</p>
+  <p><strong>Enfermedad actual:</strong> {{ e.enfermedad_actual or '-' }}</p>
+  <p><strong>Plan:</strong> {{ e.plan or '-' }}</p>
+  <p><strong>Médico:</strong> {{ e.medico_nombre or '-' }}</p>
+
+  <!-- ACCIONES -->
+  <div style="margin-top:10px; display:flex; gap:8px;">
+
+    <a href="/hc/evoluciones/ver/{{ e.id }}" class="btn-ax sm">
+      <i class="fa-solid fa-eye"></i>
+      Ver
+    </a>
+
+    <a href="/hc/evoluciones/formula_pdf/{{ e.id }}" class="btn-ax sm ghost">
+      <i class="fa-solid fa-file-pdf"></i>
+      PDF
+    </a>
+
+  </div>
+
+</div>
+
+{% else %}
+
+<div class="card">
+  <p>No hay evoluciones registradas.</p>
+</div>
+
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,455 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Inicio · Vitacore{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-heart-pulse"></i>
+{% endblock %}
+
+{% block header_title %}
+Vitacore
+{% endblock %}
+
+{% block header_subtitle %}
+Sistema clínico integral
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* CONTENEDOR */
+
+.vita-home{
+max-width:1100px;
+margin:auto;
+padding:30px 20px 60px;
+}
+
+
+/* BARRA SUPERIOR USUARIO */
+
+.vita-topbar{
+display:flex;
+justify-content:flex-end;
+margin-bottom:20px;
+margin-top:10px;
+}
+
+
+/* ========================= */
+/* MENÚ USUARIO */
+/* ========================= */
+
+.userhub{
+position:relative;
+}
+
+.user-btn{
+display:flex;
+align-items:center;
+gap:10px;
+padding:6px 12px;
+border-radius:999px;
+border:1px solid rgba(148,163,184,.22);
+background:#fff;
+cursor:pointer;
+box-shadow:0 6px 18px rgba(2,6,23,.08);
+transition:.2s;
+}
+
+.user-btn:hover{
+background:#f8fafc;
+}
+
+.user-avatar{
+width:34px;
+height:34px;
+border-radius:50%;
+display:grid;
+place-items:center;
+font-weight:700;
+font-size:14px;
+color:#fff;
+background:linear-gradient(135deg,#0ea5ff,#6366f1);
+}
+
+.user-info{
+display:flex;
+flex-direction:column;
+line-height:1.1;
+}
+
+.user-name{
+font-size:13px;
+font-weight:600;
+}
+
+.user-role{
+font-size:11px;
+color:#64748b;
+}
+
+.user-caret{
+font-size:12px;
+color:#64748b;
+}
+
+
+/* DROPDOWN */
+
+.user-menu{
+position:absolute;
+right:0;
+top:52px;
+width:200px;
+
+background:#fff;
+border-radius:14px;
+overflow:hidden;
+
+border:1px solid rgba(148,163,184,.2);
+box-shadow:0 20px 40px rgba(2,6,23,.15);
+
+opacity:0;
+transform:translateY(-10px) scale(.98);
+pointer-events:none;
+
+transition:
+opacity .18s ease,
+transform .18s ease;
+
+z-index:20;
+
+}
+
+.user-menu a{
+display:flex;
+align-items:center;
+gap:12px;
+padding:14px 16px;
+text-decoration:none;
+color:#1e293b;
+font-weight:600;
+border-bottom:1px solid rgba(148,163,184,.15);
+}
+
+.user-menu a:last-child{
+border-bottom:none;
+color:#ef4444;
+}
+
+.user-menu a:hover{
+background:#f1f5f9;
+}
+
+.user-menu.show{
+
+opacity:1;
+transform:translateY(0) scale(1);
+pointer-events:auto;
+
+}
+
+
+/* ========================= */
+/* HERO */
+/* ========================= */
+
+.vita-card{
+background:rgba(255,255,255,.85);
+border:1px solid rgba(148,163,184,.25);
+border-radius:26px;
+padding:40px 28px;
+backdrop-filter:blur(12px);
+box-shadow:0 20px 50px rgba(2,6,23,.08);
+text-align:center;
+}
+
+body.dark-mode .vita-card{
+background:rgba(15,23,42,.9);
+border-color:rgba(51,65,85,.6);
+}
+
+.vita-pill{
+display:inline-flex;
+gap:8px;
+align-items:center;
+padding:8px 14px;
+border-radius:999px;
+border:1px solid rgba(148,163,184,.25);
+font-size:12px;
+font-weight:700;
+margin-bottom:14px;
+}
+
+.vita-home h1{
+font-size:38px;
+margin:12px 0;
+font-weight:800;
+}
+
+.vita-home h1 span{
+color:#0ea5ff;
+}
+
+.vita-home p{
+color:var(--muted);
+font-size:15px;
+max-width:600px;
+margin:auto;
+line-height:1.6;
+}
+
+.vita-time{
+margin-top:20px;
+display:inline-flex;
+align-items:center;
+gap:10px;
+padding:10px 16px;
+border-radius:999px;
+border:1px solid rgba(148,163,184,.25);
+font-weight:600;
+}
+
+.vita-line{
+width:120px;
+height:4px;
+margin:26px auto;
+background:linear-gradient(90deg,#0ea5ff,#22c55e);
+border-radius:999px;
+}
+
+
+/* ========================= */
+/* INDICADORES */
+/* ========================= */
+
+.vita-stats{
+margin-top:30px;
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+gap:16px;
+}
+
+.vita-stat{
+padding:18px;
+border-radius:18px;
+background:var(--surface-2);
+border:1px solid rgba(148,163,184,.18);
+text-align:center;
+}
+
+.vita-stat i{
+font-size:20px;
+color:#0ea5ff;
+margin-bottom:6px;
+}
+
+.vita-stat strong{
+display:block;
+font-size:20px;
+margin-top:4px;
+}
+
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+@media (max-width:600px){
+
+.vita-home{
+padding:20px 14px 40px;
+}
+
+.vita-card{
+padding:26px 18px;
+}
+
+.vita-home h1{
+font-size:30px;
+}
+
+.vita-topbar{
+margin-top:20px;
+margin-bottom:14px;
+}
+
+.user-btn{
+padding:8px 14px;
+}
+
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="vita-home">
+
+
+<!-- BARRA USUARIO -->
+
+<div class="vita-topbar">
+
+<div class="userhub">
+
+<button class="user-btn" id="perfilToggle">
+
+<div class="user-avatar">
+{{ session['user']['full_name'][0] }}
+</div>
+
+<div class="user-info">
+<span class="user-name">{{ session['user']['full_name'] }}</span>
+<span class="user-role">Administrador</span>
+</div>
+
+<i class="fa-solid fa-chevron-down user-caret"></i>
+
+</button>
+
+
+<nav class="user-menu" id="perfilMenu">
+
+<a href="/auth/mi-perfil">
+<i class="fa-solid fa-user"></i>
+<span>Mi perfil</span>
+</a>
+
+<a href="/auth/logout">
+<i class="fa-solid fa-power-off"></i>
+<span>Cerrar sesión</span>
+</a>
+
+</nav>
+
+</div>
+
+</div>
+
+
+
+<!-- HERO -->
+
+<div class="vita-card">
+
+<div class="vita-pill">
+<i class="fa-solid fa-heart-pulse"></i>
+Vitacore · Inicio
+</div>
+
+<h1>
+Hola,<br>
+<span>{{ session['user']['full_name'] }}</span>
+</h1>
+
+<p>
+Bienvenido al sistema clínico Vitacore.  
+Gestione pacientes, historias clínicas y evoluciones médicas desde un solo lugar.
+</p>
+
+<div class="vita-time">
+<i class="fa-solid fa-clock"></i>
+<span id="clockNow">—</span>
+</div>
+
+<div class="vita-line"></div>
+
+</div>
+
+
+
+<!-- INDICADORES -->
+
+<div class="vita-stats">
+
+<div class="vita-stat">
+<i class="fa-solid fa-user-injured"></i>
+Pacientes hoy
+<strong>{{ pacientes_hoy or 0 }}</strong>
+</div>
+
+<div class="vita-stat">
+<i class="fa-solid fa-notes-medical"></i>
+Evoluciones hoy
+<strong>{{ evoluciones_hoy or 0 }}</strong>
+</div>
+
+<div class="vita-stat">
+<i class="fa-solid fa-heart-pulse"></i>
+Signos registrados
+<strong>{{ signos_hoy or 0 }}</strong>
+</div>
+
+<div class="vita-stat">
+<i class="fa-solid fa-hospital"></i>
+Consultas activas
+<strong>{{ consultas_hoy or 0 }}</strong>
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener("DOMContentLoaded",function(){
+
+/* RELOJ */
+
+function updateClock(){
+
+const now = new Date()
+
+const text = now.toLocaleString("es-CO",{
+weekday:"long",
+day:"2-digit",
+month:"long",
+hour:"2-digit",
+minute:"2-digit"
+})
+
+document.getElementById("clockNow").innerText = text
+
+}
+
+updateClock()
+setInterval(updateClock,30000)
+
+
+
+/* MENÚ PERFIL */
+
+const toggle = document.getElementById("perfilToggle")
+const menu = document.getElementById("perfilMenu")
+
+toggle.addEventListener("click",function(){
+
+menu.classList.toggle("show")
+
+})
+
+document.addEventListener("click",function(e){
+
+if(!toggle.contains(e.target) && !menu.contains(e.target)){
+menu.classList.remove("show")
+}
+
+})
+
+})
+
+</script>
+
+{% endblock %}

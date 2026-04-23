@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historia Clínica — {{ paciente.apellidos }} {{ paciente.nombres }}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: #e8ecf0;
+  color: #0f172a;
+  padding: 20px;
+  font-size: 9px;
+  line-height: 1.25;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ═══════════════════════════════════
+   PÁGINA
+   ═══════════════════════════════════ */
+.page {
+  max-width: 210mm;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.12);
+}
+
+/* ═══════════════════════════════════
+   STAMP TOP RIGHT
+   ═══════════════════════════════════ */
+.stamp-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 8px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.stamp-box {
+  border: 1px solid #cbd5e1;
+  padding: 2px 8px;
+  font-size: 8px;
+  text-align: center;
+  min-width: 140px;
+}
+
+.stamp-box .stamp-title {
+  font-weight: 700;
+  font-size: 8px;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 1px;
+  margin-bottom: 1px;
+}
+
+.stamp-box .stamp-date {
+  font-size: 8px;
+  color: #475569;
+}
+
+/* ═══════════════════════════════════
+   ENCABEZADO INSTITUCIONAL
+   ═══════════════════════════════════ */
+.inst-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 6px;
+  border-bottom: 2px solid #0f172a;
+}
+
+.inst-logo {
+  width: 48px; height: 48px;
+  border: 2px solid #0f172a;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 8px; font-weight: 800;
+  text-align: center; color: #0f172a;
+  line-height: 1.1;
+  padding: 4px;
+}
+
+.inst-info { flex: 1; text-align: center; }
+.inst-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+.inst-nit  { font-size: 8px; color: #475569; margin-top: 1px; }
+.inst-addr { font-size: 8px; color: #475569; }
+
+.inst-right { text-align: right; font-size: 8px; color: #475569; }
+
+/* ═══════════════════════════════════
+   TÍTULOS DE SECCIÓN
+   ═══════════════════════════════════ */
+.doc-title-bar {
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  padding: 3px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-bar {
+  background: #334155;
+  color: white;
+  padding: 2px 8px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0;
+}
+
+.subsection-bar {
+  background: #e2e8f0;
+  color: #1e293b;
+  padding: 2px 8px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-top: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+/* ═══════════════════════════════════
+   TABLAS DE DATOS
+   ═══════════════════════════════════ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+
+.data-table td {
+  padding: 2px 6px;
+  border: 1px solid #cbd5e1;
+  vertical-align: top;
+}
+
+.data-table .lbl {
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+  background: #f8fafc;
+  width: 1%;
+}
+
+.data-table .val {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.data-table .val.bold {
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* Fila de cabecera de historia */
+.hc-id-row {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+}
+
+.hc-id-cell {
+  padding: 2px 6px;
+  border-right: 1px solid #cbd5e1;
+  flex: 1;
+  font-size: 9px;
+}
+
+.hc-id-cell:last-child { border-right: none; }
+.hc-id-cell .lbl { font-weight: 700; color: #475569; display: block; font-size: 8px; }
+.hc-id-cell .val { font-weight: 600; }
+
+/* ═══════════════════════════════════
+   SIGNOS VITALES
+   ═══════════════════════════════════ */
+.signos-row {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  flex-wrap: wrap;
+}
+
+.signo-cell {
+  padding: 3px 6px;
+  border-right: 1px solid #cbd5e1;
+  flex: 1;
+  min-width: 60px;
+  text-align: center;
+}
+
+.signo-cell:last-child { border-right: none; }
+
+.signo-cell .s-lbl {
+  font-size: 7px; font-weight: 700;
+  text-transform: uppercase; color: #64748b;
+  display: block; margin-bottom: 1px;
+}
+
+.signo-cell .s-val {
+  font-size: 11px; font-weight: 800; color: #0f172a;
+}
+
+.signo-cell .s-unit {
+  font-size: 7px; color: #94a3b8; font-weight: 500;
+}
+
+.signo-cell.imc-cell { background: #f0fdf4; }
+
+/* ═══════════════════════════════════
+   BLOQUES DE TEXTO SOAP
+   ═══════════════════════════════════ */
+.soap-block {
+  border: 1px solid #cbd5e1;
+  border-top: none;
+}
+
+.soap-block .soap-label {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.soap-block .soap-content {
+  padding: 3px 6px;
+  font-size: 9px;
+  color: #1e293b;
+  line-height: 1.4;
+  min-height: 18px;
+  white-space: pre-wrap;
+}
+
+.soap-block .soap-content.empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ALERTAS */
+.alerta-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-size: 8px;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.alerta-inline.ant { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+.alerta-inline.alg { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* ═══════════════════════════════════
+   DIAGNÓSTICOS
+   ═══════════════════════════════════ */
+.dx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+
+.dx-table th {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+  text-align: left;
+  font-size: 8px;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.dx-table td {
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  vertical-align: top;
+}
+
+.dx-code-cell {
+  font-family: 'Courier New', monospace;
+  font-weight: 800;
+  font-size: 10px;
+  white-space: nowrap;
+  width: 70px;
+}
+
+.dx-principal-badge {
+  display: inline-block;
+  background: #0f172a;
+  color: white;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════
+   MEDICAMENTOS
+   ═══════════════════════════════════ */
+.meds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+
+.meds-table th {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+  font-size: 8px;
+  text-transform: uppercase;
+  color: #475569;
+  text-align: left;
+}
+
+.meds-table td {
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  vertical-align: top;
+}
+
+.meds-table tr:nth-child(even) td { background: #f8fafc; }
+
+.med-num-cell {
+  width: 24px;
+  text-align: center;
+  font-weight: 800;
+  color: #475569;
+}
+
+.no-data-row td {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 8px;
+}
+
+/* ═══════════════════════════════════
+   FIRMA / FOOTER
+   ═══════════════════════════════════ */
+.firma-section {
+  display: flex;
+  gap: 0;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+}
+
+.firma-col {
+  flex: 1;
+  padding: 8px 10px 12px;
+  border-right: 1px solid #cbd5e1;
+}
+
+.firma-col:last-child { border-right: none; }
+
+.firma-col .f-lbl {
+  font-size: 8px; font-weight: 700;
+  text-transform: uppercase; color: #475569;
+  margin-bottom: 2px;
+}
+
+.firma-col .f-val {
+  font-size: 11px; font-weight: 800; color: #0f172a;
+  margin-bottom: 1px;
+}
+
+.firma-col .f-sub {
+  font-size: 8px; color: #64748b;
+}
+
+.firma-line-area {
+  margin-top: 16px;
+  border-top: 1px solid #0f172a;
+  padding-top: 2px;
+  text-align: center;
+  font-size: 8px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* PAGE FOOTER */
+.page-footer {
+  background: #f8fafc;
+  border-top: 2px solid #0f172a;
+  padding: 4px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  color: #64748b;
+}
+
+.page-footer .pf-left { flex: 1; }
+.page-footer .pf-right { font-weight: 600; }
+
+/* ═══════════════════════════════════
+   BOTÓN IMPRIMIR
+   ═══════════════════════════════════ */
+.print-btn {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #0f172a; color: white;
+  border: none; border-radius: 10px;
+  padding: 12px 20px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  display: flex; align-items: center; gap: 8px;
+  transition: all 0.2s;
+}
+
+.print-btn:hover { transform: translateY(-2px); }
+
+/* ═══════════════════════════════════
+   PRINT
+   ═══════════════════════════════════ */
+@media print {
+  @page { size: A4; margin: 5mm 8mm 5mm 8mm; }
+
+  body { background: white; padding: 0; font-size: 9px; }
+  .page { box-shadow: none; max-width: 100%; }
+  .print-btn { display: none !important; }
+
+  .meds-table tr, .dx-table tr,
+  .firma-section { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- STAMP -->
+  <div class="stamp-bar">
+    <div class="stamp-box">
+      <div class="stamp-title">COPIA DE HISTORIA</div>
+      <div class="stamp-date">
+        Fecha Actual:
+        {{ evolucion.fecha | string | truncate(10, true, '') if evolucion.fecha else '' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ENCABEZADO INSTITUCIONAL -->
+  <div class="inst-header">
+    <div class="inst-logo">VITA<br>CORE</div>
+    <div class="inst-info">
+      <div class="inst-name">VITACORE — Sistema de Salud</div>
+      <div class="inst-nit">NIT: 000.000.000-0</div>
+      <div class="inst-addr">Sistema de Historia Clínica Electrónica</div>
+    </div>
+    <div class="inst-right">
+      Evolución #{{ evolucion.id }}<br>
+      {{ evolucion.tipo_atencion or 'CONSULTA EXTERNA' }}
+    </div>
+  </div>
+
+  <!-- TÍTULO -->
+  <div class="doc-title-bar">Historia Clínica — Evolución</div>
+
+  <!-- ID EVOLUCIÓN -->
+  <div class="hc-id-row">
+    <div class="hc-id-cell">
+      <span class="lbl">N° Historia Clínica</span>
+      <span class="val">{{ paciente.numero_documento }}</span>
+    </div>
+    <div class="hc-id-cell">
+      <span class="lbl">Fecha de atención</span>
+      <span class="val">{{ evolucion.fecha | string | truncate(10, true, '') if evolucion.fecha else '—' }}</span>
+    </div>
+    <div class="hc-id-cell">
+      <span class="lbl">Tipo de atención</span>
+      <span class="val">{{ evolucion.tipo_atencion or 'Consulta externa' }}</span>
+    </div>
+    <div class="hc-id-cell">
+      <span class="lbl">N° Evolución</span>
+      <span class="val">#{{ evolucion.id }}</span>
+    </div>
+  </div>
+
+  <!-- DATOS PERSONALES + AFILIACIÓN COMBINADOS -->
+  <div class="subsection-bar">Datos del paciente</div>
+  <table class="data-table">
+    <tr>
+      <td class="lbl">Nombre</td>
+      <td class="val bold" colspan="3">{{ paciente.apellidos | upper }} {{ paciente.nombres | upper }}</td>
+      <td class="lbl">ID</td>
+      <td class="val">{{ paciente.tipo_documento or 'CC' }} {{ paciente.numero_documento }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Sexo</td>
+      <td class="val">
+        {% set s = paciente.sexo or '' %}
+        {% if s in ['F','femenino','Femenino'] %}Femenino
+        {% elif s in ['M','masculino','Masculino'] %}Masculino
+        {% else %}—{% endif %}
+      </td>
+      <td class="lbl">Nacimiento</td>
+      <td class="val">{{ paciente.fecha_nacimiento or '—' }}</td>
+      <td class="lbl">Edad</td>
+      <td class="val">{{ paciente.edad or '—' }} años</td>
+    </tr>
+    <tr>
+      <td class="lbl">Dirección</td>
+      <td class="val">{{ paciente.direccion or '—' }}</td>
+      <td class="lbl">Teléfono</td>
+      <td class="val">{{ paciente.celular or paciente.telefono or '—' }}</td>
+      <td class="lbl">EPS</td>
+      <td class="val bold">{{ paciente.eps_nombre or paciente.aseguradora or '—' }}</td>
+    </tr>
+  </table>
+
+  <!-- ALERTAS -->
+  {% if evolucion.antecedentes or evolucion.alergias %}
+  <div class="subsection-bar">Alertas clínicas</div>
+  <div style="padding: 3px 6px; border: 1px solid #cbd5e1; border-top: none;">
+    {% if evolucion.antecedentes %}
+    <span class="alerta-inline ant">&#9998; Antecedentes</span>
+    <span style="font-size:9px; color:#78350f;">{{ evolucion.antecedentes }}</span>
+    {% endif %}
+    {% if evolucion.alergias %}
+    <br style="{% if not evolucion.antecedentes %}display:none{% endif %}">
+    <span class="alerta-inline alg" style="{% if evolucion.antecedentes %}margin-top:3px;{% endif %}">&#9888; Alergias</span>
+    <span style="font-size:9px; color:#991b1b; font-weight:600;">{{ evolucion.alergias }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- HORA / MÉDICO + SIGNOS VITALES -->
+  <div class="subsection-bar">Atención médica y signos vitales</div>
+  <div class="signos-row">
+    <div class="hc-id-cell" style="flex: 1.5; text-align: left;">
+      <span class="lbl">Médico</span>
+      <span class="val bold">{{ medico.nombre_completo if medico else evolucion.medico_nombre or '—' }}</span>
+      {% if medico and medico.registro_medico %}<span style="font-size:8px; color:#64748b;"> | RM: {{ medico.registro_medico }}</span>{% endif %}
+    </div>
+    {% if evolucion.peso %}
+    <div class="signo-cell">
+      <span class="s-lbl">Peso</span>
+      <span class="s-val">{{ evolucion.peso }}</span>
+      <span class="s-unit">Kg</span>
+    </div>
+    {% endif %}
+    {% if evolucion.talla %}
+    <div class="signo-cell">
+      <span class="s-lbl">Talla</span>
+      <span class="s-val">{{ evolucion.talla }}</span>
+      <span class="s-unit">Cm</span>
+    </div>
+    {% endif %}
+    {% if evolucion.imc %}
+    <div class="signo-cell imc-cell">
+      <span class="s-lbl">IMC</span>
+      <span class="s-val">{{ evolucion.imc }}</span>
+      <span class="s-unit">
+        {% set imc = evolucion.imc | float %}
+        {% if imc < 18.5 %}BP
+        {% elif imc < 25 %}N
+        {% elif imc < 30 %}SP
+        {% else %}OB{% endif %}
+      </span>
+    </div>
+    {% endif %}
+    {% if evolucion.ta %}
+    <div class="signo-cell">
+      <span class="s-lbl">T/A</span>
+      <span class="s-val">{{ evolucion.ta }}</span>
+      <span class="s-unit">mmHg</span>
+    </div>
+    {% endif %}
+    {% if evolucion.fc %}
+    <div class="signo-cell">
+      <span class="s-lbl">FC</span>
+      <span class="s-val">{{ evolucion.fc }}</span>
+      <span class="s-unit">lpm</span>
+    </div>
+    {% endif %}
+    {% if evolucion.fr %}
+    <div class="signo-cell">
+      <span class="s-lbl">FR</span>
+      <span class="s-val">{{ evolucion.fr }}</span>
+      <span class="s-unit">rpm</span>
+    </div>
+    {% endif %}
+    {% if evolucion.temperatura %}
+    <div class="signo-cell">
+      <span class="s-lbl">Temp</span>
+      <span class="s-val">{{ evolucion.temperatura }}</span>
+      <span class="s-unit">°C</span>
+    </div>
+    {% endif %}
+    {% if evolucion.spo2 %}
+    <div class="signo-cell">
+      <span class="s-lbl">SpO2</span>
+      <span class="s-val">{{ evolucion.spo2 }}</span>
+      <span class="s-unit">%</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SOAP -->
+  <div class="section-bar">Subjetivo</div>
+
+  <div class="soap-block">
+    <div class="soap-label">Motivo de consulta</div>
+    <div class="soap-content {% if not evolucion.motivo_consulta %}empty{% endif %}">{{ evolucion.motivo_consulta or 'No registrado' }}</div>
+  </div>
+
+  <div class="soap-block">
+    <div class="soap-label">Enfermedad actual</div>
+    <div class="soap-content {% if not evolucion.enfermedad_actual %}empty{% endif %}">{{ evolucion.enfermedad_actual or 'No registrado' }}</div>
+  </div>
+
+  <div class="section-bar">Objetivo</div>
+
+  <div class="soap-block">
+    <div class="soap-label">Examen físico</div>
+    <div class="soap-content {% if not evolucion.examen_fisico %}empty{% endif %}">{{ evolucion.examen_fisico or 'No registrado' }}</div>
+  </div>
+
+  <div class="section-bar">Análisis</div>
+
+  <div class="soap-block">
+    <div class="soap-label">Impresión diagnóstica</div>
+    <div class="soap-content {% if not evolucion.impresion_diagnostica %}empty{% endif %}">{{ evolucion.impresion_diagnostica or 'No registrado' }}</div>
+  </div>
+
+  <!-- DIAGNÓSTICOS -->
+  <div class="subsection-bar">Diagnósticos</div>
+  <table class="dx-table">
+    <thead>
+      <tr>
+        <th style="width:70px;">Código</th>
+        <th>Descripción</th>
+        <th style="width:80px;">Tipo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if evolucion.cie10_codigo %}
+      <tr>
+        <td class="dx-code-cell">{{ evolucion.cie10_codigo }}</td>
+        <td>{{ evolucion.cie10_nombre or '—' }}</td>
+        <td><span class="dx-principal-badge">PRINCIPAL</span></td>
+      </tr>
+      {% endif %}
+      {% if evolucion.diagnosticos_secundarios %}
+      <tr>
+        <td class="dx-code-cell" style="color:#64748b;">—</td>
+        <td>{{ evolucion.diagnosticos_secundarios }}</td>
+        <td style="color:#64748b; font-size:8px;">Secundario</td>
+      </tr>
+      {% endif %}
+      {% if not evolucion.cie10_codigo and not evolucion.diagnosticos_secundarios %}
+      <tr class="no-data-row"><td colspan="3">Sin diagnósticos registrados</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <!-- PLAN -->
+  <div class="section-bar">Plan</div>
+
+  <div class="soap-block">
+    <div class="soap-label">Plan de tratamiento</div>
+    <div class="soap-content {% if not evolucion.plan %}empty{% endif %}">{{ evolucion.plan or 'No registrado' }}</div>
+  </div>
+
+  {% if evolucion.recomendaciones %}
+  <div class="soap-block">
+    <div class="soap-label">Recomendaciones</div>
+    <div class="soap-content">{{ evolucion.recomendaciones }}</div>
+  </div>
+  {% endif %}
+
+  <!-- MEDICAMENTOS -->
+  <div class="subsection-bar">Medicamentos prescritos</div>
+  <table class="meds-table">
+    <thead>
+      <tr>
+        <th class="med-num-cell">#</th>
+        <th>Medicamento</th>
+        <th style="width:80px;">Dosis</th>
+        <th style="width:100px;">Frecuencia</th>
+        <th style="width:70px;">Duración</th>
+        <th style="width:60px;">Vía</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if medicamentos %}
+        {% for m in medicamentos %}
+        <tr>
+          <td class="med-num-cell">{{ loop.index }}</td>
+          <td style="font-weight:600;">{{ m.medicamento_nombre }}</td>
+          <td>{{ m.dosis or '—' }}</td>
+          <td>{{ m.frecuencia or '—' }}</td>
+          <td>{{ m.duracion or '—' }}</td>
+          <td>{{ m.via_administracion or '—' }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr class="no-data-row"><td colspan="6">No se registraron medicamentos</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <!-- FIRMA -->
+  <div class="firma-section">
+    <div class="firma-col">
+      <div class="f-lbl">Profesional responsable</div>
+      <div class="f-val">{{ medico.nombre_completo if medico else evolucion.medico_nombre or '—' }}</div>
+      {% if medico and medico.registro_medico %}
+      <div class="f-sub">RM: {{ medico.registro_medico }}{% if medico.especialidad %} | {{ medico.especialidad }}{% endif %}</div>
+      {% endif %}
+      <div class="firma-line-area">Firma y sello</div>
+    </div>
+    <div class="firma-col" style="max-width: 180px;">
+      <div class="f-lbl">Fecha</div>
+      <div class="f-val">{{ evolucion.fecha | string | truncate(10, true, '') if evolucion.fecha else '—' }}</div>
+      <div style="margin-top: 4px;">
+        <div class="f-lbl">Paciente</div>
+        <div class="f-sub">{{ paciente.nombres }} {{ paciente.apellidos }}</div>
+        <div class="f-sub">{{ paciente.tipo_documento or 'CC' }} {{ paciente.numero_documento }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE FOOTER -->
+  <div class="page-footer">
+    <div class="pf-left">
+      VITACORE · {{ paciente.apellidos | upper }} {{ paciente.nombres | upper }} · {{ paciente.tipo_documento or 'CC' }} {{ paciente.numero_documento }}
+    </div>
+    <div class="pf-right">Pág. 1/1</div>
+  </div>
+
+</div><!-- /page -->
+
+<button class="print-btn" onclick="window.print()">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 6 2 18 2 18 9"/>
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+    <rect x="6" y="14" width="12" height="8"/>
+  </svg>
+  Imprimir / Guardar PDF
+</button>
+
+</body>
+</html>

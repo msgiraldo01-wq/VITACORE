@@ -1,0 +1,192 @@
+{% extends "hc/base.html" %}
+
+{% block title %}
+HC · Configuración · {{ 'Nuevo medicamento' if modo=='crear' else 'Editar medicamento' }}
+{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-pills"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo medicamento' if modo=='crear' else 'Editar medicamento' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro farmacológico del sistema
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/medicamentos">
+<i class="fa-solid fa-arrow-left"></i>
+Volver al listado
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:16px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.field.full{
+grid-column:1 / -1;
+}
+
+.field label{
+font-weight:700;
+font-size:.92rem;
+}
+
+.field input,
+.field select{
+
+border:1px solid rgba(203,213,225,.95);
+border-radius:14px;
+padding:12px 14px;
+font-size:.95rem;
+background:#fff;
+}
+
+.field input:focus,
+.field select:focus{
+
+border-color:rgba(14,165,255,.7);
+box-shadow:0 0 0 3px rgba(14,165,255,.12);
+}
+
+.form-actions{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-top:20px;
+}
+
+@media (max-width:860px){
+.form-grid{
+grid-template-columns:1fr;
+}
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<form method="POST" id="formMedicamento">
+
+<div class="form-grid">
+
+<div class="field">
+<label>Principio activo *</label>
+<input name="principio_activo" required value="{{ item.principio_activo or '' }}">
+</div>
+
+<div class="field">
+<label>Nombre comercial</label>
+<input name="nombre_comercial" value="{{ item.nombre_comercial or '' }}">
+</div>
+
+<div class="field">
+<label>Concentración</label>
+<input name="concentracion" value="{{ item.concentracion or '' }}">
+</div>
+
+<div class="field">
+<label>Forma farmacéutica</label>
+<input name="forma" value="{{ item.forma_farmaceutica or '' }}">
+</div>
+
+<div class="field">
+<label>Vía administración</label>
+<input name="via" value="{{ item.via_administracion or '' }}">
+</div>
+
+<div class="field">
+<label>Registro INVIMA</label>
+<input name="invima" value="{{ item.registro_invima or '' }}">
+</div>
+
+<div class="field">
+<label>Laboratorio</label>
+<input name="laboratorio" value="{{ item.laboratorio or '' }}">
+</div>
+
+<div class="field">
+<label>Estado</label>
+<select name="estado">
+<option value="ACTIVO" {{ 'selected' if (item.estado or 'ACTIVO') == 'ACTIVO' else '' }}>ACTIVO</option>
+<option value="INACTIVO" {{ 'selected' if item.estado == 'INACTIVO' else '' }}>INACTIVO</option>
+</select>
+</div>
+
+<div class="field">
+<label>CUM</label>
+<input name="cum" value="{{ item.cum or '' }}">
+</div>
+
+
+</div>
+
+<div class="form-actions">
+
+<button class="btn-ax primary" type="submit">
+<i class="fa-solid fa-floppy-disk"></i>
+{{ 'Guardar medicamento' if modo=='crear' else 'Actualizar medicamento' }}
+</button>
+
+<a class="btn-ax ghost" href="/hc/medicamentos">
+<i class="fa-solid fa-xmark"></i>
+Cancelar
+</a>
+
+</div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+const form = document.getElementById("formMedicamento")
+
+form.addEventListener("submit",function(e){
+
+e.preventDefault()
+
+Swal.fire({
+title:"¿Guardar medicamento?",
+text:"Se registrará o actualizará el medicamento.",
+icon:"question",
+showCancelButton:true,
+confirmButtonText:"Sí, guardar",
+confirmButtonColor:"#0ea5ff"
+}).then((result)=>{
+if(result.isConfirmed){
+form.submit()
+}
+})
+
+})
+
+</script>
+
+{% endblock %}

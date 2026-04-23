@@ -1,0 +1,206 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Servicios{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-stethoscope"></i>
+{% endblock %}
+
+{% block header_title %}
+Servicios
+{% endblock %}
+
+{% block header_subtitle %}
+Catálogo de servicios médicos
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax primary" href="/hc/configuracion/servicios/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo servicio
+</a>
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.table-wrap{
+  background:var(--surface-2);
+  border-radius:18px;
+  padding:18px;
+}
+
+.table-ax{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.table-ax th{
+  text-align:left;
+  font-weight:600;
+  padding:12px;
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+
+.table-ax td{
+  padding:12px;
+  border-bottom:1px solid rgba(0,0,0,.05);
+}
+
+.badge{
+  padding:4px 10px;
+  border-radius:12px;
+  font-size:12px;
+}
+
+.badge.ok{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.badge.off{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="table-wrap">
+
+<table class="table-ax">
+
+<thead>
+<tr>
+
+<th>ID</th>
+<th>Código</th>
+<th>Nombre</th>
+<th>Especialidad</th>
+<th>Estado</th>
+<th></th>
+
+</tr>
+</thead>
+
+<tbody>
+
+{% for s in servicios %}
+
+<tr>
+
+<td>{{ s.id }}</td>
+
+<td>{{ s.codigo }}</td>
+
+<td>{{ s.nombre }}</td>
+
+<td>
+{{ s.hc_especialidades.nombre if s.hc_especialidades else "-" }}
+</td>
+
+<td>
+{% if s.estado == "ACTIVO" %}
+<span class="badge ok">Activo</span>
+{% else %}
+<span class="badge off">Inactivo</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="actions">
+
+<!-- EDITAR -->
+<a class="btn-ax warning"
+href="/hc/configuracion/servicios/{{ s.id }}/editar"
+title="Editar">
+
+<i class="fa-solid fa-pen"></i>
+
+</a>
+
+
+<!-- CAMBIAR ESTADO -->
+<form method="POST"
+action="{{ url_for('hc_configuracion.servicio_toggle', item_id=s.id) }}"
+class="form-toggle">
+
+<button type="submit"
+class="btn-ax {{ 'danger' if s.estado == 'ACTIVO' else 'success' }}"
+title="Cambiar estado">
+
+{% if s.estado == "ACTIVO" %}
+<i class="fa-solid fa-ban"></i>
+{% else %}
+<i class="fa-solid fa-check"></i>
+{% endif %}
+
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+document.querySelectorAll(".form-toggle").forEach(form => {
+
+form.addEventListener("submit", function(e){
+
+e.preventDefault()
+
+Swal.fire({
+
+title: "Confirmar cambio",
+text: "¿Deseas cambiar el estado del servicio?",
+icon: "warning",
+showCancelButton: true,
+confirmButtonText: "Sí, continuar",
+cancelButtonText: "Cancelar"
+
+}).then((result)=>{
+
+if(result.isConfirmed){
+form.submit()
+}
+
+})
+
+})
+
+})
+
+</script>
+
+{% endblock %}

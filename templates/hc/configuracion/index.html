@@ -1,0 +1,340 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-gear"></i>{% endblock %}
+{% block header_title %}Configuración{% endblock %}
+{% block header_subtitle %}Maestros base, seguridad y parámetros generales del sistema{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al dashboard
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cfg-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:16px;
+  }
+
+  .cfg-card{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+    background: var(--surface-2);
+    border:1px solid rgba(226,232,240,.95);
+    border-radius:20px;
+    padding:18px;
+    transition:.18s ease;
+    box-shadow: 0 8px 24px rgba(2,6,23,.06);
+  }
+
+  body.dark-mode .cfg-card{
+    background:#0f172a;
+    border-color: rgba(51,65,85,.7);
+  }
+
+  .cfg-card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px rgba(2,6,23,.12);
+    border-color: rgba(14,165,255,.35);
+  }
+
+  .cfg-icon{
+    width:52px;
+    height:52px;
+    border-radius:16px;
+    display:grid;
+    place-items:center;
+    margin-bottom:14px;
+    color:#fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    box-shadow: 0 12px 28px rgba(14,165,255,.18);
+    font-size:20px;
+  }
+
+  .cfg-title{
+    margin:0 0 6px;
+    font-size:1rem;
+    font-weight:800;
+  }
+
+  .cfg-text{
+    margin:0;
+    color:var(--muted);
+    font-size:.92rem;
+    line-height:1.5;
+  }
+
+  .cfg-top{
+    margin-bottom:18px;
+    display:grid;
+    grid-template-columns: 1.5fr .8fr;
+    gap:16px;
+  }
+
+  .cfg-panel{
+    background: var(--surface-2);
+    border:1px solid rgba(226,232,240,.95);
+    border-radius:20px;
+    padding:18px;
+  }
+
+  body.dark-mode .cfg-panel{
+    background:#0f172a;
+    border-color: rgba(51,65,85,.7);
+  }
+
+  .cfg-panel h3{
+    margin:0 0 10px;
+    font-size:1rem;
+  }
+
+  .cfg-panel p{
+    margin:0;
+    color:var(--muted);
+    line-height:1.6;
+  }
+
+  .cfg-list{
+    display:grid;
+    gap:10px;
+    margin-top:12px;
+  }
+
+  .cfg-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(14,165,255,.10);
+    color:var(--text);
+    font-size:.88rem;
+    font-weight:700;
+    width:fit-content;
+  }
+
+  .cfg-section{
+    margin-top:26px;
+  }
+
+  .cfg-section-title{
+    margin:0 0 12px;
+    font-size:1rem;
+    font-weight:800;
+    color:var(--text);
+    letter-spacing:.01em;
+  }
+
+  .cfg-section-subtitle{
+    margin:0 0 16px;
+    color:var(--muted);
+    font-size:.92rem;
+  }
+
+  @media (max-width: 900px){
+    .cfg-top{
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-top">
+  <div class="cfg-panel">
+    <h3>Base de configuración clínica</h3>
+    <p>
+      Este módulo define los maestros principales del sistema. Todo lo que creemos aquí
+      servirá como base para pacientes, citas, admisiones, historia clínica, facturación y farmacia.
+    </p>
+
+    <div class="cfg-list">
+      <span class="cfg-badge"><i class="fa-solid fa-check"></i> Maestros iniciales del proyecto</span>
+      <span class="cfg-badge"><i class="fa-solid fa-check"></i> Preparado para crecer por módulos</span>
+      <span class="cfg-badge"><i class="fa-solid fa-check"></i> Integrable con permisos, usuarios y roles</span>
+    </div>
+  </div>
+
+  <div class="cfg-panel">
+    <h3>Orden recomendado</h3>
+    <p>
+      Primero configuramos maestros clínicos y luego consolidamos seguridad:
+      usuarios, roles, permisos por ruta y parámetros generales del sistema.
+    </p>
+  </div>
+</div>
+
+<div class="cfg-section">
+  <h3 class="cfg-section-title">Maestros clínicos</h3>
+  <p class="cfg-section-subtitle">
+    Catálogos base del funcionamiento clínico y asistencial.
+  </p>
+
+  <div class="cfg-grid">
+    <a class="cfg-card" href="/hc/configuracion/sedes">
+      <div class="cfg-icon"><i class="fa-solid fa-building"></i></div>
+      <h3 class="cfg-title">Sedes</h3>
+      <p class="cfg-text">Define las sedes habilitadas del sistema clínico.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/especialidades">
+      <div class="cfg-icon"><i class="fa-solid fa-stethoscope"></i></div>
+      <h3 class="cfg-title">Especialidades</h3>
+      <p class="cfg-text">Catálogo de especialidades médicas y asistenciales.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/consultorios">
+      <div class="cfg-icon"><i class="fa-solid fa-door-closed"></i></div>
+      <h3 class="cfg-title">Consultorios</h3>
+      <p class="cfg-text">Espacios físicos o funcionales asociados a atención.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/profesionales">
+      <div class="cfg-icon"><i class="fa-solid fa-user-doctor"></i></div>
+      <h3 class="cfg-title">Profesionales</h3>
+      <p class="cfg-text">Registro básico del personal clínico y asistencial.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/servicios">
+      <div class="cfg-icon"><i class="fa-solid fa-notes-medical"></i></div>
+      <h3 class="cfg-title">Servicios</h3>
+      <p class="cfg-text">Servicios clínicos, administrativos o de apoyo.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/tipos-documento">
+      <div class="cfg-icon"><i class="fa-solid fa-id-card"></i></div>
+      <h3 class="cfg-title">Tipos de documento</h3>
+      <p class="cfg-text">CC, TI, CE, PAS y demás documentos permitidos.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/parametros">
+      <div class="cfg-icon"><i class="fa-solid fa-sliders"></i></div>
+      <h3 class="cfg-title">Parámetros generales</h3>
+      <p class="cfg-text">Valores base del sistema clínico y administrativo.</p>
+    </a>
+    
+    <a class="cfg-card" href="/hc/configuracion/paises">
+      <div class="cfg-icon"><i class="fa-solid fa-earth-americas"></i></div>
+      <h3 class="cfg-title">Países</h3>
+      <p class="cfg-text">Catálogo de países para residencia y nacionalidad de pacientes.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/cie10">
+
+      <div class="cfg-icon">
+      <i class="fa-solid fa-virus"></i>
+      </div>
+      
+      <h3 class="cfg-title">CIE10</h3>
+      
+      <p class="cfg-text">
+      Catálogo de diagnósticos clínicos.
+      </p>
+      
+    </a>
+    <a class="cfg-card" href="/hc/medicamentos">
+      <div class="cfg-icon">
+        <i class="fa-solid fa-pills"></i>
+      </div>
+
+      <h3 class="cfg-title">Medicamentos</h3>
+
+      <p class="cfg-text">
+        Catálogo de medicamentos disponibles para la atención clínica.
+      </p>
+    </a>
+    
+    <a class="cfg-card" href="/hc/configuracion/cups">
+      <div class="cfg-icon">
+        <i class="fa-solid fa-syringe"></i>
+      </div>
+      <div class="card-body">
+        <div class="cfg-title">CUPS</div>
+        <div class="cfg-text">Catálogo de procedimientos en salud.</div>
+      </div>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/departamentos">
+      <div class="cfg-icon">
+        <i class="fa-solid fa-map"></i>
+      </div>
+
+      <h3 class="cfg-title">Departamentos</h3>
+
+      <p class="cfg-text">
+        Gestión de departamentos asociados a cada país.
+      </p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/municipios">
+      <div class="cfg-icon">
+        <i class="fa-solid fa-location-dot"></i>
+      </div>
+
+      <h3 class="cfg-title">Municipios</h3>
+
+      <p class="cfg-text">
+        Registro de municipios organizados por departamento.
+      </p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/eps">
+      <div class="cfg-icon">
+        <i class="fa-solid fa-hospital-user"></i>
+      </div>
+      <h3 class="cfg-title">EPS</h3>
+      <p class="cfg-text">
+        Catálogo de aseguradoras de salud y sus regímenes.
+      </p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/recursos">
+    
+        <div class="cfg-icon">
+            <i class="fa-solid fa-microscope"></i>
+        </div>
+
+        <h3 class="cfg-title">Recursos</h3>
+
+        <p class="cfg-text">
+            Gestión de equipos, salas y consultorios disponibles para la atención clínica.
+        </p>
+
+    </a>
+
+  </div>
+
+</div>
+
+<div class="cfg-section">
+  <h3 class="cfg-section-title">Seguridad y acceso</h3>
+  <p class="cfg-section-subtitle">
+    Administración de usuarios, perfiles de acceso y matriz de permisos del sistema.
+  </p>
+
+  <div class="cfg-grid">
+    <a class="cfg-card" href="/hc/configuracion/usuarios">
+      <div class="cfg-icon"><i class="fa-solid fa-users-gear"></i></div>
+      <h3 class="cfg-title">Usuarios</h3>
+      <p class="cfg-text">Crea usuarios del sistema, asigna roles y administra su acceso a los modulos.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/roles-permisos">
+      <div class="cfg-icon"><i class="fa-solid fa-user-shield"></i></div>
+      <h3 class="cfg-title">Roles y permisos</h3>
+      <p class="cfg-text">Define permisos por rol sobre módulos y acciones del sistema.</p>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/permisos-rutas">
+      <div class="cfg-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <h3 class="cfg-title">Permisos por ruta</h3>
+      <p class="cfg-text">Controla qué endpoints y vistas puede usar cada rol.</p>
+    </a>
+  </div>
+</div>
+{% endblock %}

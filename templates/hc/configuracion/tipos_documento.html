@@ -1,0 +1,346 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Tipos de documento{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-id-card"></i>{% endblock %}
+{% block header_title %}Configuración · Tipos de documento{% endblock %}
+{% block header_subtitle %}Catálogo de documentos válidos del sistema{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/tipos-documento/nuevo">
+<i class="fa-solid fa-plus"></i>
+Nuevo tipo
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+gap:12px;
+flex-wrap:wrap;
+}
+
+.search-box{
+display:flex;
+align-items:center;
+gap:8px;
+border:1px solid rgba(203,213,225,.9);
+border-radius:12px;
+padding:8px 12px;
+background:#fff;
+}
+
+.search-box input{
+border:none;
+outline:none;
+font-size:.9rem;
+width:220px;
+}
+
+.table-wrap{
+max-height:520px;
+overflow:auto;
+border-radius:18px;
+border:1px solid rgba(226,232,240,.95);
+background:var(--surface-2);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:850px;
+}
+
+th,td{
+padding:14px 12px;
+border-bottom:1px solid rgba(226,232,240,.9);
+text-align:left;
+font-size:.93rem;
+}
+
+th{
+background:rgba(14,165,255,.08);
+font-size:.84rem;
+text-transform:uppercase;
+letter-spacing:.05em;
+position:sticky;
+top:0;
+}
+
+.badge{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:7px 10px;
+border-radius:999px;
+font-size:.78rem;
+font-weight:800;
+}
+
+.badge.ok{
+background:rgba(34,197,94,.12);
+color:#166534;
+}
+
+.badge.off{
+background:rgba(239,68,68,.12);
+color:#991b1b;
+}
+
+.actions{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+}
+
+.btn-mini{
+display:inline-flex;
+align-items:center;
+gap:6px;
+border:none;
+cursor:pointer;
+padding:8px 10px;
+border-radius:12px;
+font-size:.82rem;
+font-weight:700;
+}
+
+.btn-mini.edit{
+background:rgba(14,165,255,.12);
+color:#0c4a6e;
+}
+
+.btn-mini.toggle{
+background:rgba(15,23,42,.08);
+color:var(--text);
+}
+
+.empty-box{
+border:1px dashed rgba(148,163,184,.5);
+border-radius:18px;
+padding:30px;
+text-align:center;
+color:var(--muted);
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if items %}
+
+<div class="toolbar">
+
+<div class="search-box">
+<i class="fa-solid fa-magnifying-glass"></i>
+<input type="text" id="searchInput" placeholder="Buscar código o nombre...">
+</div>
+
+</div>
+
+
+<div class="table-wrap" id="tableWrap">
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Código</th>
+<th>Nombre</th>
+<th>Descripción</th>
+<th>Estado</th>
+<th style="width:220px;">Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tableBody">
+
+{% for item in items %}
+
+<tr class="data-row">
+
+<td>{{ item.id }}</td>
+<td>{{ item.codigo }}</td>
+<td>{{ item.nombre }}</td>
+<td>{{ item.descripcion or '—' }}</td>
+
+<td>
+{% if item.estado == "ACTIVO" %}
+<span class="badge ok"><i class="fa-solid fa-circle-check"></i> Activo</span>
+{% else %}
+<span class="badge off"><i class="fa-solid fa-circle-xmark"></i> Inactivo</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="actions">
+
+<a class="btn-mini edit"
+href="/hc/configuracion/tipos-documento/editar/{{ item.id }}">
+<i class="fa-solid fa-pen"></i>
+Editar
+</a>
+
+<form method="POST"
+action="/hc/configuracion/tipos-documento/toggle/{{ item.id }}"
+class="formToggle">
+
+<button class="btn-mini toggle" type="button">
+
+<i class="fa-solid fa-power-off"></i>
+{{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+</table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+
+<h3 style="margin-top:0;">
+Aún no hay tipos de documento registrados
+</h3>
+
+<p style="margin-bottom:16px;">
+Crea el primero para comenzar a parametrizar pacientes y profesionales.
+</p>
+
+<a class="btn-ax primary"
+href="/hc/configuracion/tipos-documento/nuevo">
+
+<i class="fa-solid fa-plus"></i>
+Crear primer tipo
+
+</a>
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* -----------------------------
+BUSCADOR EN VIVO
+----------------------------- */
+
+const searchInput = document.getElementById("searchInput")
+
+if(searchInput){
+
+searchInput.addEventListener("keyup",function(){
+
+let filter = this.value.toLowerCase()
+
+document.querySelectorAll(".data-row").forEach(row=>{
+
+let text = row.innerText.toLowerCase()
+
+row.style.display = text.includes(filter) ? "" : "none"
+
+})
+
+})
+
+}
+
+
+/* -----------------------------
+SCROLL INFINITO
+----------------------------- */
+
+const rows = document.querySelectorAll(".data-row")
+let visible = 20
+
+function updateRows(){
+
+rows.forEach((row,index)=>{
+
+row.style.display = index < visible ? "" : "none"
+
+})
+
+}
+
+updateRows()
+
+const wrap = document.getElementById("tableWrap")
+
+wrap?.addEventListener("scroll",function(){
+
+if(wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 10){
+
+visible += 20
+updateRows()
+
+}
+
+})
+
+
+/* -----------------------------
+CONFIRMAR TOGGLE
+----------------------------- */
+
+document.querySelectorAll(".formToggle button").forEach(btn=>{
+
+btn.addEventListener("click",function(){
+
+const form = this.closest("form")
+
+Swal.fire({
+
+title:"¿Confirmar cambio?",
+text:"El estado del tipo de documento será modificado.",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Sí, continuar",
+cancelButtonText:"Cancelar",
+confirmButtonColor:"#0ea5ff"
+
+}).then((result)=>{
+
+if(result.isConfirmed){
+form.submit()
+}
+
+})
+
+})
+
+})
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends "hc/base.html" %}
+{% block title %}Vitacore · Permisos por ruta{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-shield-halved"></i>{% endblock %}
+{% block header_title %}Matriz de permisos por ruta{% endblock %}
+{% block header_subtitle %}Define qué rutas puede usar cada rol{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pr-wrap{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap:18px;
+  }
+
+  .pr-card{
+    background:var(--surface-2);
+    border:1px solid rgba(226,232,240,.95);
+    border-radius:20px;
+    padding:18px;
+  }
+
+  body.dark-mode .pr-card{
+    background:#0f172a;
+    border-color:rgba(51,65,85,.7);
+  }
+
+  .pr-title{
+    margin:0 0 14px;
+    font-size:1rem;
+    font-weight:800;
+    color:var(--text);
+  }
+
+  .role-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .role-item{
+    display:block;
+    text-decoration:none;
+    border-radius:16px;
+    padding:14px;
+    border:1px solid rgba(148,163,184,.20);
+    background:rgba(255,255,255,.72);
+    color:var(--text);
+    transition:.16s ease;
+  }
+
+  body.dark-mode .role-item{
+    background:rgba(2,6,23,.60);
+    color:var(--text);
+    border-color:rgba(71,85,105,.45);
+  }
+
+  .role-item.active{
+    border-color:rgba(14,165,255,.45);
+    background:rgba(14,165,255,.10);
+  }
+
+  .role-code{
+    font-size:.78rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--muted);
+  }
+
+  .role-name{
+    margin-top:4px;
+    font-weight:800;
+  }
+
+  .pr-role-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    border-radius:999px;
+    background:rgba(14,165,255,.12);
+    border:1px solid rgba(14,165,255,.18);
+    font-weight:800;
+    color:var(--text);
+    margin-bottom:14px;
+  }
+
+  .pr-table-wrap{
+    overflow:auto;
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:18px;
+  }
+
+  .pr-table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:860px;
+  }
+
+  .pr-table th,
+  .pr-table td{
+    padding:12px 14px;
+    border-top:1px solid rgba(148,163,184,.14);
+    text-align:left;
+    color:var(--text);
+  }
+
+  .pr-table th{
+    font-size:.82rem;
+    color:var(--muted);
+    font-weight:800;
+  }
+
+  .chk{
+    width:18px;
+    height:18px;
+    accent-color:#0ea5ff;
+  }
+
+  .pr-actions{
+    margin-top:16px;
+    display:flex;
+    justify-content:flex-end;
+  }
+
+  .endpoint{
+    font-weight:700;
+  }
+
+  .muted{
+    color:var(--muted);
+    font-size:.85rem;
+  }
+
+  @media (max-width: 980px){
+    .pr-wrap{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pr-wrap">
+  <aside class="pr-card">
+    <h3 class="pr-title">Roles</h3>
+
+    <div class="role-list">
+      {% for rol in roles %}
+        <a
+          class="role-item {% if rol_activo and rol.id == rol_activo.id %}active{% endif %}"
+          href="{{ url_for('permisos_rutas.index', role_id=rol.id) }}"
+        >
+          <div class="role-code">{{ rol.code }}</div>
+          <div class="role-name">{{ rol.name }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <section class="pr-card">
+    {% if rol_activo %}
+      <div class="pr-role-badge">
+        <i class="fa-solid fa-shield-halved"></i>
+        Rol activo: {{ rol_activo.name }} ({{ rol_activo.code }})
+      </div>
+
+      <form method="POST">
+        <input type="hidden" name="role_id" value="{{ rol_activo.id }}">
+
+        <div class="pr-table-wrap">
+          <table class="pr-table">
+            <thead>
+              <tr>
+                <th>OK</th>
+                <th>Ruta</th>
+                <th>Endpoint</th>
+                <th>Métodos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ruta in rutas %}
+                <tr>
+                  <td>
+                    <input
+                      class="chk"
+                      type="checkbox"
+                      name="ruta_ids"
+                      value="{{ ruta.id }}"
+                      {% if ruta.permitida %}checked{% endif %}
+                    >
+                  </td>
+                  <td>{{ ruta.ruta }}</td>
+                  <td class="endpoint">{{ ruta.endpoint }}</td>
+                  <td class="muted">{{ ruta.metodos }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pr-actions">
+          <button class="btn-ax primary" type="submit">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Guardar cambios
+          </button>
+        </div>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

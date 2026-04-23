@@ -1,0 +1,172 @@
+{% extends "hc/base.html" %}
+
+{% block title %}
+HC · Configuración · {{ 'Nuevo departamento' if modo=='crear' else 'Editar departamento' }}
+{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-map"></i>
+{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo departamento' if modo=='crear' else 'Editar departamento' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de departamentos por país
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion/departamentos">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:16px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.field.full{
+grid-column:1 / -1;
+}
+
+.field label{
+font-weight:700;
+font-size:.92rem;
+}
+
+.field input,
+.field select{
+
+border:1px solid rgba(203,213,225,.95);
+border-radius:14px;
+padding:12px 14px;
+font-size:.95rem;
+outline:none;
+background:#fff;
+}
+
+.field input:focus,
+.field select:focus{
+border-color:#0ea5e9;
+box-shadow:0 0 0 3px rgba(14,165,255,.15);
+}
+
+.help{
+font-size:.82rem;
+color:#64748b;
+}
+
+.form-actions{
+display:flex;
+gap:10px;
+margin-top:20px;
+}
+
+@media(max-width:860px){
+.form-grid{grid-template-columns:1fr;}
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<form method="POST" id="formDep">
+
+<div class="form-grid">
+
+<div class="field">
+<label>País *</label>
+
+<select name="pais_id" required>
+
+<option value="">Seleccionar</option>
+
+{% for p in paises %}
+<option value="{{ p.id }}"
+{{ 'selected' if item and item.pais_id|string == p.id|string else '' }}>
+{{ p.codigo_iso2 }} · {{ p.nombre }}
+</option>
+{% endfor %}
+
+</select>
+
+<div class="help">Selecciona el país al que pertenece el departamento.</div>
+
+</div>
+
+
+<div class="field">
+<label>Código</label>
+<input name="codigo" value="{{ item.codigo or '' }}">
+</div>
+
+
+<div class="field full">
+<label>Nombre *</label>
+<input name="nombre" required value="{{ item.nombre or '' }}">
+</div>
+
+</div>
+
+
+<div class="form-actions">
+
+<button class="btn-ax primary" type="submit">
+<i class="fa-solid fa-floppy-disk"></i>
+{{ 'Guardar departamento' if modo=='crear' else 'Actualizar departamento' }}
+</button>
+
+<a class="btn-ax ghost" href="/hc/configuracion/departamentos">
+Cancelar
+</a>
+
+</div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+document.getElementById("formDep").addEventListener("submit",function(e){
+
+e.preventDefault()
+
+Swal.fire({
+title:"¿Guardar cambios?",
+text:"Se registrará el departamento.",
+icon:"question",
+showCancelButton:true,
+confirmButtonText:"Sí, guardar",
+cancelButtonText:"Cancelar",
+confirmButtonColor:"#0ea5ff"
+}).then((r)=>{
+if(r.isConfirmed) this.submit()
+})
+
+})
+
+</script>
+{% endblock %}

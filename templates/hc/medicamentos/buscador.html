@@ -1,0 +1,98 @@
+<div class="med-search">
+
+    <input 
+        type="text"
+        id="medicamento_buscar"
+        placeholder="Buscar medicamento..."
+        class="input-ax"
+    />
+    
+    <div id="medicamento_resultados"></div>
+    
+    </div>
+    
+    <style>
+    
+    .med-search{
+        position:relative;
+        max-width:420px;
+    }
+    
+    #medicamento_resultados{
+        position:absolute;
+        top:100%;
+        left:0;
+        right:0;
+    
+        background:white;
+        border:1px solid #ddd;
+    
+        border-radius:10px;
+    
+        max-height:250px;
+        overflow:auto;
+    
+        z-index:999;
+    }
+    
+    .med-item{
+        padding:10px;
+        cursor:pointer;
+    }
+    
+    .med-item:hover{
+        background:#f3f4f6;
+    }
+    
+    </style>
+    
+    
+    <script>
+    
+    const input = document.getElementById("medicamento_buscar")
+    const resultados = document.getElementById("medicamento_resultados")
+    
+    input.addEventListener("keyup", async () => {
+    
+        const texto = input.value
+    
+        if(texto.length < 2){
+            resultados.innerHTML = ""
+            return
+        }
+    
+        const res = await fetch(`/hc/medicamentos/buscar?q=${texto}`)
+    
+        const data = await res.json()
+    
+        resultados.innerHTML = ""
+    
+        data.forEach(med => {
+    
+            const div = document.createElement("div")
+            div.className = "med-item"
+    
+            div.innerHTML = `
+            <strong>${med.principio_activo}</strong>
+            <br>
+            <small>
+            ${med.concentracion || ""}
+            ${med.forma_farmaceutica || ""}
+            </small>
+            `
+    
+            div.onclick = () => {
+    
+                input.value = med.principio_activo
+    
+                resultados.innerHTML = ""
+    
+            }
+    
+            resultados.appendChild(div)
+    
+        })
+    
+    })
+    
+    </script>

@@ -1,0 +1,1113 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC - {{ paciente.get('primer_nombre', '') }} {{ paciente.get('segundo_nombre', '') }} {{ paciente.get('primer_apellido', '') }} {{ paciente.get('segundo_apellido', '') }}{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-notes-medical"></i>
+{% endblock %}
+
+{% block header_title %}
+Historia clínica
+{% endblock %}
+
+{% block header_subtitle %}
+<div class="patient-header-info">
+  <span class="patient-name-header">{{ paciente.get('primer_nombre', '') }} {{ paciente.get('segundo_nombre', '') }} {{ paciente.get('primer_apellido', '') }} {{ paciente.get('segundo_apellido', '') }}</span>
+  <span class="patient-doc-header">
+    <i class="fa-solid fa-id-card"></i> {{ paciente.get('tipo_documento', '') }} {{ paciente.get('numero_documento', '') }}
+  </span>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* =========================
+   VARIABLES POR SEXO
+========================= */
+
+:root {
+  --patient-primary: #0ea5e9;
+  --patient-secondary: #22c55e;
+  --patient-accent: #0ea5e9;
+  --patient-bg: linear-gradient(135deg, #0ea5e9, #22c55e);
+}
+
+{% set sexo = paciente.get('sexo', '') %}
+{% if sexo == 'F' or sexo == 'femenino' or sexo == 'Femenino' %}
+:root {
+  --patient-primary: #ec4899;
+  --patient-secondary: #8b5cf6;
+  --patient-accent: #ec4899;
+  --patient-bg: linear-gradient(135deg, #ec4899, #8b5cf6);
+}
+{% elif sexo == 'M' or sexo == 'masculino' or sexo == 'Masculino' %}
+:root {
+  --patient-primary: #0ea5e9;
+  --patient-secondary: #22c55e;
+  --patient-accent: #0ea5e9;
+  --patient-bg: linear-gradient(135deg, #0ea5e9, #22c55e);
+}
+{% else %}
+:root {
+  --patient-primary: #64748b;
+  --patient-secondary: #94a3b8;
+  --patient-accent: #64748b;
+  --patient-bg: linear-gradient(135deg, #64748b, #94a3b8);
+}
+{% endif %}
+
+/* =========================
+   HEADER INFO
+========================= */
+
+.patient-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.patient-name-header {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+.patient-doc-header {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* =========================
+   LAYOUT PRINCIPAL
+========================= */
+
+.hc-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+/* =========================
+   SIDEBAR DEL PACIENTE
+========================= */
+
+.patient-sidebar {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.patient-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.patient-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.patient-sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.patient-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.patient-header-card {
+  background: var(--patient-bg);
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.patient-header-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.patient-avatar {
+  width: 90px;
+  height: 90px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  border: 4px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
+}
+
+.patient-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.patient-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.2);
+  padding: 0.375rem 1rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+.patient-stats {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9375rem;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.stat-value.highlight {
+  color: var(--patient-accent);
+  font-weight: 700;
+}
+
+/* =========================
+   TIMELINE CON SCROLL INFINITO
+========================= */
+
+.timeline-container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.timeline-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.timeline-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.timeline-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 100%;
+}
+
+/* Título del paciente en timeline */
+.timeline-patient-title {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.timeline-patient-title .info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-patient-title .name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.timeline-patient-title .meta {
+  font-size: 0.9375rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.timeline-patient-title .meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.timeline-patient-title .badge-sex {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background: var(--patient-bg);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Filtros */
+.timeline-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-btn:hover {
+  border-color: var(--patient-accent);
+  color: var(--patient-accent);
+}
+
+.filter-btn.active {
+  background: var(--patient-bg);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Items de timeline */
+.timeline-item {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.timeline-item:hover {
+  border-color: var(--patient-accent);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* Header colapsable */
+.tl-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  background: linear-gradient(to right, #fafafa, white);
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.timeline-item.expanded .tl-header {
+  background: white;
+  border-bottom-color: #f1f5f9;
+}
+
+/* Indicador de tipo */
+.tl-type {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  background: var(--patient-bg);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.tl-type.signos {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+
+.tl-main {
+  min-width: 0;
+}
+
+.tl-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1rem;
+  margin-bottom: 0.375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tl-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tl-tag.cie {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #0369a1;
+}
+
+.tl-tag.vital {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+}
+
+/* Fecha */
+.tl-date {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.tl-date-day {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--patient-accent);
+  line-height: 1;
+}
+
+.tl-date-rest {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Expand icon */
+.tl-expand {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: #f1f5f9;
+  transition: all 0.2s;
+}
+
+.timeline-item.expanded .tl-expand {
+  transform: rotate(180deg);
+  background: var(--patient-bg);
+  color: white;
+}
+
+/* Contenido expandible */
+.tl-content {
+  display: none;
+  padding: 1.5rem;
+  background: white;
+}
+
+.timeline-item.expanded .tl-content {
+  display: block;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Grid de datos */
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.data-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.data-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.data-value {
+  font-size: 1rem;
+  color: #334155;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.data-value.empty {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+/* Vitales */
+.vitals-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.vital-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-radius: 12px;
+  border: 1px solid #fecaca;
+  min-width: 140px;
+}
+
+.vital-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.125rem;
+  box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3);
+}
+
+.vital-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.vital-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #be123c;
+  line-height: 1;
+}
+
+.vital-unit {
+  font-size: 0.8125rem;
+  color: #f43f5e;
+  font-weight: 600;
+}
+
+/* Acciones */
+.tl-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 1.25rem;
+}
+
+.btn-sm {
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--patient-bg);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 12px -2px rgba(0,0,0,0.15);
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+/* Loading spinner */
+.loading-sentinel {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--patient-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-sentinel.hidden {
+  display: none;
+}
+
+/* Fin de resultados */
+.end-message {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.end-message.hidden {
+  display: none;
+}
+
+/* Estado vacío */
+.empty-state {
+  text-align: center;
+  padding: 4rem;
+  background: white;
+  border-radius: 20px;
+  border: 2px dashed #e2e8f0;
+  color: #94a3b8;
+  margin-top: 2rem;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.3;
+  color: var(--patient-accent);
+}
+
+.empty-state h3 {
+  color: #475569;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .hc-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  
+  .patient-sidebar {
+    position: static;
+    height: auto;
+    margin-bottom: 1rem;
+  }
+  
+  .timeline-container {
+    height: auto;
+    overflow: visible;
+  }
+  
+  .timeline-patient-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .patient-name-header {
+    font-size: 1rem;
+  }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="hc-layout">
+
+  <!-- Sidebar del paciente -->
+  <aside class="patient-sidebar">
+    <div class="patient-card">
+      <div class="patient-header-card">
+        <div class="patient-avatar">
+          {{ (paciente.get('nombres', '')[:1] + paciente.get('apellidos', '')[:1]).upper() }}
+        </div>
+        <div class="patient-name">{{ paciente.get('nombres', '') }} {{ paciente.get('apellidos', '') }}</div>
+        <div class="patient-meta-badge">
+          <i class="fa-solid fa-venus-mars"></i>
+          {% set sexo_val = paciente.get('sexo', '') %}
+          {{ 'Femenino' if sexo_val == 'F' else 'Masculino' if sexo_val == 'M' else 'No especificado' }}
+          • {{ paciente.get('edad', '--') }} años
+        </div>
+      </div>
+      
+      <div class="patient-stats">
+        <div class="stat-row">
+          <span class="stat-label"><i class="fa-solid fa-id-card"></i> Documento</span>
+          <span class="stat-value">{{ paciente.get('numero_documento', '—') }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="fa-solid fa-droplet"></i> Tipo sangre</span>
+          <span class="stat-value highlight">{{ paciente.get('tipo_sangre', 'No registrado') }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="fa-solid fa-phone"></i> Celular</span>
+          <span class="stat-value">{{ paciente.get('celular', paciente.get('telefono', '—')) }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="fa-solid fa-hospital"></i> EPS</span>
+          <span class="stat-value">{{ paciente.get('eps_nombre', '—') }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="fa-solid fa-calendar-check"></i> Última visita</span>
+          <span class="stat-value highlight" id="ultima-visita">—</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Timeline con scroll infinito -->
+  <div class="timeline-container" id="timeline-scroll">
+    <div class="timeline-main" id="timeline-content">
+      
+      <!-- Título del paciente en la timeline -->
+      <div class="timeline-patient-title">
+        <div class="info">
+          <div class="name">{{ paciente.get('nombres', '') }} {{ paciente.get('apellidos', '') }}</div>
+          <div class="meta">
+            <span><i class="fa-solid fa-id-card"></i> {{ paciente.get('numero_documento', '—') }}</span>
+            <span><i class="fa-solid fa-calendar"></i> {{ paciente.get('edad', '--') }} años</span>
+            <span><i class="fa-solid fa-hospital"></i> {{ paciente.get('eps_nombre', 'Sin EPS') }}</span>
+          </div>
+        </div>
+        <div class="badge-sex">
+          {% set sexo_val = paciente.get('sexo', '') %}
+          {{ 'F' if sexo_val == 'F' else 'M' if sexo_val == 'M' else '?' }}
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="timeline-filters">
+        <button class="filter-btn active" onclick="filterTimeline('all')" data-filter="all">
+          <i class="fa-solid fa-list"></i> Todos
+        </button>
+        <button class="filter-btn" onclick="filterTimeline('evolucion')" data-filter="evolucion">
+          <i class="fa-solid fa-stethoscope"></i> Evoluciones
+        </button>
+        <button class="filter-btn" onclick="filterTimeline('signos')" data-filter="signos">
+          <i class="fa-solid fa-heart-pulse"></i> Signos vitales
+        </button>
+      </div>
+
+      <!-- Items se cargan aquí -->
+      <div id="timeline-items"></div>
+
+      <!-- Sentinel para detectar scroll infinito -->
+      <div class="loading-sentinel" id="loading-sentinel">
+        <div class="spinner"></div>
+        <span>Cargando más registros...</span>
+      </div>
+
+      <!-- Mensaje de fin -->
+      <div class="end-message hidden" id="end-message">
+        <i class="fa-solid fa-check-circle"></i>
+        No hay más registros
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-state" id="empty-state" style="display: none;">
+        <i class="fa-solid fa-folder-open"></i>
+        <h3>Sin registros clínicos</h3>
+        <p>Este paciente no tiene evoluciones ni signos vitales registrados aún.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Configuración
+const CONFIG = {
+  patientId: {{ paciente.get('id', 'null') }},
+  pageSize: 10,
+  currentPage: 0,
+  currentFilter: 'all',
+  isLoading: false,
+  hasMore: true,
+  allData: []
+};
+
+// Datos iniciales del servidor
+const initialData = {{ timeline|tojson|safe if timeline else '[]' }};
+
+// Cache de datos filtrados
+function getFilteredData() {
+  if (CONFIG.currentFilter === 'all') {
+    return CONFIG.allData;
+  }
+  return CONFIG.allData.filter(item => item.tipo === CONFIG.currentFilter);
+}
+
+// Renderizar un item
+function renderItem(t) {
+  const tipo = t.tipo || '';
+  const data = t.data || {};
+  const fecha = t.fecha || '';
+  
+  let icon, title, subtitle;
+  
+  if (tipo === 'evolucion') {
+    icon = 'fa-stethoscope';
+    title = data.motivo_consulta || 'Consulta médica';
+    subtitle = `
+      <span><i class="fa-solid fa-user-doctor"></i> ${data.medico || 'No asignado'}</span>
+      ${data.cie10_codigo ? `<span class="tl-tag cie">${data.cie10_codigo}</span>` : ''}
+    `;
+  } else if (tipo === 'signos') {
+    icon = 'fa-heart-pulse';
+    title = 'Toma de signos vitales';
+    subtitle = `
+      <span class="tl-tag vital"><i class="fa-solid fa-weight-scale"></i> ${data.peso || '--'} kg</span>
+      <span class="tl-tag vital"><i class="fa-solid fa-heart"></i> ${data.presion_sistolica || '-'}/${data.presion_diastolica || '-'}</span>
+    `;
+  } else {
+    icon = 'fa-file-medical';
+    title = 'Registro clínico';
+    subtitle = '';
+  }
+  
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fechaStr = fecha ? `
+    <span class="tl-date-day">${fecha.substring(8, 10)}</span>
+    <span class="tl-date-rest">${meses[parseInt(fecha.substring(5, 7)) - 1]} ${fecha.substring(0, 4)} • ${fecha.substring(11, 16)}</span>
+  ` : '<span class="tl-date-day">--</span>';
+  
+  let expandedContent = '';
+  if (tipo === 'evolucion') {
+    expandedContent = `
+      <div class="data-grid">
+        <div class="data-block">
+          <span class="data-label"><i class="fa-solid fa-user-doctor"></i> Médico tratante</span>
+          <span class="data-value">${data.medico || 'No asignado'}</span>
+        </div>
+        <div class="data-block">
+          <span class="data-label"><i class="fa-solid fa-diagnoses"></i> Diagnóstico CIE-10</span>
+          <span class="data-value">
+            ${data.cie10_codigo ? 
+              `<span class="tl-tag cie" style="font-size: 0.9375rem; padding: 0.375rem 1rem;">
+                <i class="fa-solid fa-hashtag"></i> ${data.cie10_codigo}
+              </span>` : 
+              '<span class="data-value empty">Sin código registrado</span>'
+            }
+          </span>
+        </div>
+        <div class="data-block" style="grid-column: 1 / -1;">
+          <span class="data-label"><i class="fa-solid fa-clipboard-question"></i> Motivo de consulta</span>
+          <span class="data-value ${!data.motivo_consulta ? 'empty' : ''}">${data.motivo_consulta || 'No registrado'}</span>
+        </div>
+        <div class="data-block" style="grid-column: 1 / -1;">
+          <span class="data-label"><i class="fa-solid fa-clipboard-list"></i> Plan de tratamiento</span>
+          <span class="data-value ${!data.plan ? 'empty' : ''}">${data.plan || 'No registrado'}</span>
+        </div>
+      </div>
+      ${data.id ? `
+        <div class="tl-actions">
+          <a href="/hc/evoluciones/ver/${data.id}" class="btn-sm btn-primary">
+            <i class="fa-solid fa-eye"></i> Ver completo
+          </a>
+          <a href="/hc/evoluciones/formula_pdf/${data.id}" class="btn-sm btn-secondary">
+            <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+          </a>
+        </div>
+      ` : ''}
+    `;
+  } else if (tipo === 'signos') {
+    expandedContent = `
+      <div class="data-grid">
+        <div class="vitals-row" style="grid-column: 1 / -1;">
+          <div class="vital-card">
+            <div class="vital-icon"><i class="fa-solid fa-weight-scale"></i></div>
+            <div class="vital-info">
+              <span class="vital-value">${data.peso || '--'}</span>
+              <span class="vital-unit">kilogramos</span>
+            </div>
+          </div>
+          <div class="vital-card">
+            <div class="vital-icon"><i class="fa-solid fa-heart"></i></div>
+            <div class="vital-info">
+              <span class="vital-value">${data.presion_sistolica || '--'}/${data.presion_diastolica || '--'}</span>
+              <span class="vital-unit">mmHg</span>
+            </div>
+          </div>
+          ${data.frecuencia_cardiaca ? `
+            <div class="vital-card">
+              <div class="vital-icon"><i class="fa-solid fa-heart-crack"></i></div>
+              <div class="vital-info">
+                <span class="vital-value">${data.frecuencia_cardiaca}</span>
+                <span class="vital-unit">latidos/min</span>
+              </div>
+            </div>
+          ` : ''}
+          ${data.temperatura ? `
+            <div class="vital-card">
+              <div class="vital-icon"><i class="fa-solid fa-temperature-half"></i></div>
+              <div class="vital-info">
+                <span class="vital-value">${data.temperatura}</span>
+                <span class="vital-unit">°C</span>
+              </div>
+            </div>
+          ` : ''}
+          ${data.frecuencia_respiratoria ? `
+            <div class="vital-card">
+              <div class="vital-icon"><i class="fa-solid fa-lungs"></i></div>
+              <div class="vital-info">
+                <span class="vital-value">${data.frecuencia_respiratoria}</span>
+                <span class="vital-unit">resp/min</span>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <article class="timeline-item ${tipo}" data-type="${tipo}">
+      <div class="tl-header" onclick="toggleItem(this)">
+        <div class="tl-type ${tipo}">
+          <i class="fa-solid ${icon}"></i>
+        </div>
+        <div class="tl-main">
+          <div class="tl-title">${title}</div>
+          <div class="tl-subtitle">${subtitle}</div>
+        </div>
+        <div class="tl-date">${fechaStr}</div>
+        <div class="tl-expand"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="tl-content">${expandedContent}</div>
+    </article>
+  `;
+}
+
+// Cargar más items
+function loadMoreItems() {
+  if (CONFIG.isLoading || !CONFIG.hasMore) return;
+  
+  CONFIG.isLoading = true;
+  document.getElementById('loading-sentinel').classList.remove('hidden');
+  
+  const filtered = getFilteredData();
+  const start = CONFIG.currentPage * CONFIG.pageSize;
+  const end = start + CONFIG.pageSize;
+  const itemsToShow = filtered.slice(start, end);
+  
+  setTimeout(() => {
+    const container = document.getElementById('timeline-items');
+    
+    itemsToShow.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.innerHTML = renderItem(item);
+      div.firstElementChild.style.animationDelay = `${index * 0.05}s`;
+      container.appendChild(div.firstElementChild);
+    });
+    
+    CONFIG.currentPage++;
+    CONFIG.isLoading = false;
+    
+    if (end >= filtered.length) {
+      CONFIG.hasMore = false;
+      document.getElementById('loading-sentinel').classList.add('hidden');
+      if (filtered.length > 0) {
+        document.getElementById('end-message').classList.remove('hidden');
+      }
+    }
+    
+    if (filtered.length > 0 && CONFIG.currentPage === 1) {
+      const primera = filtered[0];
+      if (primera.fecha) {
+        const f = primera.fecha;
+        document.getElementById('ultima-visita').textContent = 
+          `${f.substring(8, 10)}/${f.substring(5, 7)}/${f.substring(0, 4)}`;
+      }
+    }
+  }, 300);
+}
+
+// Toggle item
+function toggleItem(header) {
+  const item = header.closest('.timeline-item');
+  document.querySelectorAll('.timeline-item.expanded').forEach(el => {
+    if (el !== item) el.classList.remove('expanded');
+  });
+  item.classList.toggle('expanded');
+}
+
+// Filtrar
+function filterTimeline(type) {
+  CONFIG.currentFilter = type;
+  CONFIG.currentPage = 0;
+  CONFIG.hasMore = true;
+  
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.filter === type) btn.classList.add('active');
+  });
+  
+  document.getElementById('timeline-items').innerHTML = '';
+  document.getElementById('end-message').classList.add('hidden');
+  loadMoreItems();
+}
+
+// Intersection Observer para scroll infinito
+function initInfiniteScroll() {
+  const sentinel = document.getElementById('loading-sentinel');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !CONFIG.isLoading && CONFIG.hasMore) {
+        loadMoreItems();
+      }
+    });
+  }, {
+    root: document.getElementById('timeline-scroll'),
+    rootMargin: '100px',
+    threshold: 0
+  });
+  
+  observer.observe(sentinel);
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+  CONFIG.allData = initialData;
+  
+  if (CONFIG.allData.length === 0) {
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('loading-sentinel').classList.add('hidden');
+  } else {
+    loadMoreItems();
+    initInfiniteScroll();
+  }
+});
+</script>
+
+{% endblock %}

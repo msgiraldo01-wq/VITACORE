@@ -1,0 +1,579 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Pacientes{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-user-injured"></i>
+{% endblock %}
+
+{% block header_title %}
+Pacientes
+{% endblock %}
+
+{% block header_subtitle %}
+Gestión de pacientes del sistema
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax primary" href="/hc/pacientes/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo paciente
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.search-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(203,213,225,.9);
+  border-radius:12px;
+  padding:8px 14px;
+  background:#fff;
+  flex:1;
+  max-width:400px;
+}
+
+.search-box i{
+  color:#64748b;
+}
+
+.search-box input{
+  border:none;
+  outline:none;
+  font-size:.95rem;
+  width:100%;
+  background:transparent;
+}
+
+/* TABLA PRO */
+
+.table-wrap{
+  max-height:600px;
+  overflow:auto;
+  border-radius:20px;
+  border:1px solid rgba(226,232,240,.9);
+  background:var(--surface-2);
+}
+
+.table-ax{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+}
+
+th{
+  text-align:left;
+  padding:14px 12px;
+  font-size:.78rem;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  background:rgba(14,165,255,.08);
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+td{
+  padding:12px;
+  border-bottom:1px solid rgba(226,232,240,.7);
+  font-size:.9rem;
+}
+
+/* PACIENTE CARD */
+
+.paciente-cell{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.avatar{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-weight:700;
+  font-size:.95rem;
+  flex-shrink:0;
+}
+
+.avatar.masculino{
+  background:linear-gradient(135deg,#0ea5e9,#22c55e);
+}
+
+.avatar.femenino{
+  background:linear-gradient(135deg,#ec4899,#8b5cf6);
+}
+
+.avatar.otro{
+  background:linear-gradient(135deg,#64748b,#94a3b8);
+}
+
+.paciente-nombre{
+  font-weight:700;
+  font-size:.95rem;
+  color:#0f172a;
+}
+
+.paciente-sub{
+  font-size:.82rem;
+  color:#64748b;
+  margin-top:2px;
+}
+
+/* BADGES */
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:700;
+}
+
+.badge.doc{
+  background:rgba(99,102,241,.12);
+  color:#4338ca;
+}
+
+.badge.ok{
+  background:rgba(34,197,94,.12);
+  color:#166534;
+}
+
+.badge.off{
+  background:rgba(239,68,68,.12);
+  color:#991b1b;
+}
+
+.badge.eps{
+  background:rgba(14,165,255,.12);
+  color:#0369a1;
+}
+
+/* ACCIONES */
+
+.actions{
+  display:flex;
+  gap:6px;
+}
+
+.btn-icon{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  border:none;
+  transition:all .2s ease;
+}
+
+.btn-icon:hover{
+  transform:translateY(-2px);
+}
+
+.btn-edit{
+  background:rgba(14,165,255,.12);
+  color:#0369a1;
+}
+
+.btn-edit:hover{
+  background:rgba(14,165,255,.2);
+}
+
+.btn-view{
+  background:rgba(15,23,42,.08);
+  color:#0f172a;
+}
+
+.btn-view:hover{
+  background:rgba(15,23,42,.15);
+}
+
+.btn-toggle{
+  background:rgba(239,68,68,.12);
+  color:#991b1b;
+}
+
+.btn-toggle:hover{
+  background:rgba(239,68,68,.2);
+}
+
+/* MENSAJES */
+
+.msg-empty{
+  text-align:center;
+  padding:50px 20px;
+  color:#64748b;
+}
+
+.msg-empty i{
+  font-size:3rem;
+  margin-bottom:16px;
+  color:#cbd5e1;
+}
+
+/* SCROLLBAR */
+
+.table-wrap::-webkit-scrollbar{
+  width:8px;
+  height:8px;
+}
+
+.table-wrap::-webkit-scrollbar-track{
+  background:#f1f5f9;
+  border-radius:4px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb{
+  background:#cbd5e1;
+  border-radius:4px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover{
+  background:#94a3b8;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+
+  <div class="search-box">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="buscador" placeholder="Buscar por nombre, documento, celular o EPS...">
+  </div>
+
+  <div style="font-size:.85rem;color:#64748b;">
+    <span id="contador">{{ pacientes|length }}</span> pacientes
+  </div>
+
+</div>
+
+<div class="table-wrap" id="tableWrap">
+
+  <table class="table-ax" id="tabla-pacientes">
+
+    <thead>
+      <tr>
+        <th>Paciente</th>
+        <th>Documento</th>
+        <th>Edad</th>
+        <th>Contacto</th>
+        <th>Ubicación</th>
+        <th>EPS</th>
+        <th>Estado</th>
+        <th style="width:120px;">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaBody">
+
+      {% for p in pacientes %}
+
+      {% set avatar_class = 'femenino' if p.sexo == 'F' else ('masculino' if p.sexo == 'M' else 'otro') %}
+      {% set iniciales = (p.primer_nombre[:1] if p.primer_nombre else '') ~ (p.primer_apellido[:1] if p.primer_apellido else '') %}
+      
+      {% if p.hc_municipios %}
+        {% set municipio_nombre = p.hc_municipios.nombre %}
+        {% set depto_nombre = p.hc_municipios.departamento_nombre or 'Sin departamento' %}
+      {% else %}
+        {% set municipio_nombre = None %}
+        {% set depto_nombre = None %}
+      {% endif %}
+      
+      {% if p.hc_eps %}
+        {% set eps_nombre = p.eps_nombre or p.hc_eps.nombre or p.hc_eps.codigo or 'Sin EPS' %}
+      {% else %}
+        {% set eps_nombre = p.eps_nombre or p.aseguradora or None %}
+      {% endif %}
+
+      <tr class="data-row" 
+          data-nombre="{{ ((p.primer_nombre or '') ~ ' ' ~ (p.segundo_nombre or '') ~ ' ' ~ (p.primer_apellido or '') ~ ' ' ~ (p.segundo_apellido or ''))|lower|trim }}"
+          data-documento="{{ (p.numero_documento or '')|lower }}"
+          data-celular="{{ (p.celular or '')|lower }}"
+          data-eps="{{ (eps_nombre or '')|lower }}">
+
+        <!-- PACIENTE -->
+        <td>
+          <div class="paciente-cell">
+            <div class="avatar {{ avatar_class }}">
+              {{ iniciales|upper }}
+            </div>
+            <div>
+              <div class="paciente-nombre">
+                {{ p.primer_apellido }} {{ p.segundo_apellido or '' }}
+              </div>
+              <div class="paciente-sub">
+                {{ p.primer_nombre }} {{ p.segundo_nombre or '' }}
+              </div>
+            </div>
+          </div>
+        </td>
+
+        <!-- DOCUMENTO -->
+        <td>
+          <span class="badge doc">
+            <i class="fa-solid fa-id-card"></i>
+            {{ p.numero_documento }}
+          </span>
+        </td>
+
+        <!-- EDAD -->
+        <td>
+          {% if p.fecha_nacimiento %}
+          <span class="edad" data-fecha="{{ p.fecha_nacimiento }}"></span>
+          {% else %}
+          <span style="color:#94a3b8;">-</span>
+          {% endif %}
+        </td>
+
+        <!-- CONTACTO -->
+        <td>
+          {% if p.celular %}
+          <div><i class="fa-solid fa-mobile-screen" style="color:#22c55e;margin-right:6px;"></i>{{ p.celular }}</div>
+          {% endif %}
+          {% if p.telefono %}
+          <div style="margin-top:4px;font-size:.8rem;color:#64748b;">
+            <i class="fa-solid fa-phone" style="margin-right:6px;"></i>{{ p.telefono }}
+          </div>
+          {% endif %}
+          {% if not p.celular and not p.telefono %}
+          <span style="color:#94a3b8;">-</span>
+          {% endif %}
+        </td>
+
+        <!-- UBICACIÓN -->
+        <td>
+          {% if municipio_nombre %}
+          <div style="font-weight:600;">{{ municipio_nombre }}</div>
+          <div style="font-size:.8rem;color:#64748b;">{{ depto_nombre }}</div>
+          {% else %}
+          <span style="color:#94a3b8;">-</span>
+          {% endif %}
+        </td>
+
+        <!-- EPS -->
+        <td>
+          {% if eps_nombre %}
+          <span class="badge eps">
+            <i class="fa-solid fa-hospital"></i>
+            {{ eps_nombre }}
+          </span>
+          {% else %}
+          <span style="color:#94a3b8;">-</span>
+          {% endif %}
+        </td>
+
+        <!-- ESTADO -->
+        <td>
+          {% if p.estado == "ACTIVO" %}
+          <span class="badge ok">
+            <i class="fa-solid fa-circle-check"></i> Activo
+          </span>
+          {% else %}
+          <span class="badge off">
+            <i class="fa-solid fa-circle-xmark"></i> Inactivo
+          </span>
+          {% endif %}
+        </td>
+
+        <!-- ACCIONES -->
+        <td>
+          <div class="actions">
+
+            <a class="btn-icon btn-view" 
+               href="/hc/pacientes/ver/{{ p.id }}"
+               title="Ver historia clínica">
+              <i class="fa-solid fa-notes-medical"></i>
+            </a>
+
+            <a class="btn-icon btn-edit"
+               href="/hc/pacientes/editar/{{ p.id }}"
+               title="Editar paciente">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+
+            <form method="POST"
+                  action="{{ url_for('hc_pacientes.pacientes_toggle', item_id=p.id) }}"
+                  class="form-toggle"
+                  style="display:inline;">
+
+              <button type="submit" 
+                      class="btn-icon btn-toggle"
+                      title="{{ 'Inactivar' if p.estado == 'ACTIVO' else 'Activar' }}">
+                <i class="fa-solid fa-power-off"></i>
+              </button>
+
+            </form>
+
+          </div>
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+  {% if not pacientes %}
+  <div class="msg-empty">
+    <i class="fa-solid fa-users-slash"></i>
+    <h3 style="margin:0 0 8px 0;">No hay pacientes registrados</h3>
+    <p style="margin:0;">Comienza agregando tu primer paciente.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* ===============================
+   EDAD
+   ================================ */
+
+document.querySelectorAll(".edad").forEach(el => {
+  const fecha = new Date(el.dataset.fecha)
+  const hoy = new Date()
+  let edad = hoy.getFullYear() - fecha.getFullYear()
+  const m = hoy.getMonth() - fecha.getMonth()
+  if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) {
+    edad--
+  }
+  el.innerText = edad + " años"
+})
+
+/* ===============================
+   SCROLL INFINITO
+   ================================ */
+
+let visible = 30
+
+function updateRows() {
+  const rows = document.querySelectorAll(".data-row")
+  rows.forEach((row, index) => {
+    row.style.display = index < visible ? "" : "none"
+  })
+}
+
+// Inicializar visibilidad
+updateRows()
+
+const wrap = document.getElementById("tableWrap")
+wrap?.addEventListener("scroll", function() {
+  if (wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 20) {
+    visible += 20
+    updateRows()
+  }
+})
+
+/* ===============================
+   BUSCADOR LOCAL
+   ================================ */
+
+const buscador = document.getElementById("buscador")
+const filas = document.querySelectorAll(".data-row")
+
+buscador?.addEventListener("input", function() {
+  const q = this.value.trim().toLowerCase()
+  
+  if (q.length === 0) {
+    // Mostrar todos
+    filas.forEach(fila => fila.style.display = "")
+    visible = 30
+    updateRows()
+    actualizarContador(filas.length)
+    return
+  }
+  
+  if (q.length < 2) return
+  
+  let visibles = 0
+  filas.forEach(fila => {
+    const nombre = fila.dataset.nombre || ""
+    const documento = fila.dataset.documento || ""
+    const celular = fila.dataset.celular || ""
+    const eps = fila.dataset.eps || ""
+    
+    const match = nombre.includes(q) || 
+                  documento.includes(q) || 
+                  celular.includes(q) ||
+                  eps.includes(q)
+    
+    if (match) {
+      fila.style.display = ""
+      visibles++
+    } else {
+      fila.style.display = "none"
+    }
+  })
+  
+  actualizarContador(visibles)
+})
+
+function actualizarContador(cantidad) {
+  const contador = document.getElementById("contador")
+  if (contador) {
+    contador.innerText = cantidad
+  }
+}
+
+/* ===============================
+   CONFIRMAR TOGGLE
+   ================================ */
+
+document.addEventListener("click", function(e) {
+  if (e.target.closest(".form-toggle button")) {
+    e.preventDefault()
+    const btn = e.target.closest("button")
+    const form = btn.closest("form")
+    const isActive = btn.title === "Inactivar"
+
+    Swal.fire({
+      title: "¿Confirmar cambio?",
+      text: isActive ? "El paciente será inactivado." : "El paciente será activado.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: isActive ? "#ef4444" : "#22c55e"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form.submit()
+      }
+    })
+  }
+})
+
+</script>
+
+{% endblock %}

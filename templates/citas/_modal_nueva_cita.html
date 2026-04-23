@@ -1,0 +1,1075 @@
+<!--
+    _modal_nueva_cita.html — VITACORE
+-->
+
+<style>
+  .mc-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(2,6,23,.78);
+      backdrop-filter: blur(8px);
+      z-index: 9998;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+  }
+  .mc-backdrop.active { display: flex; }
+  
+  .mc-box {
+      width: 780px;
+      max-width: 100%;
+      max-height: 94vh;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 22px;
+      box-shadow: var(--shadow-strong);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: var(--text);
+      animation: mcSlideIn .25s cubic-bezier(.4,0,.2,1);
+  }
+  
+  @keyframes mcSlideIn {
+      from { opacity:0; transform:translateY(-12px) scale(.98); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+  
+  .mc-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--surface-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      background: var(--surface-2);
+  }
+  
+  .mc-header-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px; flex-shrink: 0;
+  }
+  
+  .mc-header-info { flex: 1; }
+  .mc-header-title { font-size: 14px; font-weight: 800; color: var(--text); }
+  .mc-header-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  
+  .mc-close {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--surface-border);
+      color: var(--muted); font-size: 12px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: .15s;
+  }
+  .mc-close:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+  
+  .mc-steps {
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--surface-border);
+      background: var(--surface-2);
+      flex-shrink: 0;
+  }
+  
+  .mc-step {
+      display: flex; align-items: center; gap: 7px;
+      padding: 11px 0; cursor: default; user-select: none;
+  }
+  
+  .mc-step:not(:last-child)::after {
+      content: '';
+      width: 28px; height: 1px;
+      background: var(--surface-border);
+      margin: 0 10px; flex-shrink: 0;
+  }
+  
+  .mc-step-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      font-size: 10px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      color: var(--muted); transition: .2s; flex-shrink: 0;
+  }
+  
+  .mc-step-label { font-size: 11px; font-weight: 700; color: var(--muted); transition: .2s; white-space: nowrap; }
+  .mc-step.active .mc-step-num   { background: rgba(14,165,255,.12); border-color: rgba(14,165,255,.3); color: var(--brand-2); }
+  .mc-step.active .mc-step-label { color: var(--text); }
+  .mc-step.done   .mc-step-num   { background: var(--ok); border-color: var(--ok); color: #fff; }
+  
+  .mc-body {
+      flex: 1; overflow-y: auto;
+      padding: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-border) transparent;
+  }
+  
+  .mc-panel { display: none; }
+  .mc-panel.active { display: block; }
+  
+  .mc-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+  }
+  
+  .mc-field { display: flex; flex-direction: column; gap: 5px; }
+  .mc-field.full { grid-column: 1/-1; }
+  
+  .mc-field label {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .7px;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+  }
+  
+  .mc-field label i { color: var(--brand-2); font-size: 10px; }
+  .req { color: var(--danger) !important; }
+  
+  .mc-control {
+      padding: 10px 13px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--surface-border);
+      color: var(--text); font-size: 13px;
+      font-family: inherit; outline: none;
+      transition: border-color .15s, background .15s;
+      width: 100%; box-sizing: border-box; appearance: none;
+  }
+  
+  .mc-control:focus { border-color: var(--brand-2); background: rgba(14,165,255,.04); }
+  .mc-control.error { border-color: var(--danger); background: rgba(239,68,68,.04); }
+  .mc-control::placeholder { color: var(--muted); opacity: .6; }
+  .mc-control option { background: var(--surface-2); color: var(--text); }
+  
+  .mc-duracion-badge {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(14,165,255,.08);
+      border: 1px solid rgba(14,165,255,.2);
+      font-size: 11px;
+      color: var(--brand-2);
+      font-weight: 700;
+      margin-top: 4px;
+  }
+  .mc-duracion-badge.visible { display: flex; }
+  
+  .mc-paciente-wrap { position: relative; }
+  .mc-paciente-wrap .mc-control { padding-left: 34px; }
+  .mc-search-icon {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted); font-size: 11px; pointer-events: none;
+  }
+  
+  .mc-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px; z-index: 20;
+      max-height: 180px; overflow-y: auto;
+      display: none;
+      box-shadow: var(--shadow-strong);
+  }
+  .mc-dropdown.visible { display: block; }
+  
+  .mc-dropdown-item {
+      padding: 9px 13px; cursor: pointer; font-size: 12px;
+      color: var(--text);
+      border-bottom: 1px solid var(--surface-border);
+      transition: background .12s;
+  }
+  .mc-dropdown-item:last-child { border-bottom: none; }
+  .mc-dropdown-item:hover { background: rgba(14,165,255,.07); }
+  .mc-dropdown-item .doc { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  
+  .mc-chip-pac {
+      display: none; align-items: center; gap: 8px;
+      padding: 7px 11px; border-radius: 9px;
+      background: rgba(14,165,255,.10);
+      border: 1px solid rgba(14,165,255,.20);
+      font-size: 12px; color: var(--brand-2);
+  }
+  .mc-chip-pac button {
+      border: none; background: transparent;
+      color: var(--muted); cursor: pointer; font-size: 12px;
+      display: flex; align-items: center;
+  }
+  
+  .mc-slots-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 12px;
+  }
+  .mc-slots-title {
+      font-size: 13px; font-weight: 800; color: var(--text);
+      display: flex; align-items: center; gap: 6px;
+  }
+  .mc-slots-title i { color: var(--brand-2); }
+  .mc-slots-count { font-size: 11px; color: var(--muted); }
+  
+  .mc-loading {
+      display: none; align-items: center; justify-content: center;
+      gap: 10px; padding: 24px; color: var(--muted); font-size: 13px;
+  }
+  .mc-loading.visible { display: flex; }
+  
+  .mc-spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--surface-border);
+      border-top-color: var(--brand-2);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .mc-leyenda {
+      display: flex; gap: 14px; font-size: 11px;
+      color: var(--muted); align-items: center;
+      flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .mc-leyenda span { display: flex; align-items: center; gap: 5px; }
+  .mc-leyenda .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  
+  .mc-slots-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+  }
+  
+  .mc-slot {
+      padding: 9px 4px; border-radius: 8px;
+      font-size: 11px; font-weight: 700;
+      text-align: center; cursor: pointer;
+      border: 1px solid transparent; transition: .15s; line-height: 1.2;
+  }
+  .mc-slot.libre     { background: #C0DD97; color: #27500A; border-color: #97C459; }
+  .mc-slot.libre:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(99,153,34,.25); }
+  .mc-slot.ocupado   { background: #F7C1C1; color: #791F1F; border-color: #F09595; cursor: not-allowed; opacity:.7; }
+  .mc-slot.selected  { background: #378ADD; color: #fff; border-color: #185FA5; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(55,138,221,.35); }
+  
+  .mc-slots-empty {
+      grid-column: 1/-1; text-align: center;
+      padding: 28px; color: var(--muted); font-size: 13px;
+  }
+  
+  .mc-slot-info {
+      display: none; align-items: center; gap: 8px;
+      padding: 9px 13px; border-radius: 9px;
+      background: rgba(55,138,221,.10);
+      border: 1px solid rgba(55,138,221,.25);
+      font-size: 12px; color: var(--brand-2);
+      margin-top: 10px;
+  }
+  .mc-slot-info.visible { display: flex; }
+  
+  .mc-confirm-card {
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--surface-border);
+      overflow: hidden;
+  }
+  
+  .mc-confirm-header {
+      padding: 12px 16px;
+      background: rgba(34,197,94,.08);
+      border-bottom: 1px solid rgba(34,197,94,.14);
+      display: flex; align-items: center; gap: 7px;
+      color: var(--ok); font-weight: 800; font-size: 12px;
+  }
+  
+  .mc-confirm-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 16px;
+  }
+  
+  .mc-confirm-item {
+      padding: 9px 11px; border-radius: 9px;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+  }
+  
+  .mc-confirm-item.full { grid-column: 1/-1; }
+  
+  .mc-confirm-label {
+      font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--muted); margin-bottom: 3px;
+      display: flex; align-items: center; gap: 4px;
+  }
+  .mc-confirm-label i { color: var(--brand-2); }
+  .mc-confirm-valor { font-size: 12px; font-weight: 700; color: var(--text); }
+  .mc-confirm-valor.hora { color: var(--brand-2); font-size: 14px; }
+  
+  .mc-footer {
+      padding: 13px 20px;
+      border-top: 1px solid var(--surface-border);
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 10px;
+      flex-shrink: 0; background: var(--surface-2);
+  }
+  .mc-footer-right { display: flex; gap: 8px; }
+  
+  @media (max-width: 600px) {
+      .mc-form-grid { grid-template-columns: 1fr; }
+      .mc-step .mc-step-label { display: none; }
+      .mc-slots-grid { grid-template-columns: repeat(4,1fr); }
+  }
+  </style>
+  
+  
+  <!-- ══ MODAL ══════════════════════════════════════════════ -->
+  <div id="modalCita" class="mc-backdrop" onclick="_mcBackdropClick(event)">
+  <div class="mc-box">
+  
+      <div class="mc-header">
+          <div class="mc-header-icon"><i class="fa-solid fa-calendar-plus"></i></div>
+          <div class="mc-header-info">
+              <div class="mc-header-title" id="mcModalTitulo">Nueva cita</div>
+              <div class="mc-header-sub">Complete los datos para agendar</div>
+          </div>
+          <button class="mc-close" onclick="cerrarModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+  
+      <div class="mc-steps">
+          <div class="mc-step active" id="mcStep1">
+              <div class="mc-step-num">1</div>
+              <div class="mc-step-label">Datos básicos</div>
+          </div>
+          <div class="mc-step" id="mcStep2">
+              <div class="mc-step-num">2</div>
+              <div class="mc-step-label">Horario</div>
+          </div>
+          <div class="mc-step" id="mcStep3">
+              <div class="mc-step-num">3</div>
+              <div class="mc-step-label">Confirmación</div>
+          </div>
+      </div>
+  
+      <div class="mc-body">
+  
+          <!-- PANEL 1 -->
+          <div class="mc-panel active" id="mcPanel1">
+          <div class="mc-form-grid">
+  
+              <div class="mc-field full">
+                  <label><i class="fa-solid fa-user"></i> Paciente <span class="req">*</span></label>
+                  <div class="mc-paciente-wrap" id="mcPacWrap">
+                      <i class="fa-solid fa-magnifying-glass mc-search-icon"></i>
+                      <input type="text" class="mc-control" id="mcPacienteBusq"
+                             placeholder="Buscar por nombre o cédula..."
+                             autocomplete="off" oninput="_mcBuscarPaciente(this.value)">
+                      <input type="hidden" id="mcPacienteId">
+                      <div class="mc-dropdown" id="mcDropdown"></div>
+                  </div>
+                  <div class="mc-chip-pac" id="mcPacChip">
+                      <i class="fa-solid fa-user-check"></i>
+                      <span id="mcPacChipNombre" style="flex:1;"></span>
+                      <button onclick="_mcLimpiarPaciente()"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-building"></i> Sede <span class="req">*</span></label>
+                  <select class="mc-control" id="mcSede" onchange="_mcOnSede()">
+                      <option value="">— Seleccione sede —</option>
+                      {% for s in sedes %}
+                      <option value="{{ s.id }}">{{ s.nombre }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-stethoscope"></i> Especialidad <span class="req">*</span></label>
+                  <select class="mc-control" id="mcEspecialidad" onchange="_mcOnEspecialidad()">
+                      <option value="">— Seleccione sede primero —</option>
+                  </select>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-briefcase-medical"></i> Tipo de cita <span class="req">*</span></label>
+                  <select class="mc-control" id="mcTipoCita">
+                      <option value="">— Seleccione tipo —</option>
+                      <option value="primera_vez">Primera vez</option>
+                      <option value="control">Control</option>
+                      <option value="urgencia">Urgencia</option>
+                      <option value="procedimiento">Procedimiento</option>
+                  </select>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-user-doctor"></i> Profesional <span class="req">*</span></label>
+                  <select class="mc-control" id="mcProfesional" onchange="_mcOnProfesional()">
+                      <option value="">— Seleccione especialidad primero —</option>
+                  </select>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-calendar"></i> Fecha <span class="req">*</span></label>
+                  <input type="date" class="mc-control" id="mcFecha">
+              </div>
+  
+              <div class="mc-field full">
+                  <label><i class="fa-solid fa-syringe"></i> Procedimiento CUPS</label>
+                  <select class="mc-control" id="mcCups" onchange="_mcOnCups()">
+                      <option value="">— Seleccione profesional primero —</option>
+                  </select>
+                  <div class="mc-duracion-badge" id="mcDuracionBadge">
+                      <i class="fa-solid fa-clock"></i>
+                      <span id="mcDuracionTexto">30 min</span>
+                  </div>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-hospital"></i> Recurso</label>
+                  <select class="mc-control" id="mcRecurso">
+                      <option value="">— Sin recurso asignado —</option>
+                  </select>
+              </div>
+  
+              <div class="mc-field">
+                  <label><i class="fa-solid fa-route"></i> Vía de solicitud</label>
+                  <select class="mc-control" id="mcViaSolicitud">
+                      <option value="PRESENCIAL">Presencial</option>
+                      <option value="TELEFONO">Teléfono / Call Center</option>
+                      <option value="WEB">Web / Portal</option>
+                      <option value="APP">App móvil</option>
+                      <option value="REMISION">Remisión</option>
+                  </select>
+              </div>
+  
+              <div class="mc-field full">
+                  <label><i class="fa-solid fa-user-md"></i> Médico remitente</label>
+                  <input type="text" class="mc-control" id="mcMedicoRemitente"
+                         placeholder="Nombre del médico que remite (opcional)"
+                         autocomplete="off">
+              </div>
+  
+              <div class="mc-field full">
+                  <label><i class="fa-solid fa-notes-medical"></i> Motivo de consulta</label>
+                  <textarea class="mc-control" id="mcMotivo" rows="2"
+                            placeholder="Describa brevemente el motivo..."
+                            style="resize:vertical;"></textarea>
+              </div>
+  
+          </div>
+          </div>
+  
+          <!-- PANEL 2 -->
+          <div class="mc-panel" id="mcPanel2">
+  
+              <div style="padding:9px 13px;border-radius:9px;
+                          background:rgba(14,165,255,.08);
+                          border:1px solid rgba(14,165,255,.15);
+                          font-size:12px;color:var(--text);
+                          display:flex;gap:14px;flex-wrap:wrap;
+                          margin-bottom:14px;">
+                  <span><i class="fa-solid fa-user" style="color:var(--brand-2);margin-right:5px;"></i>
+                      <span id="p2Paciente"></span></span>
+                  <span><i class="fa-solid fa-user-doctor" style="color:var(--brand-2);margin-right:5px;"></i>
+                      <span id="p2Medico"></span></span>
+                  <span><i class="fa-solid fa-calendar" style="color:var(--brand-2);margin-right:5px;"></i>
+                      <span id="p2Fecha"></span></span>
+                  <span id="p2CupsWrap" style="display:none;">
+                      <i class="fa-solid fa-syringe" style="color:var(--brand-2);margin-right:5px;"></i>
+                      <span id="p2Cups"></span>
+                      <strong style="color:var(--brand-2);margin-left:6px;" id="p2Duracion"></strong>
+                  </span>
+              </div>
+  
+              <div class="mc-slots-header">
+                  <div class="mc-slots-title"><i class="fa-solid fa-clock"></i> Horarios disponibles</div>
+                  <span class="mc-slots-count" id="mcSlotsCount">—</span>
+              </div>
+  
+              <div class="mc-leyenda">
+                  <span><span class="dot" style="background:#C0DD97;"></span>Disponible</span>
+                  <span><span class="dot" style="background:#F7C1C1;"></span>Ocupado</span>
+                  <span><span class="dot" style="background:#378ADD;"></span>Seleccionado</span>
+              </div>
+  
+              <div class="mc-loading" id="mcLoading">
+                  <div class="mc-spinner"></div> Cargando disponibilidad…
+              </div>
+  
+              <div class="mc-slots-grid" id="mcSlotsGrid"></div>
+  
+              <div class="mc-slot-info" id="mcSlotInfo">
+                  <i class="fa-solid fa-clock"></i>
+                  Hora seleccionada: <strong id="mcSlotInfoTexto"></strong>
+              </div>
+  
+          </div>
+  
+          <!-- PANEL 3 -->
+          <div class="mc-panel" id="mcPanel3">
+  
+              <div style="text-align:center;padding:8px 0 14px;">
+                  <div style="width:48px;height:48px;border-radius:50%;
+                       background:rgba(34,197,94,.12);border:2px solid #22c55e;
+                       display:flex;align-items:center;justify-content:center;
+                       margin:0 auto 8px;">
+                      <i class="fa-solid fa-calendar-check" style="color:#22c55e;font-size:18px;"></i>
+                  </div>
+                  <p style="margin:0;font-size:14px;font-weight:700;color:var(--text);">Confirmar cita</p>
+                  <p style="margin:3px 0 0;font-size:11px;color:var(--muted);">Revisa los datos antes de guardar</p>
+              </div>
+  
+              <div class="mc-confirm-card">
+                  <div class="mc-confirm-header">
+                      <i class="fa-solid fa-circle-check"></i> Resumen de la cita
+                  </div>
+                  <div class="mc-confirm-grid">
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-user"></i> Paciente</div>
+                          <div class="mc-confirm-valor" id="cfPaciente">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-user-doctor"></i> Profesional</div>
+                          <div class="mc-confirm-valor" id="cfProfesional">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-stethoscope"></i> Especialidad</div>
+                          <div class="mc-confirm-valor" id="cfEspecialidad">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-building"></i> Sede</div>
+                          <div class="mc-confirm-valor" id="cfSede">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-calendar"></i> Fecha</div>
+                          <div class="mc-confirm-valor" id="cfFecha">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-clock"></i> Hora</div>
+                          <div class="mc-confirm-valor hora" id="cfHora">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-briefcase-medical"></i> Tipo</div>
+                          <div class="mc-confirm-valor" id="cfTipo">—</div>
+                      </div>
+                      <div class="mc-confirm-item">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-hourglass"></i> Duración</div>
+                          <div class="mc-confirm-valor" id="cfDuracion">—</div>
+                      </div>
+                      <div class="mc-confirm-item full" id="cfCupsWrap" style="display:none;">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-syringe"></i> Procedimiento CUPS</div>
+                          <div class="mc-confirm-valor" id="cfCups">—</div>
+                      </div>
+                      <div class="mc-confirm-item full" id="cfRecursoWrap" style="display:none;">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-hospital"></i> Recurso</div>
+                          <div class="mc-confirm-valor" id="cfRecurso">—</div>
+                      </div>
+                      <div class="mc-confirm-item full" id="cfRemitenteWrap" style="display:none;">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-user-md"></i> Médico remitente</div>
+                          <div class="mc-confirm-valor" id="cfRemitente">—</div>
+                      </div>
+                      <div class="mc-confirm-item full">
+                          <div class="mc-confirm-label"><i class="fa-solid fa-notes-medical"></i> Motivo</div>
+                          <div class="mc-confirm-valor" style="font-weight:400;" id="cfMotivo">—</div>
+                      </div>
+                  </div>
+              </div>
+  
+          </div>
+  
+      </div>
+  
+      <div class="mc-footer">
+          <button class="btn-ax ghost" id="mcBtnAtras" onclick="_mcAtras()" style="display:none;">
+              <i class="fa-solid fa-arrow-left"></i> Atrás
+          </button>
+          <div class="mc-footer-right">
+              <button class="btn-ax ghost" onclick="cerrarModal()">Cancelar</button>
+              <button class="btn-ax primary" id="mcBtnSig" onclick="_mcSiguiente()">
+                  Continuar <i class="fa-solid fa-arrow-right"></i>
+              </button>
+          </div>
+      </div>
+  
+  </div>
+  </div>
+  
+  
+  <script>
+  /* ══════════════════════════════════════════════════════════
+     Modal Nueva Cita — VITACORE
+  ══════════════════════════════════════════════════════════ */
+  
+  const _mc = {
+      paso: 1, slot: null, duracion: 30,
+      cupsId: null, cupsDesc: "",
+      pacienteId: null, pacienteNombre: "",
+      medicoNombre: "", espNombre: "", sedeNombre: "",
+      debounce: null,
+  };
+  
+  /* ── Abrir / cerrar ────────────────────────────────────── */
+  function _modalAbrirNuevaCita(preload = null) {
+    _mcReset();
+    document.getElementById("mcFecha").min   = new Date().toISOString().split("T")[0];
+    document.getElementById("mcFecha").value = new Date().toISOString().split("T")[0];
+    document.getElementById("mcModalTitulo").textContent = preload ? "Reagendar cita" : "Nueva cita";
+    _mc.paso = 1;
+    _mcRenderPaso();
+    document.getElementById("modalCita").classList.add("active");
+}
+  
+  function cerrarModal() {
+      document.getElementById("modalCita").classList.remove("active");
+      _mcReset();
+  }
+  
+  function _mcBackdropClick(e) {
+      if (e.target === e.currentTarget) cerrarModal();
+  }
+  
+  function _mcReset() {
+      _mc.paso = 1; _mc.slot = null; _mc.duracion = 30;
+      _mc.cupsId = null; _mc.cupsDesc = "";
+      _mc.pacienteId = null; _mc.pacienteNombre = "";
+      _mc.medicoNombre = ""; _mc.espNombre = ""; _mc.sedeNombre = "";
+  
+      ["mcPacienteBusq","mcPacienteId","mcMotivo","mcMedicoRemitente"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+      });
+  
+      ["mcSede","mcTipoCita","mcViaSolicitud"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+      });
+  
+      document.getElementById("mcPacWrap").style.display    = "";
+      document.getElementById("mcPacChip").style.display    = "none";
+      document.getElementById("mcDropdown").classList.remove("visible");
+      document.getElementById("mcDuracionBadge").classList.remove("visible");
+      document.getElementById("mcSlotsGrid").innerHTML      = "";
+      document.getElementById("mcSlotInfo").classList.remove("visible");
+      document.querySelectorAll(".mc-control.error").forEach(e => e.classList.remove("error"));
+  
+      _mcSetSelect("mcEspecialidad", [], "— Seleccione sede primero —");
+      _mcSetSelect("mcProfesional",  [], "— Seleccione especialidad primero —");
+      _mcSetSelect("mcCups",         [], "— Seleccione profesional primero —");
+      _mcSetSelect("mcRecurso",      [], "— Sin recurso asignado —");
+  }
+  
+  /* ── Navegación ────────────────────────────────────────── */
+  function _mcRenderPaso() {
+      [1,2,3].forEach(n => {
+          document.getElementById(`mcPanel${n}`).classList.toggle("active", n === _mc.paso);
+          const step = document.getElementById(`mcStep${n}`);
+          step.classList.remove("active","done");
+          if (n === _mc.paso) step.classList.add("active");
+          if (n < _mc.paso)  step.classList.add("done");
+      });
+      document.getElementById("mcBtnAtras").style.display = _mc.paso > 1 ? "" : "none";
+      const btn = document.getElementById("mcBtnSig");
+      if (_mc.paso < 3) {
+          btn.innerHTML = 'Continuar <i class="fa-solid fa-arrow-right"></i>';
+          btn.style.background = "";
+      } else {
+          btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Confirmar cita';
+          btn.style.background = "var(--ok)";
+      }
+  }
+  
+  function _mcSiguiente() {
+      if (_mc.paso === 1 && !_mcValidarPaso1()) return;
+      if (_mc.paso === 2 && !_mcValidarPaso2()) return;
+      if (_mc.paso === 3) { _mcGuardar(); return; }
+      _mc.paso++;
+      if (_mc.paso === 2) _mcCargarSlots();
+      if (_mc.paso === 3) _mcRenderConfirm();
+      _mcRenderPaso();
+  }
+  
+  function _mcAtras() {
+      if (_mc.paso > 1) { _mc.paso--; _mcRenderPaso(); }
+  }
+  
+  /* ── Validaciones ──────────────────────────────────────── */
+  function _mcValidarPaso1() {
+      const reglas = [
+          { id: "mcPacienteId",   msg: "Selecciona un paciente",      inputId: "mcPacienteBusq" },
+          { id: "mcSede",         msg: "Selecciona una sede" },
+          { id: "mcEspecialidad", msg: "Selecciona una especialidad" },
+          { id: "mcProfesional",  msg: "Selecciona un profesional" },
+          { id: "mcTipoCita",     msg: "Selecciona el tipo de cita" },
+          { id: "mcFecha",        msg: "Selecciona una fecha" },
+      ];
+      let ok = true;
+      reglas.forEach(r => {
+          const val = document.getElementById(r.id)?.value || "";
+          if (!val) {
+              ok = false;
+              if (typeof Toast !== "undefined") Toast.show(r.msg, "warning");
+              const target = document.getElementById(r.inputId || r.id);
+              target?.classList.add("error");
+              setTimeout(() => target?.classList.remove("error"), 2000);
+          }
+      });
+      return ok;
+  }
+  
+  function _mcValidarPaso2() {
+      if (!_mc.slot) {
+          if (typeof Toast !== "undefined") Toast.show("Selecciona un horario disponible", "warning");
+          return false;
+      }
+      return true;
+  }
+  
+  /* ── Búsqueda de paciente ──────────────────────────────── */
+  function _mcBuscarPaciente(q) {
+      clearTimeout(_mc.debounce);
+      document.getElementById("mcPacienteId").value = "";
+      const drop = document.getElementById("mcDropdown");
+      if (q.length < 2) { drop.classList.remove("visible"); return; }
+  
+      _mc.debounce = setTimeout(() => {
+          fetch(`/hc/pacientes/buscar?q=${encodeURIComponent(q)}`)
+              .then(r => r.json())
+              .then(lista => {
+                  drop.innerHTML = "";
+  
+                  if (!lista.length) {
+                      drop.innerHTML = `
+                          <div class="mc-dropdown-item" style="color:var(--muted);cursor:default;">
+                              <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Sin resultados
+                          </div>
+                          <div class="mc-dropdown-item"
+                               style="color:var(--brand-2);font-weight:700;border-top:1px solid var(--surface-border);"
+                               onmousedown="sessionStorage.setItem('returnUrl',window.location.href);window.location.href='/hc/pacientes/nuevo'">
+                              <i class="fa-solid fa-user-plus" style="margin-right:6px;"></i>Crear nuevo paciente
+                          </div>`;
+                      drop.classList.add("visible");
+                      return;
+                  }
+  
+                  lista.forEach(p => {
+                      const nombre = [p.primer_nombre, p.segundo_nombre,
+                                      p.primer_apellido, p.segundo_apellido]
+                                     .filter(Boolean).join(" ");
+                      const doc = p.numero_documento || "—";
+  
+                      const el = document.createElement("div");
+                      el.className = "mc-dropdown-item";
+                      el.innerHTML = `<strong>${nombre}</strong><div class="doc">C.C. ${doc}</div>`;
+  
+                      el.addEventListener("mousedown", (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          document.getElementById("mcPacienteId").value          = p.id;
+                          document.getElementById("mcPacChipNombre").textContent  = `${nombre} · C.C. ${doc}`;
+                          document.getElementById("mcPacWrap").style.display      = "none";
+                          document.getElementById("mcPacChip").style.display      = "flex";
+                          document.getElementById("mcDropdown").classList.remove("visible");
+                          _mc.pacienteId     = p.id;
+                          _mc.pacienteNombre = nombre;
+                      });
+  
+                      drop.appendChild(el);
+                  });
+  
+                  const crearEl = document.createElement("div");
+                  crearEl.className = "mc-dropdown-item";
+                  crearEl.style.cssText = "color:var(--brand-2);font-weight:700;border-top:1px solid var(--surface-border);";
+                  crearEl.innerHTML = `<i class="fa-solid fa-user-plus" style="margin-right:6px;"></i>Crear nuevo paciente`;
+                  crearEl.addEventListener("mousedown", (e) => {
+                      e.preventDefault();
+                      sessionStorage.setItem("returnUrl", window.location.href);
+                      window.location.href = "/hc/pacientes/nuevo";
+                  });
+                  drop.appendChild(crearEl);
+  
+                  drop.classList.add("visible");
+              })
+              .catch(() => {
+                  drop.innerHTML = `<div class="mc-dropdown-item" style="color:var(--danger);">Error al buscar</div>`;
+                  drop.classList.add("visible");
+              });
+      }, 300);
+  }
+  
+  function _mcLimpiarPaciente() {
+      _mc.pacienteId = null; _mc.pacienteNombre = "";
+      document.getElementById("mcPacienteId").value        = "";
+      document.getElementById("mcPacienteBusq").value      = "";
+      document.getElementById("mcPacWrap").style.display   = "";
+      document.getElementById("mcPacChip").style.display   = "none";
+  }
+  
+  document.addEventListener("click", e => {
+      if (!e.target.closest(".mc-paciente-wrap"))
+          document.getElementById("mcDropdown")?.classList.remove("visible");
+  });
+  
+  /* ── Cascada Sede → Especialidad → Profesional → CUPS ─── */
+  function _mcOnSede() {
+      const el = document.getElementById("mcSede");
+      _mc.sedeNombre = el.options[el.selectedIndex]?.text || "";
+  
+      _mcSetSelect("mcEspecialidad", [], "— Seleccione especialidad —");
+      _mcSetSelect("mcProfesional",  [], "— Seleccione especialidad primero —");
+      _mcSetSelect("mcCups",         [], "— Seleccione profesional primero —");
+      _mcSetSelect("mcRecurso",      [], "— Sin recurso asignado —");
+      document.getElementById("mcDuracionBadge").classList.remove("visible");
+  
+      if (!el.value) return;
+  
+      _mcFetch("/citas/api/especialidades").then(data => {
+          _mcSetSelect("mcEspecialidad", data, "— Seleccione especialidad —");
+      });
+  
+      _mcFetch(`/citas/api/recursos?sede_id=${el.value}`).then(data => {
+          _mcSetSelect("mcRecurso", data, "— Sin recurso asignado —", false);
+      });
+  }
+  
+  function _mcOnEspecialidad() {
+      const el = document.getElementById("mcEspecialidad");
+      _mc.espNombre = el.options[el.selectedIndex]?.text || "";
+      _mcSetSelect("mcProfesional", [], "— Seleccione profesional —");
+      _mcSetSelect("mcCups",        [], "— Seleccione profesional primero —");
+      document.getElementById("mcDuracionBadge").classList.remove("visible");
+      if (!el.value) return;
+      _mcFetch(`/citas/api/medicos?especialidad_id=${el.value}`).then(data => {
+          _mcSetSelect("mcProfesional", data, "— Seleccione profesional —");
+      });
+  }
+  
+  function _mcOnProfesional() {
+      const el = document.getElementById("mcProfesional");
+      _mc.medicoNombre = el.options[el.selectedIndex]?.text || "";
+      _mc.duracion = 30; _mc.cupsId = null;
+      document.getElementById("mcDuracionBadge").classList.remove("visible");
+      _mcSetSelect("mcCups", [], "— Cargando procedimientos... —");
+      if (!el.value) return;
+      _mcFetch(`/citas/api/cups-profesional?medico_id=${el.value}`).then(data => {
+          const opts = data.map(c => ({
+              id    : c.id,
+              nombre: `${c.codigo} · ${c.descripcion}`,
+              extra : c.duracion_min,
+          }));
+          _mcSetSelect("mcCups", opts, "— Sin procedimiento —", false, true);
+      });
+  }
+  
+  function _mcOnCups() {
+      const el  = document.getElementById("mcCups");
+      const opt = el.options[el.selectedIndex];
+      if (!opt?.value) {
+          _mc.cupsId = null; _mc.cupsDesc = ""; _mc.duracion = 30;
+          document.getElementById("mcDuracionBadge").classList.remove("visible");
+          return;
+      }
+      const dur = parseInt(opt.dataset.extra || "30");
+      _mc.cupsId   = parseInt(opt.value);
+      _mc.cupsDesc = opt.text;
+      _mc.duracion = dur;
+      document.getElementById("mcDuracionTexto").textContent = `${dur} min`;
+      document.getElementById("mcDuracionBadge").classList.add("visible");
+  }
+  
+  /* ── Helpers select ────────────────────────────────────── */
+  function _mcSetSelect(id, data, placeholder, required = true, useExtra = false) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = `<option value="">${placeholder}</option>` +
+          data.map(d => {
+              const extra = useExtra ? ` data-extra="${d.extra || 30}"` : "";
+              return `<option value="${d.id}"${extra}>${d.nombre || d.name || ""}</option>`;
+          }).join("");
+      sel.value = "";
+  }
+  
+  async function _mcFetch(url) {
+      try { const r = await fetch(url); return await r.json(); }
+      catch { return []; }
+  }
+  
+  /* ── Cargar slots ──────────────────────────────────────── */
+  async function _mcCargarSlots() {
+      const profId    = document.getElementById("mcProfesional").value;
+      const fecha     = document.getElementById("mcFecha").value;
+      const recursoId = document.getElementById("mcRecurso").value;
+      const grid      = document.getElementById("mcSlotsGrid");
+      const load      = document.getElementById("mcLoading");
+      const count     = document.getElementById("mcSlotsCount");
+  
+      document.getElementById("p2Paciente").textContent = _mc.pacienteNombre;
+      document.getElementById("p2Medico").textContent   = _mc.medicoNombre;
+      document.getElementById("p2Fecha").textContent    = fecha;
+  
+      if (_mc.cupsId) {
+          document.getElementById("p2Cups").textContent     = _mc.cupsDesc;
+          document.getElementById("p2Duracion").textContent = `${_mc.duracion} min`;
+          document.getElementById("p2CupsWrap").style.display = "";
+      } else {
+          document.getElementById("p2CupsWrap").style.display = "none";
+      }
+  
+      grid.innerHTML = ""; _mc.slot = null;
+      document.getElementById("mcSlotInfo").classList.remove("visible");
+  
+      if (!profId || !fecha) {
+          grid.innerHTML = `<div class="mc-slots-empty">Seleccione profesional y fecha.</div>`;
+          count.textContent = "—";
+          return;
+      }
+  
+      load.classList.add("visible");
+      count.textContent = "Cargando…";
+  
+      try {
+          let url = `/citas/api/slots-v2?fecha=${fecha}&medico_id=${profId}&duracion=${_mc.duracion}`;
+          if (recursoId) url += `&recurso_id=${recursoId}`;
+  
+          const slots = await _mcFetch(url);
+          load.classList.remove("visible");
+          grid.innerHTML = "";
+  
+          const disp = slots.filter(s => s.disponible);
+          count.textContent = disp.length
+              ? `${disp.length} horario${disp.length !== 1 ? "s" : ""} disponible${disp.length !== 1 ? "s" : ""}`
+              : "Sin disponibilidad";
+  
+          if (!slots.length) {
+              grid.innerHTML = `<div class="mc-slots-empty">No hay horarios configurados.</div>`;
+              return;
+          }
+  
+          slots.forEach(s => {
+              const el = document.createElement("div");
+              el.className    = `mc-slot ${s.disponible ? "libre" : "ocupado"}`;
+              el.textContent  = s.hora;
+              el.dataset.hora = s.hora;
+              if (s.disponible) {
+                  el.addEventListener("click", () => {
+                      document.querySelectorAll(".mc-slot.selected").forEach(x => {
+                          x.classList.remove("selected"); x.classList.add("libre");
+                      });
+                      el.classList.remove("libre"); el.classList.add("selected");
+                      _mc.slot = { hora: s.hora };
+                      document.getElementById("mcSlotInfoTexto").textContent = s.hora;
+                      document.getElementById("mcSlotInfo").classList.add("visible");
+                  });
+              }
+              grid.appendChild(el);
+          });
+      } catch {
+          load.classList.remove("visible");
+          grid.innerHTML = `<div class="mc-slots-empty" style="color:var(--danger);">Error al cargar slots.</div>`;
+      }
+  }
+  
+  /* ── Render confirmación ───────────────────────────────── */
+  function _mcRenderConfirm() {
+      const get = id => document.getElementById(id);
+      const selText = id => { const s = get(id); return s?.options[s.selectedIndex]?.text || "—"; };
+  
+      get("cfPaciente").textContent    = _mc.pacienteNombre || "—";
+      get("cfProfesional").textContent = selText("mcProfesional");
+      get("cfEspecialidad").textContent = selText("mcEspecialidad");
+      get("cfSede").textContent        = selText("mcSede");
+      get("cfFecha").textContent       = get("mcFecha").value || "—";
+      get("cfHora").textContent        = _mc.slot?.hora || "—";
+      get("cfTipo").textContent        = selText("mcTipoCita");
+      get("cfDuracion").textContent    = `${_mc.duracion} min`;
+  
+      if (_mc.cupsId) {
+          get("cfCups").textContent        = selText("mcCups");
+          get("cfCupsWrap").style.display  = "";
+      } else {
+          get("cfCupsWrap").style.display  = "none";
+      }
+  
+      const recVal = get("mcRecurso").value;
+      if (recVal) {
+          get("cfRecurso").textContent        = selText("mcRecurso");
+          get("cfRecursoWrap").style.display  = "";
+      } else {
+          get("cfRecursoWrap").style.display  = "none";
+      }
+  
+      const remVal = get("mcMedicoRemitente").value.trim();
+      if (remVal) {
+          get("cfRemitente").textContent        = remVal;
+          get("cfRemitenteWrap").style.display  = "";
+      } else {
+          get("cfRemitenteWrap").style.display  = "none";
+      }
+  
+      get("cfMotivo").textContent = get("mcMotivo").value || "Sin motivo registrado";
+  }
+  
+  /* ── Guardar cita ──────────────────────────────────────── */
+  async function _mcGuardar() {
+      const btn = document.getElementById("mcBtnSig");
+      btn.disabled = true;
+      btn.innerHTML = '<div class="mc-spinner" style="width:14px;height:14px;border-width:2px;"></div> Guardando…';
+  
+      const [hh, mm] = (_mc.slot?.hora || "00:00").split(":").map(Number);
+      const fin = new Date(2000, 0, 1, hh, mm + _mc.duracion);
+      const horaFin = `${String(fin.getHours()).padStart(2,"0")}:${String(fin.getMinutes()).padStart(2,"0")}`;
+  
+      const payload = {
+          paciente_id     : parseInt(document.getElementById("mcPacienteId").value),
+          medico_id       : parseInt(document.getElementById("mcProfesional").value),
+          especialidad_id : parseInt(document.getElementById("mcEspecialidad").value),
+          sede_id         : parseInt(document.getElementById("mcSede").value),
+          tipo_cita       : document.getElementById("mcTipoCita").value,
+          fecha           : document.getElementById("mcFecha").value,
+          hora            : _mc.slot?.hora,
+          hora_fin        : horaFin,
+          duracion_min    : _mc.duracion,
+          motivo          : document.getElementById("mcMotivo").value,
+          cups_id         : _mc.cupsId || null,
+          recurso_id      : parseInt(document.getElementById("mcRecurso").value) || null,
+          medico_remitente: document.getElementById("mcMedicoRemitente").value.trim(),
+          via_solicitud   : document.getElementById("mcViaSolicitud").value,
+          estado          : "pendiente",
+      };
+  
+      try {
+          const res  = await fetch("/citas/crear/", {
+              method : "POST",
+              headers: { "Content-Type": "application/json" },
+              body   : JSON.stringify(payload),
+          });
+          const data = await res.json();
+  
+          if (data.ok) {
+              cerrarModal();
+              if (typeof Toast !== "undefined") Toast.show("Cita agendada exitosamente ✓", "success");
+              const f = document.getElementById("mcFecha").value;
+              setTimeout(() => { window.location.href = `/citas/?fecha=${f}`; }, 900);
+          } else {
+              if (typeof Toast !== "undefined") Toast.show(data.error || "Error al agendar", "error");
+              btn.disabled = false;
+              _mcRenderPaso();
+          }
+      } catch {
+          if (typeof Toast !== "undefined") Toast.show("Error de conexión", "error");
+          btn.disabled = false;
+          _mcRenderPaso();
+      }
+  }
+  
+  document.addEventListener("keydown", e => {
+      if (e.key === "Escape") cerrarModal();
+  });
+  
+  </script>

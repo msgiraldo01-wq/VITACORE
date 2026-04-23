@@ -1,0 +1,326 @@
+{% extends "hc/base.html" %}
+{% block header_title %}Crear empresa{% endblock %}
+{% block header_subtitle %}Registro de institución{% endblock %}
+
+{% block content %}
+<style>
+    .form-empresa {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+    .form-empresa .section-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #1e40af;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #dbeafe;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .form-empresa .section-title i {
+        font-size: 0.95rem;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem 1.5rem;
+    }
+    .form-grid .full {
+        grid-column: 1 / -1;
+    }
+    .campo label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.35rem;
+        letter-spacing: 0.01em;
+    }
+    .campo label .req {
+        color: #dc2626;
+        margin-left: 2px;
+    }
+    .campo input,
+    .campo select {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1.5px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.92rem;
+        color: #111827;
+        background: #fff;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .campo input:focus,
+    .campo select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .campo input::placeholder {
+        color: #9ca3af;
+    }
+    .campo select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        padding-right: 2rem;
+    }
+    .campo .hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+    .form-divider {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 1.5rem 0;
+    }
+    .form-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.75rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    .form-footer .btn-ax {
+        padding: 0.65rem 1.5rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+    .form-footer .btn-ax.primary {
+        background: #2563eb;
+        color: #fff;
+    }
+    .form-footer .btn-ax.primary:hover {
+        background: #1d4ed8;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .form-footer .btn-ax.primary:disabled {
+        background: #93c5fd;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    .form-footer .btn-ax.secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    .form-footer .btn-ax.secondary:hover {
+        background: #e5e7eb;
+    }
+    @media (max-width: 640px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .form-footer {
+            flex-direction: column;
+        }
+        .form-footer .btn-ax {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<form method="POST" class="content-card form-empresa" id="formEmpresa" novalidate>
+    <div class="section-title">
+        <i class="fa-solid fa-building"></i> Información general
+    </div>
+    <div class="form-grid">
+        <div class="campo">
+            <label for="nit">NIT <span class="req">*</span></label>
+            <input name="nit" id="nit" required pattern="\d{5,15}"
+                   placeholder="Ej: 900123456"
+                   inputmode="numeric" maxlength="15">
+            <div class="hint">Solo números, entre 5 y 15 dígitos</div>
+        </div>
+        <div class="campo">
+            <label for="tipo_empresa">Tipo empresa <span class="req">*</span></label>
+            <select name="tipo_empresa" id="tipo_empresa" required>
+                <option value="">Seleccione tipo...</option>
+                <option value="IPS">IPS</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Consultorio">Consultorio</option>
+            </select>
+        </div>
+        <div class="campo full">
+            <label for="razon_social">Razón social <span class="req">*</span></label>
+            <input name="razon_social" id="razon_social" required maxlength="200"
+                   placeholder="Nombre legal de la empresa">
+        </div>
+        <div class="campo full">
+            <label for="nombre_comercial">Nombre comercial</label>
+            <input name="nombre_comercial" id="nombre_comercial" maxlength="200"
+                   placeholder="Nombre público (opcional)">
+        </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <div class="section-title">
+        <i class="fa-solid fa-location-dot"></i> Ubicación y contacto
+    </div>
+    <div class="form-grid">
+        <div class="campo">
+            <label for="departamento">Departamento</label>
+            <input name="departamento" id="departamento" maxlength="100"
+                   placeholder="Ej: Risaralda">
+        </div>
+        <div class="campo">
+            <label for="municipio">Municipio</label>
+            <input name="municipio" id="municipio" maxlength="100"
+                   placeholder="Ej: Pereira">
+        </div>
+        <div class="campo">
+            <label for="telefono">Teléfono</label>
+            <input name="telefono" id="telefono" type="tel"
+                   pattern="\d{7,10}" inputmode="tel" maxlength="10"
+                   placeholder="Ej: 3101234567">
+        </div>
+        <div class="campo">
+            <label for="email">Email</label>
+            <input name="email" id="email" type="email"
+                   placeholder="correo@empresa.com">
+        </div>
+    </div>
+
+    <div class="form-footer">
+        <button type="button" class="btn-ax secondary"
+                onclick="window.history.back()">
+            <i class="fa-solid fa-arrow-left"></i> Volver
+        </button>
+        <button type="submit" class="btn-ax primary" id="btnSubmit">
+            <i class="fa-solid fa-save"></i> Crear empresa
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+<script>
+(() => {
+    const form = document.getElementById("formEmpresa");
+    const btn = document.getElementById("btnSubmit");
+
+    const CAMPOS_REQUERIDOS = [
+        { id: "nit", nombre: "NIT" },
+        { id: "tipo_empresa", nombre: "Tipo de empresa" },
+        { id: "razon_social", nombre: "Razón social" },
+    ];
+
+    function validar() {
+        const faltantes = CAMPOS_REQUERIDOS
+            .filter(c => !document.getElementById(c.id).value.trim())
+            .map(c => c.nombre);
+
+        if (faltantes.length) {
+            Swal.fire({
+                icon: "warning",
+                title: "Campos obligatorios",
+                text: `Completa: ${faltantes.join(", ")}`,
+                confirmButtonColor: "#2563eb",
+            });
+            return false;
+        }
+
+        const email = document.getElementById("email");
+        if (email.value.trim() && !email.validity.valid) {
+            Swal.fire({
+                icon: "warning",
+                title: "Email inválido",
+                text: "Revisa el formato del correo electrónico",
+                confirmButtonColor: "#2563eb",
+            });
+            email.focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    async function enviar() {
+        btn.disabled = true;
+
+        Swal.fire({
+            title: "Creando empresa...",
+            text: "Por favor espera",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+            const resp = await fetch(form.action || window.location.href, {
+                method: "POST",
+                body: new FormData(form),
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            });
+
+            if (resp.redirected) {
+                window.location.href = resp.url;
+                return;
+            }
+
+            if (resp.ok) {
+                const data = await resp.json().catch(() => null);
+                await Swal.fire({
+                    icon: "success",
+                    title: "Empresa creada",
+                    text: data?.message || "Registro exitoso",
+                    confirmButtonColor: "#2563eb",
+                });
+                form.reset();
+            } else {
+                const err = await resp.json().catch(() => ({}));
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: err.message || `Error del servidor (${resp.status})`,
+                    confirmButtonColor: "#2563eb",
+                });
+            }
+        } catch {
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo conectar con el servidor",
+                confirmButtonColor: "#2563eb",
+            });
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!validar()) return;
+
+        Swal.fire({
+            title: "¿Crear empresa?",
+            text: "Se registrará la nueva institución",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#2563eb",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Sí, crear",
+            cancelButtonText: "Cancelar",
+        }).then((result) => {
+            if (result.isConfirmed) enviar();
+        });
+    });
+})();
+</script>
+{% endblock %}

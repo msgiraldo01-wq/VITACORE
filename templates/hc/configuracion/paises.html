@@ -1,0 +1,312 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Países{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-earth-americas"></i>{% endblock %}
+{% block header_title %}Configuración · Países{% endblock %}
+{% block header_subtitle %}Catálogo de países para residencia y nacionalidad{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/paises/nuevo">
+<i class="fa-solid fa-plus"></i>
+Nuevo país
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar{
+display:flex;
+gap:12px;
+margin-bottom:14px;
+flex-wrap:wrap;
+}
+
+.search{
+flex:1;
+position:relative;
+}
+
+.search input{
+width:100%;
+padding:12px 14px;
+border-radius:14px;
+border:1px solid rgba(203,213,225,.95);
+}
+
+.table-wrap{
+overflow:auto;
+border-radius:18px;
+border:1px solid rgba(226,232,240,.95);
+background:var(--surface-2);
+max-height:60vh;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:850px;
+}
+
+th,td{
+padding:14px 12px;
+border-bottom:1px solid rgba(226,232,240,.9);
+text-align:left;
+font-size:.93rem;
+}
+
+th{
+background:rgba(14,165,255,.08);
+font-size:.84rem;
+text-transform:uppercase;
+}
+
+.badge{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:7px 10px;
+border-radius:999px;
+font-size:.78rem;
+font-weight:800;
+}
+
+.badge.ok{
+background:rgba(34,197,94,.12);
+color:#166534;
+}
+
+.badge.off{
+background:rgba(239,68,68,.12);
+color:#991b1b;
+}
+
+.actions{
+display:flex;
+gap:8px;
+}
+
+.btn-mini{
+display:inline-flex;
+align-items:center;
+gap:6px;
+border:none;
+cursor:pointer;
+padding:8px 10px;
+border-radius:12px;
+font-size:.82rem;
+font-weight:700;
+}
+
+.btn-mini.edit{
+background:rgba(14,165,255,.12);
+color:#0c4a6e;
+}
+
+.btn-mini.toggle{
+background:rgba(15,23,42,.08);
+}
+
+.empty-box{
+border:1px dashed rgba(148,163,184,.5);
+border-radius:18px;
+padding:30px;
+text-align:center;
+color:var(--muted);
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+
+<div class="search">
+<input id="searchInput" type="text" placeholder="Buscar país...">
+</div>
+
+</div>
+
+{% if items %}
+
+<div class="table-wrap" id="scrollContainer">
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>ISO2</th>
+<th>ISO3</th>
+<th>Nombre</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tableBody">
+
+{% for item in items %}
+
+<tr class="rowItem">
+
+<td>{{ item.id }}</td>
+<td class="iso2">{{ item.codigo_iso2 }}</td>
+<td>{{ item.codigo_iso3 or '—' }}</td>
+<td class="nombre">{{ item.nombre }}</td>
+
+<td>
+{% if item.estado == "ACTIVO" %}
+<span class="badge ok">Activo</span>
+{% else %}
+<span class="badge off">Inactivo</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="actions">
+
+<a class="btn-mini edit"
+href="/hc/configuracion/paises/editar/{{ item.id }}">
+<i class="fa-solid fa-pen"></i>
+Editar
+</a>
+
+<form method="POST"
+action="/hc/configuracion/paises/toggle/{{ item.id }}"
+class="toggleForm">
+
+<button class="btn-mini toggle" type="button">
+<i class="fa-solid fa-power-off"></i>
+{{ 'Inactivar' if item.estado=='ACTIVO' else 'Activar' }}
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+<h3>Aún no hay países registrados</h3>
+<p>Crea el primero o carga el catálogo mundial.</p>
+<a class="btn-ax primary" href="/hc/configuracion/paises/nuevo">
+<i class="fa-solid fa-plus"></i>
+Crear primer país
+</a>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* SweetAlert toggle */
+
+document.querySelectorAll(".toggleForm button").forEach(btn=>{
+
+btn.addEventListener("click",function(){
+
+const form=this.closest("form")
+
+Swal.fire({
+title:"¿Confirmar cambio?",
+text:"El estado del país será modificado.",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Sí, continuar",
+cancelButtonText:"Cancelar",
+confirmButtonColor:"#0ea5ff"
+}).then((result)=>{
+
+if(result.isConfirmed){
+form.submit()
+}
+
+})
+
+})
+
+})
+
+
+/* Buscador */
+
+const searchInput=document.getElementById("searchInput")
+const rows=document.querySelectorAll(".rowItem")
+
+searchInput.addEventListener("keyup",()=>{
+
+const val=searchInput.value.toLowerCase()
+
+rows.forEach(row=>{
+
+const nombre=row.querySelector(".nombre").innerText.toLowerCase()
+const iso=row.querySelector(".iso2").innerText.toLowerCase()
+
+if(nombre.includes(val)||iso.includes(val)){
+row.style.display=""
+}else{
+row.style.display="none"
+}
+
+})
+
+})
+
+
+/* Scroll infinito */
+
+const container=document.getElementById("scrollContainer")
+let visible=30
+
+function applyLimit(){
+
+const rows=document.querySelectorAll(".rowItem")
+
+rows.forEach((row,index)=>{
+row.style.display=index<visible?"":"none"
+})
+
+}
+
+applyLimit()
+
+container.addEventListener("scroll",()=>{
+
+if(container.scrollTop+container.clientHeight>=container.scrollHeight-10){
+
+visible+=30
+applyLimit()
+
+}
+
+})
+
+</script>
+
+{% endblock %}

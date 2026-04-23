@@ -1,0 +1,279 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Departamentos{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-map"></i>{% endblock %}
+{% block header_title %}Configuración · Departamentos{% endblock %}
+{% block header_subtitle %}Catálogo geográfico por país{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/departamentos/nuevo">
+<i class="fa-solid fa-plus"></i>
+Nuevo departamento
+</a>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar{
+display:flex;
+justify-content:space-between;
+margin-bottom:14px;
+flex-wrap:wrap;
+}
+
+.search-box{
+display:flex;
+align-items:center;
+gap:8px;
+border:1px solid rgba(203,213,225,.9);
+border-radius:12px;
+padding:8px 12px;
+background:#fff;
+}
+
+.search-box input{
+border:none;
+outline:none;
+width:240px;
+}
+
+.table-wrap{
+max-height:520px;
+overflow:auto;
+border-radius:18px;
+border:1px solid rgba(226,232,240,.95);
+background:var(--surface-2);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:800px;
+}
+
+th,td{
+padding:14px 12px;
+border-bottom:1px solid rgba(226,232,240,.9);
+}
+
+th{
+background:rgba(14,165,255,.08);
+position:sticky;
+top:0;
+text-transform:uppercase;
+font-size:.8rem;
+}
+
+.badge{
+padding:6px 10px;
+border-radius:999px;
+font-size:.75rem;
+font-weight:700;
+}
+
+.badge.ok{
+background:#dcfce7;
+color:#166534;
+}
+
+.badge.off{
+background:#fee2e2;
+color:#991b1b;
+}
+
+.actions{
+display:flex;
+gap:8px;
+}
+
+.btn-mini{
+padding:8px 10px;
+border-radius:10px;
+border:none;
+cursor:pointer;
+font-weight:700;
+}
+
+.btn-mini.edit{
+background:#e0f2fe;
+}
+
+.btn-mini.toggle{
+background:#f1f5f9;
+}
+
+.empty-box{
+padding:30px;
+text-align:center;
+border:1px dashed #cbd5e1;
+border-radius:16px;
+}
+
+.msg-search{
+text-align:center;
+padding:20px;
+color:#64748b;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if items %}
+
+<div class="toolbar">
+
+<div class="search-box">
+<i class="fa-solid fa-magnifying-glass"></i>
+<input type="text" id="searchInput" placeholder="Buscar departamento...">
+</div>
+
+</div>
+
+<div class="table-wrap" id="tableWrap">
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>País</th>
+<th>Código</th>
+<th>Nombre</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tableBody">
+
+{% for item in items %}
+
+<tr class="data-row">
+<td>{{ item.id }}</td>
+<td>{{ item.pais }}</td>
+<td>{{ item.codigo }}</td>
+<td>{{ item.nombre }}</td>
+
+<td>
+{% if item.estado == "ACTIVO" %}
+<span class="badge ok">Activo</span>
+{% else %}
+<span class="badge off">Inactivo</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="actions">
+
+<a class="btn-mini edit"
+href="/hc/configuracion/departamentos/editar/{{ item.id }}">
+Editar
+</a>
+
+<form method="POST"
+action="/hc/configuracion/departamentos/toggle/{{ item.id }}"
+class="formToggle">
+
+<button class="btn-mini toggle" type="button">
+{{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+</button>
+
+</form>
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+<h3>No hay departamentos registrados</h3>
+<p>Agrega el primero para comenzar.</p>
+
+<a class="btn-ax primary"
+href="/hc/configuracion/departamentos/nuevo">
+Crear departamento
+</a>
+
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* SCROLL INFINITO */
+let rows = document.querySelectorAll(".data-row")
+let visible = 20
+
+function updateRows(){
+rows.forEach((r,i)=> r.style.display = i < visible ? "" : "none")
+}
+
+updateRows()
+
+document.getElementById("tableWrap")?.addEventListener("scroll",function(){
+if(this.scrollTop + this.clientHeight >= this.scrollHeight - 10){
+visible += 20
+updateRows()
+}
+})
+
+/* BUSCADOR */
+document.getElementById("searchInput")?.addEventListener("keyup",function(){
+
+let val = this.value.toLowerCase()
+
+document.querySelectorAll(".data-row").forEach(row=>{
+row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none"
+})
+
+})
+
+/* SWEET ALERT */
+document.addEventListener("click",function(e){
+
+if(e.target.closest(".formToggle button")){
+
+let form = e.target.closest("form")
+
+Swal.fire({
+title:"Confirmar",
+text:"¿Cambiar estado?",
+icon:"warning",
+showCancelButton:true
+}).then(r=>{
+if(r.isConfirmed) form.submit()
+})
+
+}
+
+})
+
+</script>
+{% endblock %}

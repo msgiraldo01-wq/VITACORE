@@ -1,0 +1,44 @@
+{% extends "hc/base.html" %}
+
+{% block header_title %}Modo administrador{% endblock %}
+{% block header_subtitle %}Seleccione una empresa{% endblock %}
+
+{% block content %}
+
+<div class="emp-root">
+
+    <div class="emp-actions">
+        <a href="/empresa/crear" class="btn-ax primary">
+            <i class="fa-solid fa-plus"></i> Crear empresa
+        </a>
+    </div>
+
+    <div class="emp-grid">
+        {% for emp in empresas %}
+        <div class="emp-card">
+
+            <div class="emp-header">
+                <i class="fa-solid fa-hospital"></i>
+                <div>
+                    <h3>{{ emp.nombre_comercial or emp.razon_social }}</h3>
+                    <p>{{ emp.razon_social }}</p>
+                </div>
+            </div>
+
+            <div class="emp-footer">
+                <span class="badge {{ 'active' if emp.estado == 'ACTIVA' else 'inactive' }}">
+                    {{ emp.estado }}
+                </span>
+
+                <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax ghost">
+                    Entrar
+                </a>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}

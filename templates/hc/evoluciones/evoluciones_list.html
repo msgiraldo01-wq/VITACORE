@@ -1,0 +1,596 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Evoluciones — {{ paciente.nombres }} {{ paciente.apellidos }}{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-notes-medical"></i>{% endblock %}
+{% block header_title %}Evoluciones médicas{% endblock %}
+{% block header_subtitle %}Historia clínica del paciente{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax primary" href="{{ url_for('hc_evoluciones.evolucion_nuevo', paciente_id=paciente_id) }}">
+  <i class="fa-solid fa-plus"></i> Nueva evolución
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.ev-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .ev-layout { grid-template-columns: 1fr; }
+  .ev-sidebar { position: static !important; }
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR PACIENTE
+   ═══════════════════════════════════════ */
+.ev-sidebar {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pac-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.pac-header {
+  background: linear-gradient(135deg, #0ea5e9, #22c55e);
+  padding: 24px 20px;
+  text-align: center;
+  color: white;
+  position: relative;
+}
+
+.pac-header::after {
+  content: '';
+  position: absolute;
+  bottom: -16px; left: 0; right: 0;
+  height: 32px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.pac-avatar {
+  width: 68px; height: 68px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 800;
+  border: 3px solid rgba(255,255,255,0.35);
+  position: relative; z-index: 1;
+}
+
+.pac-name {
+  font-size: 15px; font-weight: 700;
+  position: relative; z-index: 1;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.pac-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.2);
+  padding: 3px 12px; border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  position: relative; z-index: 1;
+}
+
+.pac-stats {
+  padding: 24px 18px 16px;
+}
+
+.pac-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+
+.pac-row:last-child { border-bottom: none; }
+.pac-row-label { color: #64748b; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.pac-row-value { font-weight: 600; color: #1e293b; }
+.pac-row-value.hl { color: #0ea5e9; }
+
+/* STATS COUNTER */
+.stats-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-box {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-num {
+  font-size: 24px; font-weight: 800;
+  color: #1e293b; line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-num.blue  { color: #0ea5e9; }
+.stat-num.green { color: #22c55e; }
+.stat-num.orange{ color: #f59e0b; }
+.stat-num.pink  { color: #ec4899; }
+
+.stat-desc {
+  font-size: 11px; color: #64748b;
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ═══════════════════════════════════════
+   TIMELINE
+   ═══════════════════════════════════════ */
+.timeline-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.empty-state i {
+  font-size: 52px;
+  display: block;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.empty-state h3 { color: #475569; font-size: 18px; margin-bottom: 8px; }
+.empty-state p  { font-size: 14px; }
+
+/* TARJETA EVOLUCIÓN */
+.ev-card {
+  background: white;
+  border-radius: 0;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.ev-card:first-child { border-radius: 20px 20px 0 0; }
+.ev-card:last-child  { border-radius: 0 0 20px 20px; border-bottom: 1px solid #e2e8f0; }
+.ev-card:only-child  { border-radius: 20px; border-bottom: 1px solid #e2e8f0; }
+
+.ev-card:hover { background: #fafcff; }
+
+/* FRANJA LATERAL DE COLOR */
+.ev-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #0ea5e9, #22c55e);
+  border-radius: 4px 0 0 4px;
+}
+
+.ev-card-inner {
+  padding: 20px 24px 20px 28px;
+}
+
+/* TOP ROW */
+.ev-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.ev-top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ev-medico-avatar {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ev-medico-name {
+  font-weight: 700; font-size: 14px; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.ev-tipo {
+  font-size: 11px; color: #64748b; font-weight: 500;
+  margin-top: 2px;
+}
+
+.ev-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ev-fecha {
+  font-size: 12px; color: #94a3b8; font-weight: 500;
+  white-space: nowrap;
+}
+
+.ev-cie-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  color: #1d4ed8; border-radius: 6px;
+  padding: 3px 10px; font-size: 12px; font-weight: 700;
+}
+
+/* CUERPO */
+.ev-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 600px) {
+  .ev-body { grid-template-columns: 1fr; }
+}
+
+.ev-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ev-field-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: #94a3b8;
+}
+
+.ev-field-value {
+  font-size: 13px; color: #334155; line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ev-field-value.empty { color: #cbd5e1; font-style: italic; }
+
+/* SIGNOS VITALES INLINE */
+.ev-signos {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 14px;
+}
+
+.ev-signo-tag {
+  display: flex; align-items: center; gap: 5px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 4px 10px;
+  font-size: 12px; color: #475569; font-weight: 500;
+}
+
+.ev-signo-tag i { font-size: 11px; }
+
+/* ALERTAS INLINE */
+.ev-alertas {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ev-alerta-tag {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+}
+
+.ev-alerta-tag.ant {
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+}
+
+.ev-alerta-tag.alg {
+  background: #fff5f5; border: 1px solid #fca5a5; color: #b91c1c;
+}
+
+/* ACCIONES */
+.ev-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ev-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px;
+  font-size: 12px; font-weight: 700;
+  text-decoration: none; transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.ev-btn.ver {
+  background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;
+}
+.ev-btn.ver:hover { background: #dbeafe; }
+
+.ev-btn.formula {
+  background: #f0fdf4; border-color: #bbf7d0; color: #166534;
+}
+.ev-btn.formula:hover { background: #dcfce7; }
+
+.ev-btn.pdf {
+  background: #fff5f5; border-color: #fca5a5; color: #b91c1c;
+}
+.ev-btn.pdf:hover { background: #fee2e2; }
+
+.ev-btn.hc {
+  background: #fdf4ff; border-color: #e9d5ff; color: #6b21a8;
+}
+.ev-btn.hc:hover { background: #f3e8ff; }
+
+/* SEPARADOR FECHA */
+.ev-date-separator {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0 4px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.ev-date-separator::before,
+.ev-date-separator::after {
+  content: ''; flex: 1; height: 1px; background: #f1f5f9;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="ev-layout">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="ev-sidebar">
+
+    <div class="pac-card">
+      <div class="pac-header">
+        <div class="pac-avatar">
+          {{ ((paciente.nombres or '?')[0] ~ (paciente.apellidos or '?')[0]).upper() }}
+        </div>
+        <div class="pac-name">{{ paciente.nombres }} {{ paciente.apellidos }}</div>
+        <div class="pac-badge">
+          <i class="fa-solid fa-venus-mars"></i>
+          {% set s = paciente.sexo or '' %}
+          {% if s in ['F','femenino','Femenino'] %}Femenino
+          {% elif s in ['M','masculino','Masculino'] %}Masculino
+          {% else %}—{% endif %}
+          · {{ paciente.edad or '--' }} años
+        </div>
+      </div>
+      <div class="pac-stats">
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-id-card"></i> Documento</span>
+          <span class="pac-row-value">{{ paciente.numero_documento or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-droplet"></i> Sangre</span>
+          <span class="pac-row-value hl">{{ paciente.tipo_sangre or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-hospital"></i> EPS</span>
+          <span class="pac-row-value">{{ paciente.eps_nombre or paciente.aseguradora or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-phone"></i> Celular</span>
+          <span class="pac-row-value">{{ paciente.celular or paciente.telefono or '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    {% if evoluciones %}
+    <div class="stats-card">
+      <div class="stat-box">
+        <div class="stat-num blue">{{ evoluciones | length }}</div>
+        <div class="stat-desc">Consultas</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num green">
+          {{ evoluciones | selectattr('cie10_codigo') | list | length }}
+        </div>
+        <div class="stat-desc">Con CIE-10</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num orange">
+          {{ evoluciones | selectattr('medico_nombre') | list | length }}
+        </div>
+        <div class="stat-desc">Con médico</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num pink">
+          {{ evoluciones | selectattr('alergias') | list | length }}
+        </div>
+        <div class="stat-desc">Con alertas</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </aside>
+
+
+  <!-- ═══ TIMELINE ═══ -->
+  <div class="timeline-wrap">
+
+    {% if not evoluciones %}
+    <div class="empty-state">
+      <i class="fa-solid fa-notes-medical"></i>
+      <h3>Sin evoluciones registradas</h3>
+      <p>Aún no hay consultas registradas para este paciente.</p>
+    </div>
+
+    {% else %}
+    {% for e in evoluciones %}
+    <div class="ev-card">
+      <div class="ev-card-inner">
+
+        <!-- TOP -->
+        <div class="ev-top">
+          <div class="ev-top-left">
+            <div class="ev-medico-avatar">
+              {{ (e.medico_nombre or 'M')[0].upper() }}
+            </div>
+            <div>
+              <div class="ev-medico-name">{{ e.medico_nombre or 'Médico no registrado' }}</div>
+              <div class="ev-tipo">{{ e.tipo_atencion or 'Consulta externa' }}</div>
+            </div>
+          </div>
+          <div class="ev-top-right">
+            <div class="ev-fecha">
+              <i class="fa-solid fa-calendar"></i>
+              {{ e.fecha | string | truncate(10, true, '') if e.fecha else '—' }}
+            </div>
+            {% if e.cie10_codigo %}
+            <div class="ev-cie-badge">
+              <i class="fa-solid fa-hashtag"></i> {{ e.cie10_codigo }}
+              {% if e.cie10_nombre %}<span style="font-weight:400; color:#3b82f6; font-size:11px;">{{ e.cie10_nombre | truncate(30, true) }}</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- ALERTAS (si hay) -->
+        {% if e.antecedentes or e.alergias %}
+        <div class="ev-alertas">
+          {% if e.antecedentes %}
+          <span class="ev-alerta-tag ant">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            Antecedentes
+          </span>
+          {% endif %}
+          {% if e.alergias %}
+          <span class="ev-alerta-tag alg">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ e.alergias | truncate(40, true) }}
+          </span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- SIGNOS VITALES (si hay) -->
+        {% set tiene_signos = e.ta or e.fc or e.temperatura or e.peso or e.spo2 %}
+        {% if tiene_signos %}
+        <div class="ev-signos">
+          {% if e.ta %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-heart" style="color:#ef4444;"></i> {{ e.ta }} mmHg</span>
+          {% endif %}
+          {% if e.fc %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-heart-crack" style="color:#ec4899;"></i> {{ e.fc }} lpm</span>
+          {% endif %}
+          {% if e.temperatura %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-temperature-half" style="color:#06b6d4;"></i> {{ e.temperatura }}°C</span>
+          {% endif %}
+          {% if e.peso %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-weight-scale" style="color:#f59e0b;"></i> {{ e.peso }} kg</span>
+          {% endif %}
+          {% if e.spo2 %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-lungs-virus" style="color:#3b82f6;"></i> {{ e.spo2 }}%</span>
+          {% endif %}
+          {% if e.imc %}
+          <span class="ev-signo-tag"><i class="fa-solid fa-calculator" style="color:#22c55e;"></i> IMC {{ e.imc }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- CAMPOS CLÍNICOS -->
+        <div class="ev-body">
+          <div class="ev-field">
+            <span class="ev-field-label"><i class="fa-solid fa-comment-dots"></i> Motivo de consulta</span>
+            <span class="ev-field-value {% if not e.motivo_consulta %}empty{% endif %}">
+              {{ e.motivo_consulta or 'No registrado' }}
+            </span>
+          </div>
+          <div class="ev-field">
+            <span class="ev-field-label"><i class="fa-solid fa-file-medical"></i> Enfermedad actual</span>
+            <span class="ev-field-value {% if not e.enfermedad_actual %}empty{% endif %}">
+              {{ e.enfermedad_actual or 'No registrado' }}
+            </span>
+          </div>
+          <div class="ev-field">
+            <span class="ev-field-label"><i class="fa-solid fa-brain"></i> Impresión diagnóstica</span>
+            <span class="ev-field-value {% if not e.impresion_diagnostica %}empty{% endif %}">
+              {{ e.impresion_diagnostica or 'No registrado' }}
+            </span>
+          </div>
+          <div class="ev-field">
+            <span class="ev-field-label"><i class="fa-solid fa-clipboard-list"></i> Plan</span>
+            <span class="ev-field-value {% if not e.plan %}empty{% endif %}">
+              {{ e.plan or 'No registrado' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- ACCIONES -->
+        <div class="ev-actions">
+          <a class="ev-btn ver"
+             href="{{ url_for('hc_evoluciones.evolucion_ver', evolucion_id=e.id) }}">
+            <i class="fa-solid fa-eye"></i> Ver detalle
+          </a>
+          <a class="ev-btn formula"
+             href="{{ url_for('hc_evoluciones.formula_medica', evolucion_id=e.id) }}"
+             target="_blank">
+            <i class="fa-solid fa-file-prescription"></i> Fórmula
+          </a>
+          <a class="ev-btn pdf"
+             href="{{ url_for('hc_evoluciones.formula_pdf', evolucion_id=e.id) }}"
+             target="_blank">
+            <i class="fa-solid fa-file-pdf"></i> PDF
+          </a>
+          <a class="ev-btn hc"
+             href="/hc/historia/{{ e.paciente_id }}"
+             target="_blank">
+            <i class="fa-solid fa-book-medical"></i> Historia
+          </a>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  </div><!-- /timeline-wrap -->
+</div><!-- /ev-layout -->
+{% endblock %}

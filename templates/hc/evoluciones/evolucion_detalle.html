@@ -1,0 +1,725 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Evolución #{{ evolucion.id }} — {{ paciente.nombres }} {{ paciente.apellidos }}{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-notes-medical"></i>{% endblock %}
+{% block header_title %}Evolución médica{% endblock %}
+{% block header_subtitle %}{{ evolucion.fecha or 'Sin fecha' }} · {{ evolucion.tipo_atencion or '' }}</{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="{{ url_for('hc_evoluciones.evoluciones_paciente', paciente_id=paciente.id) }}">
+  <i class="fa-solid fa-arrow-left"></i> Volver
+</a>
+<a class="btn-ax secondary" href="{{ url_for('hc_evoluciones.formula_medica', evolucion_id=evolucion.id) }}" target="_blank">
+  <i class="fa-solid fa-prescription"></i> Fórmula
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.det-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .det-layout { grid-template-columns: 1fr; }
+  .det-sidebar { position: static !important; }
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════ */
+.det-sidebar {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ═══════════════════════════════════════
+   CARDS BASE
+   ═══════════════════════════════════════ */
+.det-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.det-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.det-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.det-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.det-card-body {
+  padding: 20px;
+}
+
+/* ═══════════════════════════════════════
+   PACIENTE CARD (sidebar)
+   ═══════════════════════════════════════ */
+.pac-header {
+  background: linear-gradient(135deg, #0ea5e9, #22c55e);
+  padding: 24px 20px;
+  text-align: center;
+  color: white;
+  position: relative;
+}
+
+.pac-header::after {
+  content: '';
+  position: absolute;
+  bottom: -16px; left: 0; right: 0;
+  height: 32px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.pac-avatar {
+  width: 72px; height: 72px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; font-weight: 800;
+  border: 3px solid rgba(255,255,255,0.35);
+  position: relative; z-index: 1;
+}
+
+.pac-name {
+  font-size: 1rem; font-weight: 700;
+  position: relative; z-index: 1;
+  margin-bottom: 6px;
+}
+
+.pac-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  position: relative; z-index: 1;
+}
+
+.pac-stats {
+  padding: 24px 20px 16px;
+}
+
+.pac-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+
+.pac-row:last-child { border-bottom: none; }
+
+.pac-row-label {
+  color: #64748b; font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.pac-row-value { font-weight: 600; color: #1e293b; }
+.pac-row-value.hl { color: #0ea5e9; }
+
+/* ═══════════════════════════════════════
+   ALERTAS (antecedentes / alergias)
+   ═══════════════════════════════════════ */
+.alerta-card {
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.alerta-card.antecedentes {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.alerta-card.alergias {
+  background: #fff5f5;
+  border: 1px solid #fca5a5;
+}
+
+.alerta-label {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.alerta-card.antecedentes .alerta-label { color: #92400e; }
+.alerta-card.alergias .alerta-label { color: #b91c1c; }
+
+/* ═══════════════════════════════════════
+   SIGNOS VITALES
+   ═══════════════════════════════════════ */
+.signos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.signo-item {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.signo-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: white;
+  margin: 0 auto 8px;
+}
+
+.signo-value {
+  font-size: 17px; font-weight: 800;
+  color: #1e293b; line-height: 1;
+  margin-bottom: 3px;
+}
+
+.signo-unit {
+  font-size: 10px; color: #94a3b8;
+  font-weight: 600; text-transform: uppercase;
+}
+
+.signo-label {
+  font-size: 11px; color: #64748b;
+  font-weight: 600; margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════
+   SECCIONES DE TEXTO
+   ═══════════════════════════════════════ */
+.text-block {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.text-block.empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.cie-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px; font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* ═══════════════════════════════════════
+   MEDICAMENTOS
+   ═══════════════════════════════════════ */
+.med-list {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.med-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+}
+
+.med-icon-wrap {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 15px;
+}
+
+.med-name {
+  font-weight: 700; color: #0369a1;
+  font-size: 15px; margin-bottom: 4px;
+}
+
+.med-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+.med-tag {
+  background: white;
+  border: 1px solid #e0f2fe;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px; color: #475569;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* ═══════════════════════════════════════
+   PRÓXIMO CONTROL
+   ═══════════════════════════════════════ */
+.control-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.control-row i { color: #16a34a; font-size: 18px; }
+.control-fecha { font-weight: 700; color: #166534; }
+.control-tipo  { color: #4b5563; }
+
+/* ═══════════════════════════════════════
+   MÉDICO FOOTER
+   ═══════════════════════════════════════ */
+.medico-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.medico-avatar {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 15px;
+}
+
+.medico-name { font-weight: 700; color: #1e293b; font-size: 15px; }
+.medico-sub  { font-size: 12px; color: #64748b; }
+
+/* ═══════════════════════════════════════
+   MAIN CONTENT GRID
+   ═══════════════════════════════════════ */
+.det-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.det-section-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .det-section-row { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="det-layout">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════════ -->
+  <aside class="det-sidebar">
+
+    <!-- PACIENTE -->
+    <div class="det-card">
+      <div class="pac-header">
+        <div class="pac-avatar">
+          {{ ((paciente.nombres or '?')[0] ~ (paciente.apellidos or '?')[0]).upper() }}
+        </div>
+        <div class="pac-name">{{ paciente.nombres }} {{ paciente.apellidos }}</div>
+        <div class="pac-badge">
+          <i class="fa-solid fa-venus-mars"></i>
+          {% set s = paciente.sexo or '' %}
+          {% if s in ['F','femenino','Femenino'] %}Femenino
+          {% elif s in ['M','masculino','Masculino'] %}Masculino
+          {% else %}—{% endif %}
+          · {{ paciente.edad or '--' }} años
+        </div>
+      </div>
+      <div class="pac-stats">
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-id-card"></i> Documento</span>
+          <span class="pac-row-value">{{ paciente.numero_documento or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-droplet"></i> Sangre</span>
+          <span class="pac-row-value hl">{{ paciente.tipo_sangre or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-hospital"></i> EPS</span>
+          <span class="pac-row-value">{{ paciente.eps_nombre or paciente.aseguradora or '—' }}</span>
+        </div>
+        <div class="pac-row">
+          <span class="pac-row-label"><i class="fa-solid fa-phone"></i> Celular</span>
+          <span class="pac-row-value">{{ paciente.celular or paciente.telefono or '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTAS CLÍNICAS -->
+    {% if evolucion.antecedentes or evolucion.alergias %}
+    <div class="det-card">
+      <div class="det-card-header">
+        <div class="det-card-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <span class="det-card-title">Alertas clínicas</span>
+      </div>
+      <div class="det-card-body" style="display:flex;flex-direction:column;gap:10px;">
+        {% if evolucion.antecedentes %}
+        <div class="alerta-card antecedentes">
+          <div class="alerta-label">
+            <i class="fa-solid fa-clock-rotate-left"></i> Antecedentes
+          </div>
+          {{ evolucion.antecedentes }}
+        </div>
+        {% endif %}
+        {% if evolucion.alergias %}
+        <div class="alerta-card alergias">
+          <div class="alerta-label">
+            <i class="fa-solid fa-circle-exclamation"></i> Alergias
+          </div>
+          {{ evolucion.alergias }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN
+       ═══════════════════════════════════════ -->
+  <div class="det-main">
+
+    <!-- SIGNOS VITALES -->
+    {% set tiene_signos = evolucion.ta or evolucion.fc or evolucion.fr or evolucion.temperatura or evolucion.peso or evolucion.talla or evolucion.spo2 %}
+    {% if tiene_signos %}
+    <div class="det-card">
+      <div class="det-card-header">
+        <div class="det-card-icon" style="background: linear-gradient(135deg,#ef4444,#dc2626);">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <span class="det-card-title">Signos vitales</span>
+      </div>
+      <div class="det-card-body">
+        <div class="signos-grid">
+          {% if evolucion.ta %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);"><i class="fa-solid fa-heart"></i></div>
+            <div class="signo-value">{{ evolucion.ta }}</div>
+            <div class="signo-unit">mmHg</div>
+            <div class="signo-label">Presión</div>
+          </div>
+          {% endif %}
+          {% if evolucion.fc %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#ec4899,#db2777);"><i class="fa-solid fa-heart-crack"></i></div>
+            <div class="signo-value">{{ evolucion.fc }}</div>
+            <div class="signo-unit">lpm</div>
+            <div class="signo-label">F. Cardíaca</div>
+          </div>
+          {% endif %}
+          {% if evolucion.fr %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fa-solid fa-lungs"></i></div>
+            <div class="signo-value">{{ evolucion.fr }}</div>
+            <div class="signo-unit">rpm</div>
+            <div class="signo-label">F. Resp.</div>
+          </div>
+          {% endif %}
+          {% if evolucion.temperatura %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2);"><i class="fa-solid fa-temperature-half"></i></div>
+            <div class="signo-value">{{ evolucion.temperatura }}</div>
+            <div class="signo-unit">°C</div>
+            <div class="signo-label">Temperatura</div>
+          </div>
+          {% endif %}
+          {% if evolucion.spo2 %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#3b82f6,#2563eb);"><i class="fa-solid fa-lungs-virus"></i></div>
+            <div class="signo-value">{{ evolucion.spo2 }}</div>
+            <div class="signo-unit">%</div>
+            <div class="signo-label">SpO2</div>
+          </div>
+          {% endif %}
+          {% if evolucion.peso %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fa-solid fa-weight-scale"></i></div>
+            <div class="signo-value">{{ evolucion.peso }}</div>
+            <div class="signo-unit">kg</div>
+            <div class="signo-label">Peso</div>
+          </div>
+          {% endif %}
+          {% if evolucion.talla %}
+          <div class="signo-item">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="fa-solid fa-ruler-vertical"></i></div>
+            <div class="signo-value">{{ evolucion.talla }}</div>
+            <div class="signo-unit">cm</div>
+            <div class="signo-label">Talla</div>
+          </div>
+          {% endif %}
+          {% if evolucion.imc %}
+          <div class="signo-item" style="background:#ecfdf5; border-color:#a7f3d0;">
+            <div class="signo-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fa-solid fa-calculator"></i></div>
+            <div class="signo-value">{{ evolucion.imc }}</div>
+            <div class="signo-unit">IMC</div>
+            <div class="signo-label">
+              {% set imc = evolucion.imc | float %}
+              {% if imc < 18.5 %}Bajo peso
+              {% elif imc < 25 %}Normal
+              {% elif imc < 30 %}Sobrepeso
+              {% else %}Obesidad{% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- SUBJETIVO: MOTIVO + ENFERMEDAD -->
+    <div class="det-section-row">
+      <div class="det-card">
+        <div class="det-card-header">
+          <div class="det-card-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+            <i class="fa-solid fa-comment-medical"></i>
+          </div>
+          <span class="det-card-title">Motivo de consulta</span>
+        </div>
+        <div class="det-card-body">
+          <div class="text-block {% if not evolucion.motivo_consulta %}empty{% endif %}">
+            {{ evolucion.motivo_consulta or 'No registrado' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="det-card">
+        <div class="det-card-header">
+          <div class="det-card-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+            <i class="fa-solid fa-file-medical"></i>
+          </div>
+          <span class="det-card-title">Enfermedad actual</span>
+        </div>
+        <div class="det-card-body">
+          <div class="text-block {% if not evolucion.enfermedad_actual %}empty{% endif %}">
+            {{ evolucion.enfermedad_actual or 'No registrado' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OBJETIVO: EXAMEN FÍSICO + SISTEMAS -->
+    {% if evolucion.examen_fisico or evolucion.examen_sistemas %}
+    <div class="det-section-row">
+      {% if evolucion.examen_fisico %}
+      <div class="det-card">
+        <div class="det-card-header">
+          <div class="det-card-icon" style="background:linear-gradient(135deg,#22c55e,#16a34a);">
+            <i class="fa-solid fa-stethoscope"></i>
+          </div>
+          <span class="det-card-title">Examen físico</span>
+        </div>
+        <div class="det-card-body">
+          <div class="text-block">{{ evolucion.examen_fisico }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if evolucion.examen_sistemas %}
+      <div class="det-card">
+        <div class="det-card-header">
+          <div class="det-card-icon" style="background:linear-gradient(135deg,#22c55e,#16a34a);">
+            <i class="fa-solid fa-list-check"></i>
+          </div>
+          <span class="det-card-title">Revisión por sistemas</span>
+        </div>
+        <div class="det-card-body">
+          <div class="text-block">{{ evolucion.examen_sistemas }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ANÁLISIS: DIAGNÓSTICO -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <div class="det-card-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+          <i class="fa-solid fa-microscope"></i>
+        </div>
+        <span class="det-card-title">Análisis diagnóstico</span>
+      </div>
+      <div class="det-card-body">
+        {% if evolucion.cie10_codigo %}
+        <div class="cie-badge">
+          <i class="fa-solid fa-hashtag"></i>
+          {{ evolucion.cie10_codigo }} — {{ evolucion.cie10_nombre }}
+        </div>
+        {% endif %}
+        <div class="text-block {% if not evolucion.impresion_diagnostica %}empty{% endif %}">
+          {{ evolucion.impresion_diagnostica or 'No registrado' }}
+        </div>
+        {% if evolucion.diagnosticos_secundarios %}
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #f1f5f9;">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:8px;">
+            <i class="fa-solid fa-list"></i> Diagnósticos secundarios
+          </div>
+          <div class="text-block">{{ evolucion.diagnosticos_secundarios }}</div>
+        </div>
+        {% endif %}
+        {% if evolucion.resultados_paraclinicos %}
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #f1f5f9;">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:8px;">
+            <i class="fa-solid fa-flask"></i> Resultados paraclínicos
+          </div>
+          <div class="text-block">{{ evolucion.resultados_paraclinicos }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PLAN -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <div class="det-card-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
+          <i class="fa-solid fa-clipboard-list"></i>
+        </div>
+        <span class="det-card-title">Plan de manejo</span>
+      </div>
+      <div class="det-card-body">
+        <div class="text-block {% if not evolucion.plan %}empty{% endif %}">
+          {{ evolucion.plan or 'No registrado' }}
+        </div>
+        {% if evolucion.recomendaciones %}
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid #f1f5f9;">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:8px;">
+            <i class="fa-solid fa-circle-info"></i> Recomendaciones
+          </div>
+          <div class="text-block">{{ evolucion.recomendaciones }}</div>
+        </div>
+        {% endif %}
+
+        {% if evolucion.proximo_control_fecha %}
+        <div style="margin-top:16px;">
+          <div class="control-row">
+            <i class="fa-solid fa-calendar-check"></i>
+            <div>
+              <span class="control-fecha">{{ evolucion.proximo_control_fecha }}</span>
+              {% if evolucion.proximo_control_tipo %}
+              <span class="control-tipo"> — {{ evolucion.proximo_control_tipo }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- MÉDICO FIRMANTE -->
+      <div class="medico-row">
+        <div class="medico-avatar">
+          {{ (evolucion.medico_nombre or 'M')[0].upper() }}
+        </div>
+        <div>
+          <div class="medico-name">{{ evolucion.medico_nombre or 'Médico no registrado' }}</div>
+          <div class="medico-sub">
+            <i class="fa-solid fa-user-doctor"></i> Médico tratante
+            {% if evolucion.fecha %} · {{ evolucion.fecha }}{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEDICAMENTOS -->
+    <div class="det-card">
+      <div class="det-card-header">
+        <div class="det-card-icon" style="background:linear-gradient(135deg,#ec4899,#db2777);">
+          <i class="fa-solid fa-pills"></i>
+        </div>
+        <span class="det-card-title">Fórmula médica</span>
+        {% if medicamentos %}
+        <span style="margin-left:auto; font-size:12px; color:#64748b; font-weight:600;">
+          {{ medicamentos|length }} medicamento{{ 's' if medicamentos|length != 1 else '' }}
+        </span>
+        {% endif %}
+      </div>
+      <div class="det-card-body">
+        {% if medicamentos %}
+        <div class="med-list">
+          {% for m in medicamentos %}
+          <div class="med-card">
+            <div class="med-icon-wrap">
+              <i class="fa-solid fa-capsules"></i>
+            </div>
+            <div style="flex:1;">
+              <div class="med-name">{{ m.medicamento_nombre }}</div>
+              <div class="med-tags">
+                {% if m.dosis %}
+                <span class="med-tag"><i class="fa-solid fa-syringe"></i> {{ m.dosis }}</span>
+                {% endif %}
+                {% if m.frecuencia %}
+                <span class="med-tag"><i class="fa-solid fa-clock"></i> {{ m.frecuencia }}</span>
+                {% endif %}
+                {% if m.duracion %}
+                <span class="med-tag"><i class="fa-solid fa-calendar-days"></i> {{ m.duracion }}</span>
+                {% endif %}
+                {% if m.via_administracion %}
+                <span class="med-tag"><i class="fa-solid fa-route"></i> {{ m.via_administracion }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center; padding:32px; color:#94a3b8;">
+          <i class="fa-solid fa-prescription-bottle-medical" style="font-size:40px; display:block; margin-bottom:12px; color:#cbd5e1;"></i>
+          No hay medicamentos registrados en esta evolución
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div><!-- /det-main -->
+</div><!-- /det-layout -->
+{% endblock %}

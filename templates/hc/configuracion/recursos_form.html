@@ -1,0 +1,524 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Nuevo recurso' if modo=='crear' else 'Editar recurso' }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-hospital"></i>{% endblock %}
+{% block header_title %}{{ 'Nuevo recurso' if modo=='crear' else 'Editar recurso' }}{% endblock %}
+{% block header_subtitle %}Registro de equipos y espacios clínicos{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/recursos">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ── tabs ─────────────────────────────────────────── */
+.tabs-wrap {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(226,232,240,.9);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color .15s, border-color .15s;
+}
+
+.tab-btn:hover { color: #0ea5ff; }
+.tab-btn.active { color: #0ea5ff; border-bottom-color: #0ea5ff; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── form ─────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 16px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+
+.field label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: white;
+  outline: none;
+  font-size: .93rem;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(14,165,255,.7);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.12);
+}
+
+textarea { min-height: 100px; resize: none; }
+
+.form-actions { margin-top: 22px; display: flex; gap: 10px; }
+
+.card-form {
+  background: var(--surface-2);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(226,232,240,.9);
+}
+
+/* ── buscador cups ────────────────────────────────── */
+.cups-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.cups-search-wrap input {
+  width: 100%;
+  border: 1px solid rgba(203,213,225,.95);
+  border-radius: 14px;
+  padding: 11px 14px 11px 38px;
+  font-size: .92rem;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cups-search-wrap input:focus {
+  border-color: rgba(14,165,255,.7);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.12);
+}
+
+.cups-search-wrap .ico-search {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.cups-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cups-dropdown.open { display: block; }
+
+.cups-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .88rem;
+  border-bottom: 1px solid rgba(226,232,240,.6);
+  transition: background .12s;
+}
+
+.cups-option:hover { background: rgba(14,165,255,.07); }
+.cups-option:last-child { border-bottom: none; }
+.cups-option .cod { font-weight: 700; color: #0c4a6e; margin-right: 6px; }
+
+/* ── tabla procedimientos ─────────────────────────── */
+.proc-table-wrap {
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.proc-table { width: 100%; border-collapse: collapse; }
+
+.proc-table th,
+.proc-table td {
+  padding: 11px 12px;
+  text-align: left;
+  font-size: .88rem;
+  border-bottom: 1px solid rgba(226,232,240,.8);
+}
+
+.proc-table th {
+  background: rgba(14,165,255,.08);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+}
+
+.proc-table tr:last-child td { border-bottom: none; }
+
+.proc-table .dur-input {
+  width: 70px;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: .88rem;
+  text-align: center;
+  outline: none;
+}
+
+.proc-table .dur-input:focus {
+  border-color: #0ea5ff;
+  box-shadow: 0 0 0 2px rgba(14,165,255,.15);
+}
+
+.btn-del-proc {
+  background: rgba(239,68,68,.1);
+  color: #991b1b;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.btn-del-proc:hover { background: rgba(239,68,68,.2); }
+
+.empty-proc {
+  text-align: center;
+  padding: 28px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.proc-hint {
+  font-size: .83rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+@media (max-width:860px) { .form-grid { grid-template-columns: 1fr; } }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Tabs ─────────────────────────────────────────── -->
+<div class="tabs-wrap">
+  <button class="tab-btn active" data-tab="datos">
+    <i class="fa-solid fa-hospital"></i> Datos generales
+  </button>
+  <button class="tab-btn" data-tab="procedimientos">
+    <i class="fa-solid fa-syringe"></i> Procedimientos
+  </button>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 1 — DATOS GENERALES
+════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-datos">
+
+  <form method="POST" id="formRecurso">
+    <div class="card-form">
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código</label>
+          <input type="text" name="codigo" value="{{ recurso.codigo or '' }}">
+        </div>
+
+        <div class="field">
+          <label>Tipo *</label>
+          <select name="tipo" required>
+            <option value="">Seleccione</option>
+            <option value="IMAGEN"      {{ 'selected' if recurso.tipo=='IMAGEN' }}>IMAGEN</option>
+            <option value="CONSULTORIO" {{ 'selected' if recurso.tipo=='CONSULTORIO' }}>CONSULTORIO</option>
+            <option value="SALA"        {{ 'selected' if recurso.tipo=='SALA' }}>SALA</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Sede</label>
+          <select name="sede_id">
+            <option value="">Seleccione</option>
+            {% for s in sedes %}
+            <option value="{{ s.id }}" {{ 'selected' if recurso.sede_id==s.id }}>
+              {{ s.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Consultorio</label>
+          <select name="consultorio_id">
+            <option value="">Seleccione</option>
+            {% for c in consultorios %}
+            <option value="{{ c.id }}" {{ 'selected' if recurso.consultorio_id==c.id }}>
+              {{ c.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Nombre *</label>
+          <input type="text" name="nombre" required value="{{ recurso.nombre or '' }}">
+        </div>
+
+        <div class="field full">
+          <label>Descripción</label>
+          <textarea name="descripcion">{{ recurso.descripcion or '' }}</textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-ax primary" type="submit">
+        <i class="fa-solid fa-save"></i>
+        Guardar recurso
+      </button>
+      <a class="btn-ax ghost" href="/hc/configuracion/recursos">Cancelar</a>
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 2 — PROCEDIMIENTOS
+════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-procedimientos">
+
+  {% if modo == 'crear' %}
+  <div style="background:rgba(14,165,255,.07);border:1px solid rgba(14,165,255,.3);
+              border-radius:14px;padding:16px 20px;margin-bottom:16px;font-size:.9rem;">
+    <i class="fa-solid fa-circle-info" style="color:#0ea5ff;margin-right:8px;"></i>
+    Guarda primero los datos generales para poder asignar procedimientos.
+  </div>
+  {% else %}
+
+  <p class="proc-hint">
+    Busca y agrega los procedimientos CUPS que se pueden realizar con este recurso.
+    Ajusta la duración en minutos de cada uno.
+  </p>
+
+  <!-- Buscador CUPS -->
+  <div class="cups-search-wrap">
+    <i class="fa-solid fa-magnifying-glass ico-search"></i>
+    <input type="text" id="cupsSearch"
+           placeholder="Buscar procedimiento por código o nombre...">
+    <div class="cups-dropdown" id="cupsDropdown"></div>
+  </div>
+
+  <!-- Tabla de procedimientos asignados -->
+  <div class="proc-table-wrap">
+    <table class="proc-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descripción</th>
+          <th style="width:120px;">Duración (min)</th>
+          <th style="width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody id="procTableBody">
+        <tr>
+          <td colspan="4" class="empty-proc">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+/* ── constantes ──────────────────────────────────── */
+const REC_ID = {{ (recurso.id if recurso and recurso.id else None) | tojson }}
+const MODO      = {{ modo | tojson }}
+const BASE_PROC = `/hc/configuracion/recursos/${REC_ID}/procedimientos`
+const BASE_CUPS = `/hc/configuracion/cups/buscar`
+
+/* ── tabs ────────────────────────────────────────── */
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"))
+    btn.classList.add("active")
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active")
+    if (btn.dataset.tab === "procedimientos" && MODO === "editar") cargarProcs()
+  })
+})
+
+/* ── form submit ─────────────────────────────────── */
+const form = document.getElementById("formRecurso")
+form?.addEventListener("submit", function(e) {
+  e.preventDefault()
+  Swal.fire({
+    title: "¿Guardar recurso?",
+    text:  "Se guardará la información del recurso.",
+    icon:  "question",
+    showCancelButton:  true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText:  "Cancelar",
+    confirmButtonColor:"#0ea5ff"
+  }).then(r => { if (r.isConfirmed) form.submit() })
+})
+
+/* ══════════════════════════════════════════════════
+   PROCEDIMIENTOS
+══════════════════════════════════════════════════ */
+
+async function cargarProcs() {
+  const tbody = document.getElementById("procTableBody")
+  if (!tbody) return
+  tbody.innerHTML = `<tr><td colspan="4" class="empty-proc"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>`
+  const res  = await fetch(BASE_PROC)
+  const data = await res.json()
+  renderProcs(data)
+}
+
+function renderProcs(data) {
+  const tbody = document.getElementById("procTableBody")
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-proc">
+      <i class="fa-solid fa-syringe"></i><br><br>
+      No hay procedimientos asignados.<br>Usa el buscador para agregar.
+    </td></tr>`
+    return
+  }
+  tbody.innerHTML = data.map(p => `
+    <tr data-id="${p.id}">
+      <td><strong>${p.hc_cups?.codigo || "—"}</strong></td>
+      <td>${p.hc_cups?.descripcion || "—"}</td>
+      <td>
+        <input class="dur-input" type="number" min="1" max="480"
+               value="${p.duracion_min}"
+               onchange="guardarDuracion(${p.id}, this.value)">
+      </td>
+      <td>
+        <button class="btn-del-proc" onclick="eliminarProc(${p.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join("")
+}
+
+async function guardarDuracion(id, val) {
+  await fetch(`/hc/configuracion/recursos/procedimientos/${id}/duracion`, {
+    method:  "POST",
+    headers: {"Content-Type": "application/json"},
+    body:    JSON.stringify({ duracion_min: parseInt(val) })
+  })
+}
+
+async function eliminarProc(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar procedimiento?",
+    text:  "Se quitará de este recurso.",
+    icon:  "warning",
+    showCancelButton:  true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText:  "Cancelar",
+    confirmButtonColor:"#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/recursos/procedimientos/${id}/eliminar`,
+              { method: "POST" })
+  cargarProcs()
+}
+
+/* ── buscador CUPS ───────────────────────────────── */
+const cupsSearch   = document.getElementById("cupsSearch")
+const cupsDropdown = document.getElementById("cupsDropdown")
+let   cupsTimeout  = null
+
+cupsSearch?.addEventListener("input", function() {
+  clearTimeout(cupsTimeout)
+  const q = this.value.trim()
+  if (q.length < 2) { cupsDropdown.classList.remove("open"); return }
+  cupsTimeout = setTimeout(async () => {
+    const res  = await fetch(`${BASE_CUPS}?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    if (!data.length) {
+      cupsDropdown.innerHTML = `<div class="cups-option" style="color:var(--muted);">Sin resultados</div>`
+    } else {
+      cupsDropdown.innerHTML = data.map(c => `
+        <div class="cups-option"
+             data-id="${c.id}"
+             data-codigo="${c.codigo}"
+             data-desc="${c.descripcion}">
+          <span class="cod">${c.codigo}</span>${c.descripcion}
+        </div>`).join("")
+    }
+    cupsDropdown.classList.add("open")
+  }, 300)
+})
+
+cupsDropdown?.addEventListener("click", async function(e) {
+  const opt = e.target.closest(".cups-option")
+  if (!opt || !opt.dataset.id) return
+  cupsDropdown.classList.remove("open")
+  cupsSearch.value = ""
+  const res  = await fetch(BASE_PROC + "/agregar", {
+    method:  "POST",
+    headers: {"Content-Type": "application/json"},
+    body:    JSON.stringify({ cups_id: parseInt(opt.dataset.id), duracion_min: 20 })
+  })
+  const data = await res.json()
+  if (data.ok) {
+    cargarProcs()
+  } else {
+    Swal.fire({
+      title: "No se pudo agregar",
+      text:  data.msg || "Es posible que ya esté asignado.",
+      icon:  "warning",
+      confirmButtonColor: "#0ea5ff"
+    })
+  }
+})
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".cups-search-wrap")) cupsDropdown?.classList.remove("open")
+})
+
+if (MODO === "editar") {
+  const tabActive = document.querySelector(".tab-btn.active")
+  if (tabActive?.dataset.tab === "procedimientos") cargarProcs()
+}
+
+</script>
+{% endblock %}

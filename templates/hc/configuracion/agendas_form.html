@@ -1,0 +1,266 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Agenda{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-calendar-plus"></i>
+{% endblock %}
+
+{% block header_title %}
+Nueva agenda
+{% endblock %}
+
+{% block header_subtitle %}
+Definir disponibilidad de atención clínica
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/agendas">
+    <i class="fa-solid fa-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* CONTENEDOR */
+.agenda-box{
+    max-width:900px;
+    margin:auto;
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:28px;
+    box-shadow:var(--shadow-soft);
+}
+
+/* BLOQUES */
+.section{
+    margin-bottom:25px;
+}
+
+.section-title{
+    font-weight:600;
+    font-size:.95rem;
+    margin-bottom:10px;
+    opacity:.8;
+}
+
+/* GRID */
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:16px;
+}
+
+.field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.field.full{
+    grid-column:1 / -1;
+}
+
+.field label{
+    font-weight:600;
+    font-size:.82rem;
+    opacity:.7;
+}
+
+/* INPUTS PRO */
+.field input,
+.field select{
+    padding:11px 12px;
+    border-radius:12px;
+    border:1px solid var(--border-color);
+    background:transparent;
+    color:inherit;
+    transition:.2s;
+}
+
+.field input:focus,
+.field select:focus{
+    border-color:#0ea5ff;
+    box-shadow:0 0 0 3px rgba(14,165,255,.15);
+}
+
+/* ERROR */
+.input-error{
+    border-color:#ef4444 !important;
+}
+
+/* ACCIONES */
+.form-actions{
+    margin-top:25px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+/* OCULTAR */
+.hidden{
+    display:none;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="agenda-box">
+
+<form method="POST" id="formAgenda">
+
+<!-- 🔵 BLOQUE 1 -->
+<div class="section">
+<div class="section-title">Configuración general</div>
+
+<div class="form-grid">
+
+<div class="field">
+<label>Tipo *</label>
+<select name="tipo" id="tipo" onchange="cambiarTipo()">
+    <option value="PROFESIONAL">Profesional</option>
+    <option value="RECURSO">Recurso</option>
+</select>
+</div>
+
+<div class="field" id="boxProfesional">
+<label>Profesional ID</label>
+<input type="number" name="profesional_id">
+</div>
+
+<div class="field hidden" id="boxRecurso">
+<label>Recurso ID</label>
+<input type="number" name="recurso_id">
+</div>
+
+</div>
+</div>
+
+<!-- 🟢 BLOQUE 2 -->
+<div class="section">
+<div class="section-title">Disponibilidad</div>
+
+<div class="form-grid">
+
+<div class="field">
+<label>Día *</label>
+<select name="dia_semana">
+<option value="1">Lunes</option>
+<option value="2">Martes</option>
+<option value="3">Miércoles</option>
+<option value="4">Jueves</option>
+<option value="5">Viernes</option>
+<option value="6">Sábado</option>
+<option value="7">Domingo</option>
+</select>
+</div>
+
+<div class="field">
+<label>Duración (min) *</label>
+<input type="number" name="duracion_min" value="20">
+</div>
+
+<div class="field">
+<label>Hora inicio *</label>
+<input type="time" name="hora_inicio" id="hora_inicio">
+</div>
+
+<div class="field">
+<label>Hora fin *</label>
+<input type="time" name="hora_fin" id="hora_fin">
+</div>
+
+</div>
+</div>
+
+<!-- ACCIONES -->
+<div class="form-actions">
+
+<button class="btn-ax primary" type="submit">
+<i class="fa-solid fa-floppy-disk"></i>
+Guardar agenda
+</button>
+
+<a class="btn-ax ghost" href="/hc/configuracion/agendas">
+Cancelar
+</a>
+
+</div>
+
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+/* CAMBIO DE TIPO */
+function cambiarTipo(){
+
+    let tipo = document.getElementById("tipo").value
+
+    let prof = document.getElementById("boxProfesional")
+    let rec = document.getElementById("boxRecurso")
+
+    if(tipo === "PROFESIONAL"){
+        prof.classList.remove("hidden")
+        rec.classList.add("hidden")
+    }else{
+        prof.classList.add("hidden")
+        rec.classList.remove("hidden")
+    }
+}
+
+/* CONFIRMAR GUARDADO */
+const form = document.getElementById("formAgenda")
+
+form.addEventListener("submit",function(e){
+
+    e.preventDefault()
+
+    Swal.fire({
+        title:"¿Guardar agenda?",
+        text:"Se registrará la disponibilidad.",
+        icon:"question",
+        showCancelButton:true,
+        confirmButtonText:"Sí, guardar",
+        cancelButtonText:"Cancelar",
+        confirmButtonColor:"#0ea5ff"
+    }).then((r)=>{
+        if(r.isConfirmed){
+            form.submit()
+        }
+    })
+
+})
+
+form.addEventListener("submit",function(e){
+
+    let inicio = document.getElementById("hora_inicio").value
+    let fin = document.getElementById("hora_fin").value
+
+    if(inicio >= fin){
+        e.preventDefault()
+
+        Swal.fire({
+            icon:"error",
+            title:"Horario inválido",
+            text:"La hora fin debe ser mayor a la hora inicio"
+        })
+
+        return
+    }
+
+})
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Agendas{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-calendar-days"></i>
+{% endblock %}
+
+{% block header_title %}
+Configuración · Agendas
+{% endblock %}
+
+{% block header_subtitle %}
+Definición de horarios por profesional o recurso
+{% endblock %}
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion">
+<i class="fa-solid fa-arrow-left"></i>
+Volver
+</a>
+
+<a class="btn-ax primary" href="/hc/configuracion/agendas/nuevo">
+<i class="fa-solid fa-plus"></i>
+Nueva agenda
+</a>
+
+{% endblock %}
+
+{% block content %}
+
+{% if data %}
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Tipo</th>
+<th>Profesional</th>
+<th>Recurso</th>
+<th>Día</th>
+<th>Horario</th>
+<th>Duración</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for a in data %}
+
+<tr>
+
+<td>{{ a.id }}</td>
+<td>{{ a.tipo }}</td>
+<td>{{ a.profesional_id or '—' }}</td>
+<td>{{ a.recurso_id or '—' }}</td>
+<td>{{ a.dia_semana }}</td>
+<td>{{ a.hora_inicio }} - {{ a.hora_fin }}</td>
+<td>{{ a.duracion_min }} min</td>
+
+<td>
+{% if a.estado == "ACTIVO" %}
+<span class="badge ok">Activo</span>
+{% else %}
+<span class="badge off">Inactivo</span>
+{% endif %}
+</td>
+
+<td>
+
+<form method="GET"
+action="/hc/configuracion/agendas/toggle/{{ a.id }}"
+class="formToggle">
+
+<button class="btn-mini toggle" type="button">
+Toggle
+</button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% else %}
+
+<div class="empty-box">
+<h3>No hay agendas configuradas</h3>
+<a class="btn-ax primary"
+href="/hc/configuracion/agendas/nuevo">
+Crear agenda
+</a>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener("click",function(e){
+
+if(e.target.closest(".formToggle button")){
+
+const form = e.target.closest("form")
+
+Swal.fire({
+title:"¿Cambiar estado?",
+icon:"warning",
+showCancelButton:true,
+confirmButtonText:"Sí",
+cancelButtonText:"Cancelar"
+}).then((r)=>{
+if(r.isConfirmed){
+form.submit()
+}
+})
+
+}
+
+})
+</script>
+
+
+{% endblock %}

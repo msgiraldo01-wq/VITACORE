@@ -1,0 +1,218 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Nuevo procedimiento CUPS' if modo=='crear' else 'Editar procedimiento CUPS' }}{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-syringe"></i>{% endblock %}
+
+{% block header_title %}
+{{ 'Nuevo procedimiento CUPS' if modo=='crear' else 'Editar procedimiento CUPS' }}
+{% endblock %}
+
+{% block header_subtitle %}
+Registro de procedimientos del catálogo CUPS
+{% endblock %}
+
+
+{% block header_actions %}
+
+<a class="btn-ax ghost" href="/hc/configuracion/cups">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al listado
+</a>
+
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field.full {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-weight: 700;
+  font-size: .92rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid rgba(203,213,225,.95);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: .95rem;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(14,165,255,.7);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.12);
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.help {
+  color: var(--muted);
+  font-size: .84rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+@media (max-width: 860px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<form method="POST" id="formCups"
+      action="{{ '/hc/configuracion/cups/crear' if modo=='crear' else '/hc/configuracion/cups/' ~ item.id ~ '/actualizar' }}">
+
+  <div class="form-grid">
+
+    <!-- Código CUPS -->
+    <div class="field">
+
+      <label for="codigo">Código CUPS *</label>
+
+      <input
+        type="text"
+        id="codigo"
+        name="codigo"
+        maxlength="20"
+        required
+        autocomplete="off"
+        placeholder="Ej: 890201, 841301"
+        value="{{ item.codigo if item else '' }}"
+        style="text-transform:uppercase;"
+      >
+
+      <div class="help">Código oficial del catálogo CUPS (numérico o alfanumérico).</div>
+
+    </div>
+
+
+    <!-- Estado -->
+    <div class="field">
+
+      <label for="estado">Estado</label>
+
+      <select id="estado" name="estado">
+
+        <option value="ACTIVO"
+          {{ 'selected' if not item or (item.estado or 'ACTIVO') == 'ACTIVO' else '' }}>
+          ACTIVO
+        </option>
+
+        <option value="INACTIVO"
+          {{ 'selected' if item and item.estado == 'INACTIVO' else '' }}>
+          INACTIVO
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <!-- Descripción -->
+    <div class="field full">
+
+      <label for="descripcion">Descripción del procedimiento *</label>
+
+      <textarea
+        id="descripcion"
+        name="descripcion"
+        maxlength="500"
+        required
+        autocomplete="off"
+        placeholder="Nombre completo del procedimiento según el catálogo oficial CUPS"
+      >{{ item.descripcion if item else '' }}</textarea>
+
+      <div class="help">Máximo 500 caracteres.</div>
+
+    </div>
+
+  </div>
+
+
+  <div class="form-actions">
+
+    <button class="btn-ax primary" type="submit">
+      <i class="fa-solid fa-floppy-disk"></i>
+      {{ 'Guardar procedimiento' if modo=='crear' else 'Actualizar procedimiento' }}
+    </button>
+
+    <a class="btn-ax ghost" href="/hc/configuracion/cups">
+      <i class="fa-solid fa-xmark"></i>
+      Cancelar
+    </a>
+
+  </div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+const form = document.getElementById("formCups")
+
+form.addEventListener("submit", function (e) {
+
+  e.preventDefault()
+
+  Swal.fire({
+    title:             "¿Guardar procedimiento?",
+    text:              "{{ 'Se registrará un nuevo procedimiento CUPS.' if modo=='crear' else 'Se actualizará el procedimiento.' }}",
+    icon:              "question",
+    showCancelButton:  true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText:  "Cancelar",
+    confirmButtonColor:"#0ea5ff"
+  }).then(result => {
+    if (result.isConfirmed) form.submit()
+  })
+
+})
+
+/* Forzar mayúsculas en el campo código */
+document.getElementById("codigo")?.addEventListener("input", function () {
+  const pos = this.selectionStart
+  this.value = this.value.toUpperCase()
+  this.setSelectionRange(pos, pos)
+})
+
+</script>
+{% endblock %}
