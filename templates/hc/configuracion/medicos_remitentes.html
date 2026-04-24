@@ -1,0 +1,164 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Médicos Remitentes{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-user-nurse"></i>{% endblock %}
+{% block header_title %}Configuración · Médicos Remitentes{% endblock %}
+{% block header_subtitle %}Registro de médicos externos que remiten pacientes{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax primary" href="/hc/configuracion/medicos-remitentes/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo médico remitente
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table-wrap{
+  overflow:auto;
+  border-radius:18px;
+  border:1px solid rgba(226,232,240,.95);
+  background:var(--surface-2);
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+}
+th,td{
+  padding:14px 12px;
+  border-bottom:1px solid rgba(226,232,240,.9);
+  font-size:.93rem;
+}
+th{
+  background:rgba(14,165,255,.08);
+  text-transform:uppercase;
+  font-size:.84rem;
+}
+.badge{
+  display:inline-flex;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:800;
+}
+.badge.ok{ background:rgba(34,197,94,.12); color:#166534; }
+.badge.off{ background:rgba(239,68,68,.12); color:#991b1b; }
+.actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.btn-mini{
+  display:inline-flex;
+  gap:6px;
+  border:none;
+  cursor:pointer;
+  padding:8px 10px;
+  border-radius:12px;
+  font-size:.82rem;
+  font-weight:700;
+}
+.btn-mini.edit{ background:rgba(14,165,255,.12); color:#0c4a6e; }
+.btn-mini.toggle{ background:rgba(15,23,42,.08); }
+.empty-box{
+  border:1px dashed rgba(148,163,184,.5);
+  border-radius:18px;
+  padding:30px;
+  text-align:center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if items %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Documento</th>
+        <th>Nombre completo</th>
+        <th>Especialidad</th>
+        <th>Institución</th>
+        <th>Teléfono</th>
+        <th>Correo</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.tipo_documento_codigo }} {{ item.numero_documento }}</td>
+        <td>{{ item.nombre_completo }}</td>
+        <td>{{ item.especialidad or '—' }}</td>
+        <td>{{ item.institucion or '—' }}</td>
+        <td>{{ item.telefono or '—' }}</td>
+        <td>{{ item.correo or '—' }}</td>
+        <td>
+          {% if item.estado == "ACTIVO" %}
+            <span class="badge ok"><i class="fa-solid fa-circle-check"></i> Activo</span>
+          {% else %}
+            <span class="badge off"><i class="fa-solid fa-circle-xmark"></i> Inactivo</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a class="btn-mini edit"
+               href="/hc/configuracion/medicos-remitentes/editar/{{ item.id }}">
+              <i class="fa-solid fa-pen"></i> Editar
+            </a>
+            <form method="POST"
+                  action="/hc/configuracion/medicos-remitentes/toggle/{{ item.id }}"
+                  class="toggleForm">
+              <button class="btn-mini toggle" type="button">
+                <i class="fa-solid fa-power-off"></i>
+                {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="empty-box">
+  <h3>Aún no hay médicos remitentes registrados</h3>
+  <p>Crea el primero para que esté disponible en el formulario de nueva cita.</p>
+  <a class="btn-ax primary" href="/hc/configuracion/medicos-remitentes/nuevo">
+    <i class="fa-solid fa-plus"></i>
+    Crear primer médico remitente
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.querySelectorAll(".toggleForm button").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const form = this.closest("form");
+    Swal.fire({
+      title: "¿Confirmar cambio?",
+      text: "El estado del médico remitente será modificado.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#0ea5ff"
+    }).then(result => {
+      if (result.isConfirmed) form.submit();
+    });
+  });
+});
+</script>
+{% endblock %}

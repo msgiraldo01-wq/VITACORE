@@ -1,0 +1,179 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Editar' if modo == 'editar' else 'Nuevo' }} Médico Remitente{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-user-nurse"></i>{% endblock %}
+{% block header_title %}{{ 'Editar' if modo == 'editar' else 'Nuevo' }} médico remitente{% endblock %}
+{% block header_subtitle %}{{ 'Modifica los datos del médico remitente' if modo == 'editar' else 'Registra un nuevo médico remitente externo' }}{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/medicos-remitentes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-card{
+  background:var(--surface-2);
+  border:1px solid rgba(226,232,240,.95);
+  border-radius:20px;
+  padding:28px;
+  max-width:760px;
+}
+body.dark-mode .form-card{
+  background:#0f172a;
+  border-color:rgba(51,65,85,.7);
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.form-group{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.form-group.full{ grid-column: 1 / -1; }
+label{
+  font-size:.82rem;
+  font-weight:800;
+  text-transform:uppercase;
+  color:var(--muted);
+  letter-spacing:.04em;
+}
+input, select, textarea{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(226,232,240,.95);
+  background:var(--surface-1);
+  color:var(--text);
+  font-size:.93rem;
+  outline:none;
+  transition:.15s;
+}
+input:focus, select:focus, textarea:focus{
+  border-color:rgba(14,165,255,.5);
+  box-shadow:0 0 0 3px rgba(14,165,255,.10);
+}
+textarea{ resize:vertical; min-height:80px; }
+.form-actions{
+  margin-top:24px;
+  display:flex;
+  gap:12px;
+  justify-content:flex-end;
+}
+@media(max-width:600px){
+  .form-grid{ grid-template-columns:1fr; }
+  .form-group.full{ grid-column:1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}" style="margin-bottom:16px;">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="form-card">
+  <form method="POST">
+
+    <div class="form-grid">
+
+      <!-- Tipo documento -->
+      <div class="form-group">
+        <label>Tipo de documento *</label>
+        <select name="tipo_documento_id" required>
+          <option value="">— Seleccione —</option>
+          {% for td in tipos_documento %}
+            <option value="{{ td.id }}"
+              {% if item and item.tipo_documento_id == td.id %}selected{% endif %}>
+              {{ td.codigo }} — {{ td.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Número documento -->
+      <div class="form-group">
+        <label>Número de documento *</label>
+        <input type="text" name="numero_documento"
+               value="{{ item.numero_documento if item else '' }}"
+               placeholder="Ej: 10234567" required>
+      </div>
+
+      <!-- Nombres -->
+      <div class="form-group">
+        <label>Nombres *</label>
+        <input type="text" name="nombres"
+               value="{{ item.nombres if item else '' }}"
+               placeholder="Ej: Carlos Alberto" required>
+      </div>
+
+      <!-- Apellidos -->
+      <div class="form-group">
+        <label>Apellidos *</label>
+        <input type="text" name="apellidos"
+               value="{{ item.apellidos if item else '' }}"
+               placeholder="Ej: Gómez Ruiz" required>
+      </div>
+
+      <!-- Especialidad (texto libre, no FK) -->
+      <div class="form-group">
+        <label>Especialidad</label>
+        <input type="text" name="especialidad"
+               value="{{ item.especialidad if item else '' }}"
+               placeholder="Ej: Cardiología">
+      </div>
+
+      <!-- Institución -->
+      <div class="form-group">
+        <label>Institución / Clínica</label>
+        <input type="text" name="institucion"
+               value="{{ item.institucion if item else '' }}"
+               placeholder="Ej: Clínica del Café">
+      </div>
+
+      <!-- Teléfono -->
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" name="telefono"
+               value="{{ item.telefono if item else '' }}"
+               placeholder="Ej: 3001234567">
+      </div>
+
+      <!-- Correo -->
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" name="correo"
+               value="{{ item.correo if item else '' }}"
+               placeholder="Ej: medico@clinica.com">
+      </div>
+
+      <!-- Estado -->
+      <div class="form-group">
+        <label>Estado</label>
+        <select name="estado">
+          <option value="ACTIVO"  {% if not item or item.estado == 'ACTIVO'  %}selected{% endif %}>Activo</option>
+          <option value="INACTIVO" {% if item and item.estado == 'INACTIVO' %}selected{% endif %}>Inactivo</option>
+        </select>
+      </div>
+
+    </div><!-- /form-grid -->
+
+    <div class="form-actions">
+      <a class="btn-ax ghost" href="/hc/configuracion/medicos-remitentes">Cancelar</a>
+      <button type="submit" class="btn-ax primary">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {{ 'Actualizar' if modo == 'editar' else 'Guardar' }}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

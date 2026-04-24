@@ -16,6 +16,7 @@ from repositories import hc_agendas_repo as agendas_repo
 from repositories import hc_cups_repo as repo_cups
 import repositories.prof_procedimientos_repository as prof_proc_repo
 import repositories.rec_procedimientos_repository  as rec_proc_repo
+import repositories.hc_medicos_remitentes_repo as repo_mr
 import io 
 import csv
 
@@ -1732,3 +1733,144 @@ def cups_buscar_ajax():
         .execute()
     )
     return jsonify(r.data or [])
+
+# ============================================
+# MÉDICOS REMITENTES
+# ============================================
+
+@bp_hc_configuracion.route("/medicos-remitentes")
+def medicos_remitentes():
+    items = repo_mr.listar()
+    return render_template(
+        "hc/configuracion/medicos_remitentes.html",
+        items=items
+    )
+
+
+@bp_hc_configuracion.route("/medicos-remitentes/nuevo", methods=["GET", "POST"])
+def medico_remitente_nuevo():
+    tipos_documento = repo_td.listar()
+
+    if request.method == "POST":
+        data = {
+            "tipo_documento_id": request.form.get("tipo_documento_id"),
+            "numero_documento":  request.form.get("numero_documento"),
+            "nombres":           request.form.get("nombres"),
+            "apellidos":         request.form.get("apellidos"),
+            "especialidad":      request.form.get("especialidad"),
+            "institucion":       request.form.get("institucion"),
+            "telefono":          request.form.get("telefono"),
+            "correo":            request.form.get("correo"),
+            "estado":            request.form.get("estado"),
+        }
+
+        if not (data["tipo_documento_id"] or "").strip():
+            flash("Debes seleccionar tipo de documento.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="crear", item=data, tipos_documento=tipos_documento
+            )
+
+        if not (data["numero_documento"] or "").strip():
+            flash("El número de documento es obligatorio.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="crear", item=data, tipos_documento=tipos_documento
+            )
+
+        if not (data["nombres"] or "").strip():
+            flash("Los nombres son obligatorios.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="crear", item=data, tipos_documento=tipos_documento
+            )
+
+        if not (data["apellidos"] or "").strip():
+            flash("Los apellidos son obligatorios.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="crear", item=data, tipos_documento=tipos_documento
+            )
+
+        if repo_mr.existe_documento(data["tipo_documento_id"], data["numero_documento"]):
+            flash("Ya existe un médico remitente con ese documento.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="crear", item=data, tipos_documento=tipos_documento
+            )
+
+        repo_mr.crear(data)
+        flash("Médico remitente creado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.medicos_remitentes"))
+
+    return render_template(
+        "hc/configuracion/medicos_remitentes_form.html",
+        modo="crear", item={}, tipos_documento=tipos_documento
+    )
+
+
+@bp_hc_configuracion.route("/medicos-remitentes/editar/<int:item_id>", methods=["GET", "POST"])
+def medico_remitente_editar(item_id):
+    item = repo_mr.obtener(item_id)
+    if not item:
+        flash("El médico remitente no existe.", "error")
+        return redirect(url_for("hc_configuracion.medicos_remitentes"))
+
+    tipos_documento = repo_td.listar()
+
+    if request.method == "POST":
+        data = {
+            "tipo_documento_id": request.form.get("tipo_documento_id"),
+            "numero_documento":  request.form.get("numero_documento"),
+            "nombres":           request.form.get("nombres"),
+            "apellidos":         request.form.get("apellidos"),
+            "especialidad":      request.form.get("especialidad"),
+            "institucion":       request.form.get("institucion"),
+            "telefono":          request.form.get("telefono"),
+            "correo":            request.form.get("correo"),
+            "estado":            request.form.get("estado"),
+        }
+
+        if repo_mr.existe_documento(
+            data["tipo_documento_id"],
+            data["numero_documento"],
+            exclude_id=item_id
+        ):
+            flash("Ya existe otro médico remitente con ese documento.", "warning")
+            return render_template(
+                "hc/configuracion/medicos_remitentes_form.html",
+                modo="editar", item={**item, **data}, tipos_documento=tipos_documento
+            )
+
+        repo_mr.actualizar(item_id, data)
+        flash("Médico remitente actualizado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.medicos_remitentes"))
+
+    return render_template(
+        "hc/configuracion/medicos_remitentes_form.html",
+        modo="editar", item=item, tipos_documento=tipos_documento
+    )
+
+
+@bp_hc_configuracion.route("/medicos-remitentes/toggle/<int:item_id>", methods=["POST"])
+def medico_remitente_toggle(item_id):
+    item = repo_mr.obtener(item_id)
+    if not item:
+        flash("El médico remitente no existe.", "error")
+        return redirect(url_for("hc_configuracion.medicos_remitentes"))
+
+    nuevo_estado = "INACTIVO" if item.get("estado") == "ACTIVO" else "ACTIVO"
+    repo_mr.cambiar_estado(item_id, nuevo_estado)
+
+    flash(
+        f"Médico remitente {'inactivado' if nuevo_estado == 'INACTIVO' else 'activado'} correctamente.",
+        "success"
+    )
+    return redirect(url_for("hc_configuracion.medicos_remitentes"))
+
+
+@bp_hc_configuracion.route("/medicos-remitentes/buscar")
+def medico_remitente_buscar():
+    q = request.args.get("q", "")
+    items = repo_mr.buscar(q)
+    return jsonify(items)
