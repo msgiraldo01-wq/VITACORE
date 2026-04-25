@@ -177,3 +177,30 @@ textarea{ resize:vertical; min-height:80px; }
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+const form = document.querySelector("form");
+
+form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    Swal.fire({
+        title: "¿Guardar cambios?",
+        text: "{{ 'Se actualizará el médico remitente.' if modo == 'editar' else 'Se creará el médico remitente.' }}",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, guardar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#0ea5ff"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            form.submit();
+        }
+    });
+});
+
+</script>
+{% endblock %}

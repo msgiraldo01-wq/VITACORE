@@ -149,7 +149,7 @@ def buscar(q: str):
     response = (
         _sb()
         .table(_table_name())
-        .select("id, nombre_completo, especialidad, institucion, tipo_documento_codigo, numero_documento")
+        .select("id, nombre_completo, especialidad, institucion, numero_documento")
         .eq("estado", "ACTIVO")
         .ilike("nombre_completo", f"%{q}%")
         .limit(10)

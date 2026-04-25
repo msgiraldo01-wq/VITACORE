@@ -449,12 +449,23 @@
                   </select>
               </div>
   
-              <div class="mc-field full">
-                  <label><i class="fa-solid fa-user-md"></i> Médico remitente</label>
-                  <input type="text" class="mc-control" id="mcMedicoRemitente"
-                         placeholder="Nombre del médico que remite (opcional)"
-                         autocomplete="off">
-              </div>
+              <!-- MÉDICO REMITENTE CON BUSCADOR -->
+                <div class="mc-field full">
+                    <label><i class="fa-solid fa-user-md"></i> Médico remitente</label>
+                    <div style="position:relative;">
+                        <i class="fa-solid fa-magnifying-glass"
+                        style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
+                                color:var(--muted);font-size:11px;pointer-events:none;"></i>
+                        <input type="text"
+                            class="mc-control"
+                            id="mcMedicoRemitente"
+                            placeholder="Buscar médico remitente (opcional)..."
+                            autocomplete="off"
+                            style="padding-left:34px;">
+                        <input type="hidden" id="mcMedicoRemitenteId">
+                        <div id="mcDropdownRemitente" class="mc-dropdown"></div>
+                    </div>
+                </div>
   
               <div class="mc-field full">
                   <label><i class="fa-solid fa-notes-medical"></i> Motivo de consulta</label>
@@ -802,6 +813,79 @@
               });
       }, 300);
   }
+
+  /* ── Buscador médico remitente ─────────────────────────── */
+    (function () {
+        let _mrDebounce = null;
+
+        const input  = document.getElementById("mcMedicoRemitente");
+        const hidden = document.getElementById("mcMedicoRemitenteId");
+        const drop   = document.getElementById("mcDropdownRemitente");
+
+        if (!input || !drop) return;
+
+        input.addEventListener("input", function () {
+            clearTimeout(_mrDebounce);
+            hidden.value = "";
+            const q = this.value.trim();
+
+            if (q.length < 2) {
+                drop.classList.remove("visible");
+                drop.innerHTML = "";
+                return;
+            }
+
+            _mrDebounce = setTimeout(() => {
+                fetch(`/hc/configuracion/medicos-remitentes/buscar?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(lista => {
+                        drop.innerHTML = "";
+
+                        if (!lista.length) {
+                            drop.innerHTML = `
+                                <div class="mc-dropdown-item" style="color:var(--muted);cursor:default;">
+                                    <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+                                    Sin resultados
+                                </div>`;
+                            drop.classList.add("visible");
+                            return;
+                        }
+
+                        lista.forEach(mr => {
+                            const el = document.createElement("div");
+                            el.className = "mc-dropdown-item";
+                            el.innerHTML = `
+                                <strong>${mr.nombre_completo}</strong>
+                                <div class="doc">
+                                    ${mr.especialidad || ''}
+                                    ${mr.institucion ? ' · ' + mr.institucion : ''}
+                                </div>`;
+
+                            el.addEventListener("mousedown", e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                input.value  = mr.nombre_completo;
+                                hidden.value = mr.id;
+                                drop.classList.remove("visible");
+                                drop.innerHTML = "";
+                            });
+
+                            drop.appendChild(el);
+                        });
+
+                        drop.classList.add("visible");
+                    })
+                    .catch(() => drop.classList.remove("visible"));
+            }, 300);
+        });
+
+        document.addEventListener("click", e => {
+            if (!e.target.closest("#mcMedicoRemitente") &&
+                !e.target.closest("#mcDropdownRemitente")) {
+                drop.classList.remove("visible");
+            }
+        });
+    })();
   
   function _mcLimpiarPaciente() {
       _mc.pacienteId = null; _mc.pacienteNombre = "";
