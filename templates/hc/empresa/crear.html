@@ -1,326 +1,812 @@
 {% extends "hc/base.html" %}
+
+{% block title %}Crear empresa · Vitacore{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-building-circle-check"></i>
+{% endblock %}
+
 {% block header_title %}Crear empresa{% endblock %}
-{% block header_subtitle %}Registro de institución{% endblock %}
+{% block header_subtitle %}Registro administrativo de institución o entidad prestadora{% endblock %}
+
+{% block header_actions %}
+<a href="/empresa/seleccionar" class="btn-ax ghost">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al selector
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-empresa-page{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.form-hero{
+  display:grid;
+  grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap:20px;
+}
+
+.form-hero-card,
+.form-help-card,
+.form-wrap,
+.form-section{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-sm);
+}
+
+.form-hero-card{
+  position:relative;
+  overflow:hidden;
+  padding:28px;
+  background:
+    radial-gradient(circle at top left, rgba(13,92,99,.10), transparent 28%),
+    linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.form-hero-card::after{
+  content:"";
+  position:absolute;
+  right:-60px;
+  top:-60px;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(13,92,99,.10), transparent 68%);
+  pointer-events:none;
+}
+
+.form-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  margin-bottom:14px;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand-strong);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.form-hero-card h2{
+  margin:0;
+  font-size:clamp(1.7rem, 3vw, 2.4rem);
+  line-height:1.04;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+
+.form-hero-card p{
+  margin:14px 0 0;
+  max-width:760px;
+  color:var(--text-soft);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.form-help-card{
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.form-help-card h3{
+  margin:0;
+  color:var(--text);
+  font-size:1rem;
+}
+
+.form-help-card p{
+  margin:0;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.help-list{
+  display:grid;
+  gap:10px;
+}
+
+.help-item{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-soft);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.help-item i{
+  margin-top:2px;
+  color:var(--brand);
+}
+
+.form-wrap{
+  padding:24px;
+}
+
+.form-empresa{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.form-section{
+  padding:22px;
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 18px;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:800;
+}
+
+.section-title i{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--brand-soft);
+  color:var(--brand);
+  font-size:14px;
+}
+
+.section-copy{
+  margin:-8px 0 18px;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:16px 18px;
+}
+
+.form-grid .full{
+  grid-column:1 / -1;
+}
+
+.campo label{
+  display:block;
+  margin-bottom:8px;
+  color:var(--text);
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+
+.campo label .req{
+  color:var(--danger);
+  margin-left:3px;
+}
+
+.campo input,
+.campo select,
+.campo textarea{
+  width:100%;
+  border:1.5px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-2);
+  color:var(--text);
+  font:inherit;
+  transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  outline:none;
+}
+
+.campo input,
+.campo select{
+  min-height:48px;
+  padding:0 14px;
+}
+
+.campo textarea{
+  min-height:108px;
+  padding:12px 14px;
+  resize:vertical;
+}
+
+.campo input::placeholder,
+.campo textarea::placeholder{
+  color:var(--text-faint);
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 4px rgba(13,92,99,.10);
+  background:var(--surface);
+}
+
+.campo input.error,
+.campo select.error,
+.campo textarea.error{
+  border-color:var(--danger);
+  box-shadow:0 0 0 4px rgba(192,57,43,.10);
+}
+
+.campo .hint{
+  margin-top:6px;
+  color:var(--text-faint);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.color-preview{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+
+.color-swatch{
+  width:24px;
+  height:24px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#ffffff;
+}
+
+.form-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding-top:4px;
+  flex-wrap:wrap;
+}
+
+.form-footer-note{
+  color:var(--text-soft);
+  font-size:13px;
+}
+
+.form-footer-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+@media (max-width: 1080px){
+  .form-hero{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 720px){
+  .form-wrap,
+  .form-section,
+  .form-hero-card,
+  .form-help-card{
+    border-radius:20px;
+  }
+
+  .form-wrap,
+  .form-section,
+  .form-hero-card,
+  .form-help-card{
+    padding:18px;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .form-footer{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .form-footer-actions{
+    width:100%;
+    flex-direction:column;
+  }
+
+  .form-footer-actions .btn-ax{
+    width:100%;
+    justify-content:center;
+  }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-    .form-empresa {
-        max-width: 820px;
-        margin: 0 auto;
-    }
-    .form-empresa .section-title {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #1e40af;
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #dbeafe;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .form-empresa .section-title i {
-        font-size: 0.95rem;
-    }
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.25rem 1.5rem;
-    }
-    .form-grid .full {
-        grid-column: 1 / -1;
-    }
-    .campo label {
-        display: block;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 0.35rem;
-        letter-spacing: 0.01em;
-    }
-    .campo label .req {
-        color: #dc2626;
-        margin-left: 2px;
-    }
-    .campo input,
-    .campo select {
-        width: 100%;
-        padding: 0.6rem 0.75rem;
-        border: 1.5px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 0.92rem;
-        color: #111827;
-        background: #fff;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        outline: none;
-        box-sizing: border-box;
-    }
-    .campo input:focus,
-    .campo select:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-    }
-    .campo input::placeholder {
-        color: #9ca3af;
-    }
-    .campo select {
-        cursor: pointer;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.75rem center;
-        padding-right: 2rem;
-    }
-    .campo .hint {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-top: 0.25rem;
-    }
-    .form-divider {
-        border: none;
-        border-top: 1px solid #e5e7eb;
-        margin: 1.5rem 0;
-    }
-    .form-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        margin-top: 1.75rem;
-        padding-top: 1.25rem;
-        border-top: 1px solid #e5e7eb;
-    }
-    .form-footer .btn-ax {
-        padding: 0.65rem 1.5rem;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: all 0.2s;
-    }
-    .form-footer .btn-ax.primary {
-        background: #2563eb;
-        color: #fff;
-    }
-    .form-footer .btn-ax.primary:hover {
-        background: #1d4ed8;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-    .form-footer .btn-ax.primary:disabled {
-        background: #93c5fd;
-        cursor: not-allowed;
-        box-shadow: none;
-    }
-    .form-footer .btn-ax.secondary {
-        background: #f3f4f6;
-        color: #374151;
-    }
-    .form-footer .btn-ax.secondary:hover {
-        background: #e5e7eb;
-    }
-    @media (max-width: 640px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-        .form-footer {
-            flex-direction: column;
-        }
-        .form-footer .btn-ax {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-</style>
+<div class="form-empresa-page">
 
-<form method="POST" class="content-card form-empresa" id="formEmpresa" novalidate>
-    <div class="section-title">
-        <i class="fa-solid fa-building"></i> Información general
-    </div>
-    <div class="form-grid">
-        <div class="campo">
-            <label for="nit">NIT <span class="req">*</span></label>
-            <input name="nit" id="nit" required pattern="\d{5,15}"
-                   placeholder="Ej: 900123456"
-                   inputmode="numeric" maxlength="15">
-            <div class="hint">Solo números, entre 5 y 15 dígitos</div>
+  <section class="form-hero">
+    <article class="form-hero-card">
+      <div class="form-kicker">
+        <i class="fa-solid fa-building-shield"></i>
+        Registro institucional
+      </div>
+      <h2>Nueva empresa o institución</h2>
+      <p>
+        Completa la información principal, datos de contacto y configuración inicial
+        para registrar una nueva entidad dentro de Vitacore.
+      </p>
+    </article>
+
+    <aside class="form-help-card">
+      <h3>Antes de guardar</h3>
+      <div class="help-list">
+        <div class="help-item">
+          <i class="fa-solid fa-hashtag"></i>
+          <span>El NIT debe ser único dentro del sistema.</span>
         </div>
-        <div class="campo">
+        <div class="help-item">
+          <i class="fa-solid fa-envelope"></i>
+          <span>Si registras correo, valida que sea el correo institucional correcto.</span>
+        </div>
+        <div class="help-item">
+          <i class="fa-solid fa-palette"></i>
+          <span>Los colores y logo pueden ayudarte a personalizar la experiencia por empresa.</span>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <div class="form-wrap">
+    <form method="POST" class="form-empresa" id="formEmpresa" novalidate>
+
+      <section class="form-section">
+        <h3 class="section-title">
+          <i class="fa-solid fa-building"></i>
+          Información general
+        </h3>
+        <p class="section-copy">
+          Datos básicos de identificación y clasificación de la institución.
+        </p>
+
+        <div class="form-grid">
+          <div class="campo">
+            <label for="nit">NIT <span class="req">*</span></label>
+            <input
+              name="nit"
+              id="nit"
+              required
+              pattern="\d{5,15}"
+              inputmode="numeric"
+              maxlength="15"
+              placeholder="Ej: 900123456">
+            <div class="hint">Solo números, entre 5 y 15 dígitos.</div>
+          </div>
+
+          <div class="campo">
+            <label for="estado">Estado inicial</label>
+            <select name="estado" id="estado">
+              <option value="ACTIVA">ACTIVA</option>
+              <option value="INACTIVA">INACTIVA</option>
+            </select>
+          </div>
+
+          <div class="campo">
             <label for="tipo_empresa">Tipo empresa <span class="req">*</span></label>
             <select name="tipo_empresa" id="tipo_empresa" required>
-                <option value="">Seleccione tipo...</option>
-                <option value="IPS">IPS</option>
-                <option value="Hospital">Hospital</option>
-                <option value="Consultorio">Consultorio</option>
+              <option value="">Seleccione tipo...</option>
+              <option value="IPS">IPS</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Consultorio">Consultorio</option>
+              <option value="Clínica">Clínica</option>
+              <option value="Centro médico">Centro médico</option>
             </select>
-        </div>
-        <div class="campo full">
+          </div>
+
+          <div class="campo">
+            <label for="nivel_complejidad">Nivel de complejidad</label>
+            <select name="nivel_complejidad" id="nivel_complejidad">
+              <option value="">Seleccione nivel...</option>
+              <option value="Baja">Baja</option>
+              <option value="Media">Media</option>
+              <option value="Alta">Alta</option>
+            </select>
+          </div>
+
+          <div class="campo full">
             <label for="razon_social">Razón social <span class="req">*</span></label>
-            <input name="razon_social" id="razon_social" required maxlength="200"
-                   placeholder="Nombre legal de la empresa">
-        </div>
-        <div class="campo full">
+            <input
+              name="razon_social"
+              id="razon_social"
+              required
+              maxlength="200"
+              placeholder="Nombre legal de la empresa">
+          </div>
+
+          <div class="campo full">
             <label for="nombre_comercial">Nombre comercial</label>
-            <input name="nombre_comercial" id="nombre_comercial" maxlength="200"
-                   placeholder="Nombre público (opcional)">
+            <input
+              name="nombre_comercial"
+              id="nombre_comercial"
+              maxlength="200"
+              placeholder="Nombre público o marca visible">
+          </div>
         </div>
-    </div>
+      </section>
 
-    <hr class="form-divider">
+      <section class="form-section">
+        <h3 class="section-title">
+          <i class="fa-solid fa-location-dot"></i>
+          Ubicación y contacto
+        </h3>
+        <p class="section-copy">
+          Información de ubicación, comunicación y dirección principal.
+        </p>
 
-    <div class="section-title">
-        <i class="fa-solid fa-location-dot"></i> Ubicación y contacto
-    </div>
-    <div class="form-grid">
-        <div class="campo">
+        <div class="form-grid">
+          <div class="campo">
+            <label for="pais">País</label>
+            <input
+              name="pais"
+              id="pais"
+              maxlength="100"
+              value="Colombia"
+              placeholder="Ej: Colombia">
+          </div>
+
+          <div class="campo">
             <label for="departamento">Departamento</label>
-            <input name="departamento" id="departamento" maxlength="100"
-                   placeholder="Ej: Risaralda">
-        </div>
-        <div class="campo">
-            <label for="municipio">Municipio</label>
-            <input name="municipio" id="municipio" maxlength="100"
-                   placeholder="Ej: Pereira">
-        </div>
-        <div class="campo">
-            <label for="telefono">Teléfono</label>
-            <input name="telefono" id="telefono" type="tel"
-                   pattern="\d{7,10}" inputmode="tel" maxlength="10"
-                   placeholder="Ej: 3101234567">
-        </div>
-        <div class="campo">
-            <label for="email">Email</label>
-            <input name="email" id="email" type="email"
-                   placeholder="correo@empresa.com">
-        </div>
-    </div>
+            <input
+              name="departamento"
+              id="departamento"
+              maxlength="100"
+              placeholder="Ej: Risaralda">
+          </div>
 
-    <div class="form-footer">
-        <button type="button" class="btn-ax secondary"
-                onclick="window.history.back()">
-            <i class="fa-solid fa-arrow-left"></i> Volver
-        </button>
-        <button type="submit" class="btn-ax primary" id="btnSubmit">
-            <i class="fa-solid fa-save"></i> Crear empresa
-        </button>
-    </div>
-</form>
+          <div class="campo">
+            <label for="municipio">Municipio</label>
+            <input
+              name="municipio"
+              id="municipio"
+              maxlength="100"
+              placeholder="Ej: Pereira">
+          </div>
+
+          <div class="campo">
+            <label for="telefono">Teléfono</label>
+            <input
+              name="telefono"
+              id="telefono"
+              type="tel"
+              maxlength="20"
+              placeholder="Ej: 3101234567">
+          </div>
+
+          <div class="campo">
+            <label for="email">Email</label>
+            <input
+              name="email"
+              id="email"
+              type="email"
+              maxlength="150"
+              placeholder="correo@empresa.com">
+          </div>
+
+          <div class="campo full">
+            <label for="direccion">Dirección</label>
+            <textarea
+              name="direccion"
+              id="direccion"
+              maxlength="400"
+              placeholder="Dirección principal de la institución"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h3 class="section-title">
+          <i class="fa-solid fa-file-circle-check"></i>
+          Datos de habilitación
+        </h3>
+        <p class="section-copy">
+          Campos opcionales para control administrativo y trazabilidad institucional.
+        </p>
+
+        <div class="form-grid">
+          <div class="campo">
+            <label for="codigo_habilitacion">Código de habilitación</label>
+            <input
+              name="codigo_habilitacion"
+              id="codigo_habilitacion"
+              maxlength="100"
+              placeholder="Código habilitación">
+          </div>
+
+          <div class="campo">
+            <label for="numero_resolucion">Número de resolución</label>
+            <input
+              name="numero_resolucion"
+              id="numero_resolucion"
+              maxlength="100"
+              placeholder="Número de resolución">
+          </div>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h3 class="section-title">
+          <i class="fa-solid fa-palette"></i>
+          Personalización visual
+        </h3>
+        <p class="section-copy">
+          Configuración opcional para imagen corporativa dentro del sistema.
+        </p>
+
+        <div class="form-grid">
+          <div class="campo full">
+            <label for="logo_url">URL del logo</label>
+            <input
+              name="logo_url"
+              id="logo_url"
+              type="url"
+              maxlength="500"
+              placeholder="https://dominio.com/logo.png">
+          </div>
+
+          <div class="campo">
+            <label for="color_primario">Color primario</label>
+            <input
+              name="color_primario"
+              id="color_primario"
+              maxlength="20"
+              placeholder="#0d5c63">
+            <div class="color-preview">
+              <span class="color-swatch" id="previewPrimario"></span>
+              <span class="hint">Formato sugerido: hexadecimal.</span>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="color_secundario">Color secundario</label>
+            <input
+              name="color_secundario"
+              id="color_secundario"
+              maxlength="20"
+              placeholder="#2d8b93">
+            <div class="color-preview">
+              <span class="color-swatch" id="previewSecundario"></span>
+              <span class="hint">Formato sugerido: hexadecimal.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-footer">
+        <span class="form-footer-note">Los campos marcados con * son obligatorios.</span>
+
+        <div class="form-footer-actions">
+          <a href="/empresa/seleccionar" class="btn-ax ghost">
+            <i class="fa-solid fa-arrow-left"></i>
+            Cancelar
+          </a>
+
+          <button type="submit" class="btn-ax primary" id="btnSubmit">
+            <i class="fa-solid fa-save"></i>
+            Crear empresa
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 <script>
 (() => {
-    const form = document.getElementById("formEmpresa");
-    const btn = document.getElementById("btnSubmit");
+  const form = document.getElementById("formEmpresa");
+  const btn = document.getElementById("btnSubmit");
 
-    const CAMPOS_REQUERIDOS = [
-        { id: "nit", nombre: "NIT" },
-        { id: "tipo_empresa", nombre: "Tipo de empresa" },
-        { id: "razon_social", nombre: "Razón social" },
-    ];
+  const CAMPOS_REQUERIDOS = [
+    { id: "nit", nombre: "NIT" },
+    { id: "tipo_empresa", nombre: "Tipo de empresa" },
+    { id: "razon_social", nombre: "Razón social" }
+  ];
 
-    function validar() {
-        const faltantes = CAMPOS_REQUERIDOS
-            .filter(c => !document.getElementById(c.id).value.trim())
-            .map(c => c.nombre);
+  const colorPrimario = document.getElementById("color_primario");
+  const colorSecundario = document.getElementById("color_secundario");
+  const previewPrimario = document.getElementById("previewPrimario");
+  const previewSecundario = document.getElementById("previewSecundario");
 
-        if (faltantes.length) {
-            Swal.fire({
-                icon: "warning",
-                title: "Campos obligatorios",
-                text: `Completa: ${faltantes.join(", ")}`,
-                confirmButtonColor: "#2563eb",
-            });
-            return false;
-        }
+  function esHexColor(valor) {
+    if (!valor.trim()) return true;
+    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(valor.trim());
+  }
 
-        const email = document.getElementById("email");
-        if (email.value.trim() && !email.validity.valid) {
-            Swal.fire({
-                icon: "warning",
-                title: "Email inválido",
-                text: "Revisa el formato del correo electrónico",
-                confirmButtonColor: "#2563eb",
-            });
-            email.focus();
-            return false;
-        }
+  function pintarPreview(input, preview) {
+    const valor = input.value.trim();
+    preview.style.background = esHexColor(valor) && valor ? valor : "#ffffff";
+  }
 
-        return true;
-    }
-
-    async function enviar() {
-        btn.disabled = true;
-
-        Swal.fire({
-            title: "Creando empresa...",
-            text: "Por favor espera",
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading(),
-        });
-
-        try {
-            const resp = await fetch(form.action || window.location.href, {
-                method: "POST",
-                body: new FormData(form),
-                headers: { "X-Requested-With": "XMLHttpRequest" },
-            });
-
-            if (resp.redirected) {
-                window.location.href = resp.url;
-                return;
-            }
-
-            if (resp.ok) {
-                const data = await resp.json().catch(() => null);
-                await Swal.fire({
-                    icon: "success",
-                    title: "Empresa creada",
-                    text: data?.message || "Registro exitoso",
-                    confirmButtonColor: "#2563eb",
-                });
-                form.reset();
-            } else {
-                const err = await resp.json().catch(() => ({}));
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: err.message || `Error del servidor (${resp.status})`,
-                    confirmButtonColor: "#2563eb",
-                });
-            }
-        } catch {
-            Swal.fire({
-                icon: "error",
-                title: "Error de conexión",
-                text: "No se pudo conectar con el servidor",
-                confirmButtonColor: "#2563eb",
-            });
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (!validar()) return;
-
-        Swal.fire({
-            title: "¿Crear empresa?",
-            text: "Se registrará la nueva institución",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#2563eb",
-            cancelButtonColor: "#6b7280",
-            confirmButtonText: "Sí, crear",
-            cancelButtonText: "Cancelar",
-        }).then((result) => {
-            if (result.isConfirmed) enviar();
-        });
+  function limpiarErrores() {
+    form.querySelectorAll("input, select, textarea").forEach(el => {
+      el.classList.remove("error");
     });
+  }
+
+  function marcarError(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("error");
+  }
+
+  function validar() {
+    limpiarErrores();
+
+    const faltantes = CAMPOS_REQUERIDOS.filter(c => {
+      const el = document.getElementById(c.id);
+      return !el.value.trim();
+    });
+
+    if (faltantes.length) {
+      faltantes.forEach(c => marcarError(c.id));
+      Swal.fire({
+        icon: "warning",
+        title: "Campos obligatorios",
+        text: `Completa: ${faltantes.map(c => c.nombre).join(", ")}`,
+        confirmButtonColor: "#0d5c63"
+      });
+      return false;
+    }
+
+    const nit = document.getElementById("nit");
+    if (!/^\d{5,15}$/.test(nit.value.trim())) {
+      marcarError("nit");
+      Swal.fire({
+        icon: "warning",
+        title: "NIT inválido",
+        text: "El NIT debe contener solo números y tener entre 5 y 15 dígitos.",
+        confirmButtonColor: "#0d5c63"
+      });
+      nit.focus();
+      return false;
+    }
+
+    const email = document.getElementById("email");
+    if (email.value.trim() && !email.validity.valid) {
+      marcarError("email");
+      Swal.fire({
+        icon: "warning",
+        title: "Email inválido",
+        text: "Revisa el formato del correo electrónico.",
+        confirmButtonColor: "#0d5c63"
+      });
+      email.focus();
+      return false;
+    }
+
+    if (!esHexColor(colorPrimario.value)) {
+      marcarError("color_primario");
+      Swal.fire({
+        icon: "warning",
+        title: "Color primario inválido",
+        text: "Usa un color hexadecimal válido, por ejemplo: #0d5c63",
+        confirmButtonColor: "#0d5c63"
+      });
+      colorPrimario.focus();
+      return false;
+    }
+
+    if (!esHexColor(colorSecundario.value)) {
+      marcarError("color_secundario");
+      Swal.fire({
+        icon: "warning",
+        title: "Color secundario inválido",
+        text: "Usa un color hexadecimal válido, por ejemplo: #2d8b93",
+        confirmButtonColor: "#0d5c63"
+      });
+      colorSecundario.focus();
+      return false;
+    }
+
+    return true;
+  }
+
+  async function enviar() {
+    btn.disabled = true;
+
+    Swal.fire({
+      title: "Creando empresa...",
+      text: "Por favor espera un momento",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    try {
+      const resp = await fetch(form.action || window.location.href, {
+        method: "POST",
+        body: new FormData(form),
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || !data.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "No fue posible crear la empresa",
+          text: data.message || `Error del servidor (${resp.status})`,
+          confirmButtonColor: "#0d5c63"
+        });
+        return;
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Empresa creada",
+        text: data.message || "La empresa fue registrada correctamente.",
+        confirmButtonColor: "#0d5c63"
+      });
+
+      if (data.redirect) {
+        window.location.href = data.redirect;
+      } else {
+        form.reset();
+        pintarPreview(colorPrimario, previewPrimario);
+        pintarPreview(colorSecundario, previewSecundario);
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo conectar con el servidor.",
+        confirmButtonColor: "#0d5c63"
+      });
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!validar()) return;
+
+    Swal.fire({
+      title: "¿Crear empresa?",
+      text: "Se registrará la nueva institución en el sistema.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#0d5c63",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Sí, crear",
+      cancelButtonText: "Cancelar"
+    }).then((result) => {
+      if (result.isConfirmed) enviar();
+    });
+  });
+
+  [colorPrimario, colorSecundario].forEach((input, idx) => {
+    const preview = idx === 0 ? previewPrimario : previewSecundario;
+    input.addEventListener("input", () => pintarPreview(input, preview));
+    pintarPreview(input, preview);
+  });
+
+  form.querySelectorAll("input, select, textarea").forEach(el => {
+    el.addEventListener("input", () => el.classList.remove("error"));
+    el.addEventListener("change", () => el.classList.remove("error"));
+  });
 })();
 </script>
 {% endblock %}

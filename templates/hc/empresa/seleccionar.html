@@ -1,44 +1,442 @@
 {% extends "hc/base.html" %}
 
+{% block title %}Empresas · Vitacore{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-building-circle-check"></i>
+{% endblock %}
+
 {% block header_title %}Modo administrador{% endblock %}
-{% block header_subtitle %}Seleccione una empresa{% endblock %}
+{% block header_subtitle %}Seleccione una empresa para ingresar a su entorno operativo{% endblock %}
+
+{% block header_actions %}
+<a href="/empresa/crear" class="btn-ax primary">
+  <i class="fa-solid fa-plus"></i>
+  Crear empresa
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.emp-root{
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+}
+
+.emp-hero{
+  display:grid;
+  grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
+  gap:20px;
+}
+
+.emp-hero-card,
+.emp-summary-card,
+.emp-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-sm);
+}
+
+.emp-hero-card{
+  position:relative;
+  overflow:hidden;
+  padding:28px;
+  background:
+    radial-gradient(circle at top left, rgba(13,92,99,.10), transparent 28%),
+    linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.emp-hero-card::after{
+  content:"";
+  position:absolute;
+  right:-60px;
+  top:-60px;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(13,92,99,.10), transparent 68%);
+  pointer-events:none;
+}
+
+.emp-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  margin-bottom:14px;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand-strong);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.emp-hero-title{
+  margin:0;
+  font-size:clamp(1.8rem, 3vw, 2.5rem);
+  line-height:1.03;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+
+.emp-hero-copy{
+  margin:14px 0 0;
+  max-width:760px;
+  color:var(--text-soft);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.emp-summary-card{
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.emp-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.emp-summary-box{
+  padding:14px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+
+.emp-summary-box strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:1.5rem;
+  line-height:1;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+
+.emp-summary-box span{
+  color:var(--text-soft);
+  font-size:13px;
+}
+
+.emp-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.emp-toolbar-copy h3{
+  margin:0;
+  font-size:1.05rem;
+  color:var(--text);
+}
+
+.emp-toolbar-copy p{
+  margin:6px 0 0;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.emp-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));
+  gap:18px;
+}
+
+.emp-card{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.emp-card:hover{
+  transform:translateY(-2px);
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-md);
+}
+
+.emp-header{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.emp-icon{
+  width:50px;
+  height:50px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  background:var(--brand-soft);
+  color:var(--brand);
+  font-size:20px;
+}
+
+.emp-heading{
+  min-width:0;
+}
+
+.emp-heading h3{
+  margin:0 0 6px;
+  font-size:1rem;
+  line-height:1.3;
+  color:var(--text);
+  word-break:break-word;
+}
+
+.emp-heading p{
+  margin:0;
+  color:var(--text-soft);
+  font-size:13px;
+  line-height:1.5;
+  word-break:break-word;
+}
+
+.emp-meta{
+  display:grid;
+  gap:10px;
+}
+
+.emp-meta-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-soft);
+  font-size:13px;
+}
+
+.emp-meta-item i{
+  color:var(--brand);
+  width:18px;
+  text-align:center;
+}
+
+.emp-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:auto;
+  flex-wrap:wrap;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+  padding:0 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  border:1px solid transparent;
+}
+
+.badge::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:currentColor;
+}
+
+.badge.active{
+  color:var(--accent);
+  background:var(--accent-soft);
+  border-color:rgba(47,125,50,.18);
+}
+
+.badge.inactive{
+  color:var(--danger);
+  background:var(--danger-soft);
+  border-color:rgba(192,57,43,.18);
+}
+
+.emp-empty{
+  padding:30px;
+  text-align:center;
+  border-radius:24px;
+  background:var(--surface);
+  border:1px dashed var(--border-strong);
+  color:var(--text-soft);
+}
+
+.emp-empty i{
+  font-size:28px;
+  color:var(--brand);
+  margin-bottom:12px;
+}
+
+.emp-empty h3{
+  margin:0 0 8px;
+  color:var(--text);
+  font-size:1.1rem;
+}
+
+.emp-empty p{
+  margin:0 auto 18px;
+  max-width:520px;
+  line-height:1.6;
+}
+
+@media (max-width: 1080px){
+  .emp-hero{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 640px){
+  .emp-hero-card,
+  .emp-summary-card,
+  .emp-card,
+  .emp-empty{
+    border-radius:20px;
+  }
+
+  .emp-hero-card,
+  .emp-summary-card,
+  .emp-card{
+    padding:18px;
+  }
+
+  .emp-summary-grid{
+    grid-template-columns:1fr;
+  }
+
+  .emp-footer{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .emp-footer .btn-ax{
+    width:100%;
+  }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-
 <div class="emp-root">
 
-    <div class="emp-actions">
-        <a href="/empresa/crear" class="btn-ax primary">
-            <i class="fa-solid fa-plus"></i> Crear empresa
-        </a>
-    </div>
+  <section class="emp-hero">
+    <article class="emp-hero-card">
+      <div class="emp-kicker">
+        <i class="fa-solid fa-shield-halved"></i>
+        Gestión empresarial
+      </div>
 
-    <div class="emp-grid">
-        {% for emp in empresas %}
-        <div class="emp-card">
+      <h2 class="emp-hero-title">Seleccione la empresa con la que desea trabajar</h2>
 
-            <div class="emp-header">
-                <i class="fa-solid fa-hospital"></i>
-                <div>
-                    <h3>{{ emp.nombre_comercial or emp.razon_social }}</h3>
-                    <p>{{ emp.razon_social }}</p>
-                </div>
-            </div>
+      <p class="emp-hero-copy">
+        Desde este espacio puedes ingresar al entorno operativo de cada empresa registrada,
+        administrar su acceso y continuar con la gestión clínica o administrativa correspondiente.
+      </p>
+    </article>
 
-            <div class="emp-footer">
-                <span class="badge {{ 'active' if emp.estado == 'ACTIVA' else 'inactive' }}">
-                    {{ emp.estado }}
-                </span>
+    <aside class="emp-summary-card">
+      <div>
+        <p class="section-kicker">Resumen</p>
+        <h3 class="section-title">Estado general</h3>
+      </div>
 
-                <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax ghost">
-                    Entrar
-                </a>
-            </div>
-
+      <div class="emp-summary-grid">
+        <div class="emp-summary-box">
+          <strong>{{ empresas|length }}</strong>
+          <span>Empresas registradas</span>
         </div>
-        {% endfor %}
+
+        <div class="emp-summary-box">
+          <strong>{{ empresas|selectattr('estado', 'equalto', 'ACTIVA')|list|length }}</strong>
+          <span>Empresas activas</span>
+        </div>
+      </div>
+
+      <a href="/empresa/crear" class="btn-ax primary">
+        <i class="fa-solid fa-plus"></i>
+        Crear empresa
+      </a>
+    </aside>
+  </section>
+
+  <section class="emp-toolbar">
+    <div class="emp-toolbar-copy">
+      <h3>Empresas disponibles</h3>
+      <p>Selecciona una tarjeta para entrar directamente a su espacio de trabajo.</p>
     </div>
+  </section>
+
+  {% if empresas %}
+  <section class="emp-grid">
+    {% for emp in empresas %}
+    <article class="emp-card">
+      <div class="emp-header">
+        <div class="emp-icon">
+          <i class="fa-solid fa-hospital"></i>
+        </div>
+
+        <div class="emp-heading">
+          <h3>{{ emp.nombre_comercial or emp.razon_social }}</h3>
+          <p>{{ emp.razon_social }}</p>
+        </div>
+      </div>
+
+      <div class="emp-meta">
+        <div class="emp-meta-item">
+          <i class="fa-solid fa-building"></i>
+          <span>Entidad empresarial disponible para administración</span>
+        </div>
+
+        <div class="emp-meta-item">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Estado actual: {{ emp.estado }}</span>
+        </div>
+      </div>
+
+      <div class="emp-footer">
+        <span class="badge {{ 'active' if emp.estado == 'ACTIVA' else 'inactive' }}">
+          {{ emp.estado }}
+        </span>
+
+        <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax ghost">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          Entrar
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="emp-empty">
+    <i class="fa-solid fa-building-circle-xmark"></i>
+    <h3>No hay empresas registradas</h3>
+    <p>
+      Aún no existen empresas disponibles en el sistema. Puedes crear la primera empresa para comenzar la configuración operativa.
+    </p>
+    <a href="/empresa/crear" class="btn-ax primary">
+      <i class="fa-solid fa-plus"></i>
+      Crear empresa
+    </a>
+  </section>
+  {% endif %}
 
 </div>
-
 {% endblock %}

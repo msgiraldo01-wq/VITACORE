@@ -2,454 +2,1272 @@
 
 {% block title %}Inicio · Vitacore{% endblock %}
 
+{% block extra_meta %}
+<meta name="description" content="Panel principal de Vitacore - Sistema clínico integral para gestión de pacientes, historias médicas y operación hospitalaria.">
+<meta name="theme-color" content="#0d5c63">
+<meta property="og:title" content="Vitacore · Centro de Inicio">
+<meta property="og:description" content="Resumen operativo del sistema clínico, accesos rápidos y actividad del día.">
+<meta property="og:type" content="website">
+{% endblock %}
+
 {% block header_icon %}
-<i class="fa-solid fa-heart-pulse"></i>
+<i class="fa-solid fa-house-medical" aria-hidden="true"></i>
 {% endblock %}
 
 {% block header_title %}
-Vitacore
+Centro de inicio
 {% endblock %}
 
 {% block header_subtitle %}
-Sistema clínico integral
+Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
 {% endblock %}
 
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/pacientes" aria-label="Ir al módulo de pacientes">
+  <i class="fa-solid fa-user-injured" aria-hidden="true"></i>
+  Pacientes
+</a>
+<a class="btn-ax primary" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
+  <i class="fa-solid fa-notes-medical" aria-hidden="true"></i>
+  Abrir historia clínica
+</a>
+{% endblock %}
 
 {% block extra_css %}
 <style>
+  /* ============================================
+     VITACORE DASHBOARD - HOME STYLES
+     ============================================ */
+  
+  /* CSS Custom Properties (fallbacks) */
+  :root {
+    --brand: #0d5c63;
+    --brand-soft: rgba(13, 92, 99, 0.08);
+    --brand-strong: #0a4a50;
+    --surface: #ffffff;
+    --surface-2: #f8fafb;
+    --surface-3: #f1f5f5;
+    --border: #e5e9eb;
+    --border-strong: #d1d7db;
+    --text: #1a1d1f;
+    --text-soft: #5f6b7a;
+    --text-faint: #8e9aa6;
+    --danger: #dc2626;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --focus-ring: 0 0 0 3px rgba(13, 92, 99, 0.25);
+    --radius-sm: 14px;
+    --radius-md: 18px;
+    --radius-lg: 24px;
+  }
 
-/* CONTENEDOR */
+  /* Layout Principal */
+  .home-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
 
-.vita-home{
-max-width:1100px;
-margin:auto;
-padding:30px 20px 60px;
-}
+  .home-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+    gap: 20px;
+    align-items: start;
+  }
 
+  /* ============================================
+     HERO PANEL
+     ============================================ */
+  .hero-panel {
+    position: relative;
+    overflow: hidden;
+    padding: 28px;
+    border-radius: var(--radius-lg);
+    background: 
+      radial-gradient(circle at top left, rgba(13, 92, 99, 0.10), transparent 28%),
+      linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
 
-/* BARRA SUPERIOR USUARIO */
+  .hero-panel::after {
+    content: "";
+    position: absolute;
+    right: -70px;
+    top: -70px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(13, 92, 99, 0.10), transparent 68%);
+    pointer-events: none;
+  }
 
-.vita-topbar{
-display:flex;
-justify-content:flex-end;
-margin-bottom:20px;
-margin-top:10px;
-}
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
 
+  .hero-title {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    color: var(--text);
+  }
 
-/* ========================= */
-/* MENÚ USUARIO */
-/* ========================= */
+  .hero-title span {
+    color: var(--brand);
+  }
 
-.userhub{
-position:relative;
-}
+  .hero-copy {
+    margin: 14px 0 22px;
+    max-width: 720px;
+    color: var(--text-soft);
+    font-size: 15px;
+    line-height: 1.7;
+  }
 
-.user-btn{
-display:flex;
-align-items:center;
-gap:10px;
-padding:6px 12px;
-border-radius:999px;
-border:1px solid rgba(148,163,184,.22);
-background:#fff;
-cursor:pointer;
-box-shadow:0 6px 18px rgba(2,6,23,.08);
-transition:.2s;
-}
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 
-.user-btn:hover{
-background:#f8fafc;
-}
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
 
-.user-avatar{
-width:34px;
-height:34px;
-border-radius:50%;
-display:grid;
-place-items:center;
-font-weight:700;
-font-size:14px;
-color:#fff;
-background:linear-gradient(135deg,#0ea5ff,#6366f1);
-}
+  .meta-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
 
-.user-info{
-display:flex;
-flex-direction:column;
-line-height:1.1;
-}
+  .meta-chip i {
+    color: var(--brand);
+    font-size: 14px;
+  }
 
-.user-name{
-font-size:13px;
-font-weight:600;
-}
+  .meta-chip time {
+    font-variant-numeric: tabular-nums;
+  }
 
-.user-role{
-font-size:11px;
-color:#64748b;
-}
+  /* ============================================
+     SIDE STACK & CARDS
+     ============================================ */
+  .side-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
 
-.user-caret{
-font-size:12px;
-color:#64748b;
-}
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
 
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
 
-/* DROPDOWN */
+  .profile-card {
+    padding: 20px;
+  }
 
-.user-menu{
-position:absolute;
-right:0;
-top:52px;
-width:200px;
+  .profile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
 
-background:#fff;
-border-radius:14px;
-overflow:hidden;
+  .section-kicker {
+    margin: 0 0 6px;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
 
-border:1px solid rgba(148,163,184,.2);
-box-shadow:0 20px 40px rgba(2,6,23,.15);
+  .section-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 800;
+  }
 
-opacity:0;
-transform:translateY(-10px) scale(.98);
-pointer-events:none;
+  /* ============================================
+     USER HUB (Dropdown Accesible)
+     ============================================ */
+  .userhub {
+    position: relative;
+  }
 
-transition:
-opacity .18s ease,
-transform .18s ease;
+  .user-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+  }
 
-z-index:20;
+  .user-btn:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
 
-}
+  .user-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
 
-.user-menu a{
-display:flex;
-align-items:center;
-gap:12px;
-padding:14px 16px;
-text-decoration:none;
-color:#1e293b;
-font-weight:600;
-border-bottom:1px solid rgba(148,163,184,.15);
-}
+  .user-btn[aria-expanded="true"] {
+    border-color: var(--brand);
+    background: var(--surface-3);
+  }
 
-.user-menu a:last-child{
-border-bottom:none;
-color:#ef4444;
-}
+  .user-btn[aria-expanded="true"] .user-caret {
+    transform: rotate(180deg);
+  }
 
-.user-menu a:hover{
-background:#f1f5f9;
-}
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand), #2d8b93);
+    box-shadow: 0 12px 20px rgba(13, 92, 99, 0.18);
+    user-select: none;
+  }
 
-.user-menu.show{
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.15;
+  }
 
-opacity:1;
-transform:translateY(0) scale(1);
-pointer-events:auto;
+  .user-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-}
+  .user-role {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
 
+  .user-caret {
+    margin-left: auto;
+    color: var(--text-faint);
+    font-size: 13px;
+    transition: transform 0.2s ease;
+  }
 
-/* ========================= */
-/* HERO */
-/* ========================= */
+  /* Menú desplegable */
+  .user-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    width: min(220px, calc(100vw - 40px));
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 50;
+  }
 
-.vita-card{
-background:rgba(255,255,255,.85);
-border:1px solid rgba(148,163,184,.25);
-border-radius:26px;
-padding:40px 28px;
-backdrop-filter:blur(12px);
-box-shadow:0 20px 50px rgba(2,6,23,.08);
-text-align:center;
-}
+  .user-menu.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
 
-body.dark-mode .vita-card{
-background:rgba(15,23,42,.9);
-border-color:rgba(51,65,85,.6);
-}
+  .user-menu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s ease;
+    position: relative;
+  }
 
-.vita-pill{
-display:inline-flex;
-gap:8px;
-align-items:center;
-padding:8px 14px;
-border-radius:999px;
-border:1px solid rgba(148,163,184,.25);
-font-size:12px;
-font-weight:700;
-margin-bottom:14px;
-}
+  .user-menu a:last-child {
+    border-bottom: none;
+    color: var(--danger);
+  }
 
-.vita-home h1{
-font-size:38px;
-margin:12px 0;
-font-weight:800;
-}
+  .user-menu a:hover,
+  .user-menu a:focus-visible {
+    background: var(--surface-2);
+    outline: none;
+  }
 
-.vita-home h1 span{
-color:#0ea5ff;
-}
+  .user-menu a:focus-visible::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--brand);
+  }
 
-.vita-home p{
-color:var(--muted);
-font-size:15px;
-max-width:600px;
-margin:auto;
-line-height:1.6;
-}
+  /* ============================================
+     PROFILE META
+     ============================================ */
+  .profile-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
 
-.vita-time{
-margin-top:20px;
-display:inline-flex;
-align-items:center;
-gap:10px;
-padding:10px 16px;
-border-radius:999px;
-border:1px solid rgba(148,163,184,.25);
-font-weight:600;
-}
+  .mini-info {
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: transform 0.18s ease;
+  }
 
-.vita-line{
-width:120px;
-height:4px;
-margin:26px auto;
-background:linear-gradient(90deg,#0ea5ff,#22c55e);
-border-radius:999px;
-}
+  .mini-info:hover {
+    transform: translateY(-1px);
+  }
 
+  .mini-info strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 14px;
+  }
 
-/* ========================= */
-/* INDICADORES */
-/* ========================= */
+  .mini-info span {
+    color: var(--text-soft);
+    font-size: 12px;
+  }
 
-.vita-stats{
-margin-top:30px;
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:16px;
-}
+  /* ============================================
+     STATS GRID
+     ============================================ */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+  }
 
-.vita-stat{
-padding:18px;
-border-radius:18px;
-background:var(--surface-2);
-border:1px solid rgba(148,163,184,.18);
-text-align:center;
-}
+  .stat-card {
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
 
-.vita-stat i{
-font-size:20px;
-color:#0ea5ff;
-margin-bottom:6px;
-}
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand), #2d8b93);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
 
-.vita-stat strong{
-display:block;
-font-size:20px;
-margin-top:4px;
-}
+  .stat-card:hover::before {
+    opacity: 1;
+  }
 
+  .stat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
 
-/* ========================= */
-/* MOBILE */
-/* ========================= */
+  .stat-label {
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+  }
 
-@media (max-width:600px){
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 16px;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
 
-.vita-home{
-padding:20px 14px 40px;
-}
+  .stat-card:hover .stat-icon {
+    transform: scale(1.1);
+    background: rgba(13, 92, 99, 0.12);
+  }
 
-.vita-card{
-padding:26px 18px;
-}
+  .stat-value {
+    margin: 0 0 6px;
+    font-size: 2rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
 
-.vita-home h1{
-font-size:30px;
-}
+  .stat-text {
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.5;
+  }
 
-.vita-topbar{
-margin-top:20px;
-margin-bottom:14px;
-}
+  /* ============================================
+     SECTION GRID (Quick Links & Activity)
+     ============================================ */
+  .section-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 20px;
+    align-items: start;
+  }
 
-.user-btn{
-padding:8px 14px;
-}
+  .section-card {
+    padding: 22px;
+  }
 
-}
+  .section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
 
+  .section-head p {
+    margin: 6px 0 0;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Quick Links */
+  .quick-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .quick-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    position: relative;
+  }
+
+  .quick-link:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .quick-link:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    transform: translateY(-2px);
+  }
+
+  .quick-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 17px;
+    transition: transform 0.2s ease;
+  }
+
+  .quick-link:hover .quick-icon {
+    transform: scale(1.1) rotate(-5deg);
+  }
+
+  .quick-copy {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .quick-copy strong {
+    display: block;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .quick-copy span {
+    display: block;
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .quick-arrow {
+    margin-left: auto;
+    color: var(--text-faint);
+    transition: transform 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .quick-link:hover .quick-arrow {
+    transform: translateX(4px);
+    color: var(--brand);
+  }
+
+  /* Activity List */
+  .activity-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+
+  .activity-item:hover {
+    transform: translateX(4px);
+    border-color: var(--border-strong);
+  }
+
+  .activity-dot {
+    width: 12px;
+    height: 12px;
+    margin-top: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--brand);
+    box-shadow: 0 0 0 6px rgba(13, 92, 99, 0.10);
+    position: relative;
+  }
+
+  .activity-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--brand);
+    animation: pulse-ring 2s linear infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .activity-item strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .activity-item span {
+    display: block;
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Empty State */
+  .empty-note {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  /* ============================================
+     SKIP LINK (Accesibilidad)
+     ============================================ */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--brand);
+    color: #fff;
+    padding: 8px 16px;
+    z-index: 100;
+    transition: top 0.3s;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 0 0 4px 0;
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* ============================================
+     LIVE REGION (para reloj)
+     ============================================ */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* ============================================
+     RESPONSIVE DESIGN
+     ============================================ */
+  @media (max-width: 1160px) {
+    .home-top,
+    .section-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .hero-panel,
+    .card,
+    .section-card {
+      border-radius: 20px;
+    }
+
+    .hero-panel {
+      padding: 20px;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .profile-meta {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-meta {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .meta-chip {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .section-card {
+      padding: 18px;
+    }
+
+    .quick-link {
+      padding: 14px;
+    }
+
+    .quick-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 15px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============================================
+     UTILIDADES
+     ============================================ */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 </style>
 {% endblock %}
 
-
-
 {% block content %}
+<!-- Skip Link para accesibilidad -->
+<a href="#main-content" class="skip-link">Ir al contenido principal</a>
 
-<div class="vita-home">
+<main id="main-content" class="home-dashboard" role="main" aria-label="Panel principal de Vitacore">
 
+  <!-- Sección superior: Hero + Perfil -->
+  <section class="home-top" aria-labelledby="hero-heading">
+    
+    <!-- Panel Hero -->
+    <article class="hero-panel">
+      <header>
+        <div class="hero-badge" aria-label="Sistema activo">
+          <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
+          Vitacore · Panel principal
+        </div>
 
-<!-- BARRA USUARIO -->
+        <h1 id="hero-heading" class="hero-title">
+          Bienvenido, <span>{{ session['user']['full_name'] }}</span>
+        </h1>
+      </header>
 
-<div class="vita-topbar">
+      <p class="hero-copy">
+        Desde este espacio puedes iniciar tu jornada clínica, revisar el movimiento del día
+        y acceder rápidamente a los módulos más utilizados del sistema.
+      </p>
 
-<div class="userhub">
+      <div class="hero-meta" role="list" aria-label="Información de sesión">
+        <div class="meta-chip" role="listitem">
+          <i class="fa-solid fa-clock" aria-hidden="true"></i>
+          <time id="clockNow" datetime="" aria-live="polite" aria-atomic="true">—</time>
+        </div>
 
-<button class="user-btn" id="perfilToggle">
+        <div class="meta-chip" role="listitem">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          <span>Sesión institucional activa</span>
+        </div>
 
-<div class="user-avatar">
-{{ session['user']['full_name'][0] }}
-</div>
+        <div class="meta-chip" role="listitem">
+          <i class="fa-solid fa-hospital" aria-hidden="true"></i>
+          <span>Operación clínica en curso</span>
+        </div>
+      </div>
+    </article>
 
-<div class="user-info">
-<span class="user-name">{{ session['user']['full_name'] }}</span>
-<span class="user-role">Administrador</span>
-</div>
+    <!-- Panel lateral: Perfil de usuario -->
+    <aside class="side-stack" aria-labelledby="session-heading">
+      <section class="card profile-card">
+        <header class="profile-top">
+          <div>
+            <p class="section-kicker">Usuario</p>
+            <h2 id="session-heading" class="section-title">Sesión actual</h2>
+          </div>
+        </header>
 
-<i class="fa-solid fa-chevron-down user-caret"></i>
+        <!-- Menú desplegable de usuario -->
+        <nav class="userhub" aria-label="Menú de usuario">
+          <button 
+            class="user-btn" 
+            id="perfilToggle" 
+            type="button" 
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-controls="perfilMenu"
+            aria-label="Abrir menú de perfil de {{ session['user']['full_name'] }}"
+          >
+            <figure class="user-avatar" aria-hidden="true">
+              {{ session['user']['full_name'][0] }}
+            </figure>
 
-</button>
+            <div class="user-info">
+              <span class="user-name">{{ session['user']['full_name'] }}</span>
+              <span class="user-role">Administrador</span>
+            </div>
 
+            <i class="fa-solid fa-chevron-down user-caret" aria-hidden="true"></i>
+          </button>
 
-<nav class="user-menu" id="perfilMenu">
+          <nav 
+            class="user-menu" 
+            id="perfilMenu" 
+            role="menu" 
+            aria-label="Opciones de perfil"
+            aria-hidden="true"
+          >
+            <a href="/auth/mi-perfil" role="menuitem" tabindex="-1">
+              <i class="fa-solid fa-user" aria-hidden="true"></i>
+              <span>Mi perfil</span>
+            </a>
+            <a href="/auth/logout" role="menuitem" tabindex="-1">
+              <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+              <span>Cerrar sesión</span>
+            </a>
+          </nav>
+        </nav>
 
-<a href="/auth/mi-perfil">
-<i class="fa-solid fa-user"></i>
-<span>Mi perfil</span>
-</a>
+        <!-- Meta información del perfil -->
+        <footer class="profile-meta" aria-label="Estado de la sesión">
+         
+          <div class="mini-info">
+            <strong>Módulo</strong>
+            <span>Inicio general</span>
+          </div>
+        </footer>
+      </section>
+    </aside>
+  </section>
 
-<a href="/auth/logout">
-<i class="fa-solid fa-power-off"></i>
-<span>Cerrar sesión</span>
-</a>
+  <!-- Estadísticas principales -->
+  <section class="stats-grid" aria-labelledby="stats-heading">
+    <h2 id="stats-heading" class="visually-hidden">Estadísticas del día</h2>
+    
+    <article class="card stat-card">
+      <header class="stat-head">
+        <span class="stat-label">Pacientes</span>
+        <div class="stat-icon" aria-hidden="true">
+          <i class="fa-solid fa-user-injured"></i>
+        </div>
+      </header>
+      <p class="stat-value" aria-label="{{ pacientes_hoy or 0 }} pacientes atendidos hoy">{{ pacientes_hoy or 0 }}</p>
+      <span class="stat-text">Pacientes atendidos o registrados durante la jornada.</span>
+    </article>
 
-</nav>
+    <article class="card stat-card">
+      <header class="stat-head">
+        <span class="stat-label">Evoluciones</span>
+        <div class="stat-icon" aria-hidden="true">
+          <i class="fa-solid fa-notes-medical"></i>
+        </div>
+      </header>
+      <p class="stat-value" aria-label="{{ evoluciones_hoy or 0 }} evoluciones registradas hoy">{{ evoluciones_hoy or 0 }}</p>
+      <span class="stat-text">Registros clínicos generados y seguimiento documentado hoy.</span>
+    </article>
 
-</div>
+    <article class="card stat-card">
+      <header class="stat-head">
+        <span class="stat-label">Signos</span>
+        <div class="stat-icon" aria-hidden="true">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+      </header>
+      <p class="stat-value" aria-label="{{ signos_hoy or 0 }} signos vitales registrados hoy">{{ signos_hoy or 0 }}</p>
+      <span class="stat-text">Capturas de signos vitales o controles clínicos registrados.</span>
+    </article>
 
-</div>
+    <article class="card stat-card">
+      <header class="stat-head">
+        <span class="stat-label">Consultas</span>
+        <div class="stat-icon" aria-hidden="true">
+          <i class="fa-solid fa-hospital"></i>
+        </div>
+      </header>
+      <p class="stat-value" aria-label="{{ consultas_hoy or 0 }} consultas activas hoy">{{ consultas_hoy or 0 }}</p>
+      <span class="stat-text">Consultas activas con movimiento operativo dentro del sistema.</span>
+    </article>
+  </section>
 
+  <!-- Grid inferior: Accesos rápidos + Actividad -->
+  <div class="section-grid">
+    
+    <!-- Accesos rápidos -->
+    <section class="card section-card" aria-labelledby="quick-heading">
+      <header class="section-head">
+        <div>
+          <p class="section-kicker">Accesos rápidos</p>
+          <h2 id="quick-heading" class="section-title">Ir directo a lo importante</h2>
+          <p>Entradas pensadas para iniciar tareas frecuentes sin navegar por todo el menú.</p>
+        </div>
+      </header>
 
+      <nav class="quick-list" aria-label="Navegación rápida">
+        <a class="quick-link" href="/hc/pacientes" aria-label="Gestionar pacientes">
+          <div class="quick-icon" aria-hidden="true">
+            <i class="fa-solid fa-user-injured"></i>
+          </div>
+          <div class="quick-copy">
+            <strong>Pacientes</strong>
+            <span>Consulta, búsqueda y gestión del listado general de pacientes.</span>
+          </div>
+          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+        </a>
 
-<!-- HERO -->
+        <a class="quick-link" href="/citas" aria-label="Ver agenda de citas">
+          <div class="quick-icon" aria-hidden="true">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div class="quick-copy">
+            <strong>Citas</strong>
+            <span>Revisa agenda, programación y flujo de atención del día.</span>
+          </div>
+          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+        </a>
 
-<div class="vita-card">
+        <a class="quick-link" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
+          <div class="quick-icon" aria-hidden="true">
+            <i class="fa-solid fa-file-waveform"></i>
+          </div>
+          <div class="quick-copy">
+            <strong>Historia clínica</strong>
+            <span>Accede al módulo principal de consulta, evolución y seguimiento médico.</span>
+          </div>
+          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+        </a>
 
-<div class="vita-pill">
-<i class="fa-solid fa-heart-pulse"></i>
-Vitacore · Inicio
-</div>
+        <a class="quick-link" href="/hc/reportes" aria-label="Ver reportes e indicadores">
+          <div class="quick-icon" aria-hidden="true">
+            <i class="fa-solid fa-chart-column"></i>
+          </div>
+          <div class="quick-copy">
+            <strong>Reportes</strong>
+            <span>Explora indicadores de gestión y rendimiento clínico o administrativo.</span>
+          </div>
+          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+        </a>
+      </nav>
+    </section>
 
-<h1>
-Hola,<br>
-<span>{{ session['user']['full_name'] }}</span>
-</h1>
+    <!-- Actividad del día -->
+    <section class="card section-card" aria-labelledby="activity-heading">
+      <header class="section-head">
+        <div>
+          <p class="section-kicker">Actividad</p>
+          <h2 id="activity-heading" class="section-title">Resumen del día</h2>
+          <p>Vista rápida del comportamiento operativo actual.</p>
+        </div>
+      </header>
 
-<p>
-Bienvenido al sistema clínico Vitacore.  
-Gestione pacientes, historias clínicas y evoluciones médicas desde un solo lugar.
-</p>
+      <div class="activity-list" role="list" aria-label="Actividades recientes">
+        <div class="activity-item" role="listitem">
+          <div class="activity-dot" aria-hidden="true"></div>
+          <div>
+            <strong>{{ pacientes_hoy or 0 }} pacientes hoy</strong>
+            <span>Movimiento clínico registrado en el sistema durante la jornada actual.</span>
+          </div>
+        </div>
 
-<div class="vita-time">
-<i class="fa-solid fa-clock"></i>
-<span id="clockNow">—</span>
-</div>
+        <div class="activity-item" role="listitem">
+          <div class="activity-dot" aria-hidden="true"></div>
+          <div>
+            <strong>{{ evoluciones_hoy or 0 }} evoluciones cargadas</strong>
+            <span>Seguimiento médico y documentación clínica generada en el día.</span>
+          </div>
+        </div>
 
-<div class="vita-line"></div>
+        <div class="activity-item" role="listitem">
+          <div class="activity-dot" aria-hidden="true"></div>
+          <div>
+            <strong>{{ consultas_hoy or 0 }} consultas activas</strong>
+            <span>Procesos asistenciales en curso dentro de los módulos principales.</span>
+          </div>
+        </div>
+      </div>
 
-</div>
+      {% if not pacientes_hoy and not evoluciones_hoy and not signos_hoy and not consultas_hoy %}
+      <div class="empty-note" role="status" aria-live="polite">
+        <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 8px;"></i>
+        Aún no se registra actividad para hoy. Puedes comenzar desde pacientes, citas o historia clínica.
+      </div>
+      {% endif %}
+    </section>
+  </div>
 
+</main>
 
-
-<!-- INDICADORES -->
-
-<div class="vita-stats">
-
-<div class="vita-stat">
-<i class="fa-solid fa-user-injured"></i>
-Pacientes hoy
-<strong>{{ pacientes_hoy or 0 }}</strong>
-</div>
-
-<div class="vita-stat">
-<i class="fa-solid fa-notes-medical"></i>
-Evoluciones hoy
-<strong>{{ evoluciones_hoy or 0 }}</strong>
-</div>
-
-<div class="vita-stat">
-<i class="fa-solid fa-heart-pulse"></i>
-Signos registrados
-<strong>{{ signos_hoy or 0 }}</strong>
-</div>
-
-<div class="vita-stat">
-<i class="fa-solid fa-hospital"></i>
-Consultas activas
-<strong>{{ consultas_hoy or 0 }}</strong>
-</div>
-
-</div>
-
-</div>
-
+<!-- Live region para actualizaciones del reloj (accesibilidad) -->
+<div id="clock-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 {% endblock %}
 
-
-
 {% block extra_js %}
-
 <script>
+/**
+ * Vitacore Dashboard - Home Module
+ * Maneja reloj en tiempo real y menú desplegable accesible
+ */
+(function() {
+  'use strict';
 
-document.addEventListener("DOMContentLoaded",function(){
+  // ==========================================
+  // RELOJ EN TIEMPO REAL
+  // ==========================================
+  const clockElement = document.getElementById('clockNow');
+  const clockAnnouncer = document.getElementById('clock-announcer');
+  let lastAnnouncedMinute = -1;
 
-/* RELOJ */
+  function updateClock() {
+    const now = new Date();
+    
+    // Formato para visualización
+    const displayText = now.toLocaleString('es-CO', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
-function updateClock(){
+    // Actualizar atributo datetime para semántica
+    if (clockElement) {
+      clockElement.textContent = displayText;
+      clockElement.setAttribute('datetime', now.toISOString());
+    }
 
-const now = new Date()
+    // Anunciar cambio de hora a lectores de pantalla (solo cuando cambia el minuto)
+    const currentMinute = now.getMinutes();
+    if (clockAnnouncer && currentMinute !== lastAnnouncedMinute) {
+      const timeText = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      clockAnnouncer.textContent = `Hora actualizada: ${timeText}`;
+      lastAnnouncedMinute = currentMinute;
+    }
+  }
 
-const text = now.toLocaleString("es-CO",{
-weekday:"long",
-day:"2-digit",
-month:"long",
-hour:"2-digit",
-minute:"2-digit"
-})
+  // Inicializar reloj
+  updateClock();
+  setInterval(updateClock, 30000); // Actualizar cada 30 segundos
 
-document.getElementById("clockNow").innerText = text
+  // ==========================================
+  // MENÚ DESPLEGABLE ACCESIBLE
+  // ==========================================
+  const toggle = document.getElementById('perfilToggle');
+  const menu = document.getElementById('perfilMenu');
+  
+  if (!toggle || !menu) return;
 
-}
+  const menuItems = menu.querySelectorAll('[role="menuitem"]');
+  let currentFocusIndex = -1;
 
-updateClock()
-setInterval(updateClock,30000)
+  function openMenu() {
+    menu.classList.add('show');
+    menu.setAttribute('aria-hidden', 'false');
+    toggle.setAttribute('aria-expanded', 'true');
+    
+    // Focus en el primer elemento del menú
+    if (menuItems.length > 0) {
+      menuItems[0].setAttribute('tabindex', '0');
+      menuItems[0].focus();
+      currentFocusIndex = 0;
+    }
+    
+    // Prevenir scroll del body en móvil si es necesario
+    document.body.style.overflow = 'hidden';
+  }
 
+  function closeMenu(returnFocus = true) {
+    menu.classList.remove('show');
+    menu.setAttribute('aria-hidden', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    
+    // Reset tabindex de los items
+    menuItems.forEach(item => item.setAttribute('tabindex', '-1'));
+    
+    // Retornar focus al toggle
+    if (returnFocus) {
+      toggle.focus();
+    }
+    
+    document.body.style.overflow = '';
+  }
 
+  function toggleMenu() {
+    const isOpen = menu.classList.contains('show');
+    if (isOpen) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
 
-/* MENÚ PERFIL */
+  // Navegación con teclado dentro del menú
+  function handleMenuKeydown(e) {
+    if (!menu.classList.contains('show')) return;
 
-const toggle = document.getElementById("perfilToggle")
-const menu = document.getElementById("perfilMenu")
+    switch(e.key) {
+      case 'Escape':
+        e.preventDefault();
+        closeMenu();
+        break;
+        
+      case 'ArrowDown':
+        e.preventDefault();
+        currentFocusIndex = (currentFocusIndex + 1) % menuItems.length;
+        menuItems[currentFocusIndex].focus();
+        break;
+        
+      case 'ArrowUp':
+        e.preventDefault();
+        currentFocusIndex = (currentFocusIndex - 1 + menuItems.length) % menuItems.length;
+        menuItems[currentFocusIndex].focus();
+        break;
+        
+      case 'Home':
+        e.preventDefault();
+        currentFocusIndex = 0;
+        menuItems[0].focus();
+        break;
+        
+      case 'End':
+        e.preventDefault();
+        currentFocusIndex = menuItems.length - 1;
+        menuItems[currentFocusIndex].focus();
+        break;
+        
+      case 'Tab':
+        // Cerrar menú al salir con Tab
+        closeMenu(false);
+        break;
+    }
+  }
 
-toggle.addEventListener("click",function(){
+  // Event Listeners
+  toggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleMenu();
+  });
 
-menu.classList.toggle("show")
+  toggle.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleMenu();
+    }
+  });
 
-})
+  menu.addEventListener('keydown', handleMenuKeydown);
 
-document.addEventListener("click",function(e){
+  // Cerrar al hacer click fuera
+  document.addEventListener('click', function(e) {
+    if (menu.classList.contains('show') && !toggle.contains(e.target) && !menu.contains(e.target)) {
+      closeMenu();
+    }
+  });
 
-if(!toggle.contains(e.target) && !menu.contains(e.target)){
-menu.classList.remove("show")
-}
+  // Cerrar con Escape desde cualquier lugar
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && menu.classList.contains('show')) {
+      closeMenu();
+    }
+  });
 
-})
+  // Manejar clicks en items del menú
+  menuItems.forEach((item, index) => {
+    item.addEventListener('click', function() {
+      // Permitir navegación normal, pero cerrar menú
+      closeMenu(false);
+    });
+    
+    item.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        window.location.href = item.getAttribute('href');
+      }
+    });
+  });
 
-})
+  // ==========================================
+  // ANIMACIONES DE ENTRADA (Opcional)
+  // ==========================================
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -20px 0px'
+  };
 
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  // Aplicar animación sutil a las tarjetas
+  document.querySelectorAll('.card, .hero-panel').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(12px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+
+})();
 </script>
-
 {% endblock %}
