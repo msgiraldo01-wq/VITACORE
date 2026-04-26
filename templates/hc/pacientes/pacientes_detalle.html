@@ -11,294 +11,679 @@ Paciente
 {% endblock %}
 
 {% block header_subtitle %}
-Perfil clínico del paciente
+Perfil clínico y resumen operativo del paciente
 {% endblock %}
 
 {% block header_actions %}
-<a class="btn-ax ghost" onclick="history.back()">
-<i class="fa-solid fa-arrow-left"></i>
-Volver
+<a class="btn-ax ghost" href="javascript:history.back()">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax primary" href="/hc/historia/paciente/{{ paciente.id }}">
+  <i class="fa-solid fa-notes-medical"></i>
+  Abrir historia clínica
 </a>
 {% endblock %}
 
 {% block extra_css %}
 <style>
-
-/* =========================
-   HEADER DINÁMICO
-========================= */
-
-.patient-header{
-display:flex;
-align-items:center;
-justify-content:space-between;
-gap:16px;
-margin-bottom:20px;
-padding:20px;
-border-radius:18px;
-color:white;
+.patient-page{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
 }
 
-/* Masculino */
-.patient-header.masculino{
-background:linear-gradient(135deg,#0ea5e9,#22c55e);
+.patient-hero{
+  position:relative;
+  overflow:hidden;
+  border-radius:26px;
+  padding:24px;
+  color:#fff;
+  box-shadow:var(--shadow-sm);
 }
 
-/* Femenino */
-.patient-header.femenino{
-background:linear-gradient(135deg,#ec4899,#8b5cf6);
+.patient-hero.masculino{
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
+    linear-gradient(135deg, #1177b7 0%, #0d5c63 100%);
 }
 
-/* Otro */
-.patient-header.otro{
-background:linear-gradient(135deg,#64748b,#94a3b8);
+.patient-hero.femenino{
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
+    linear-gradient(135deg, #c63d8b 0%, #6d4ec9 100%);
 }
 
-.patient-left{
-display:flex;
-gap:16px;
-align-items:center;
+.patient-hero.otro{
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
+    linear-gradient(135deg, #4b6470 0%, #7a8b97 100%);
+}
+
+.patient-hero-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.patient-main{
+  display:flex;
+  align-items:flex-start;
+  gap:18px;
+  min-width:0;
 }
 
 .avatar-lg{
-width:70px;
-height:70px;
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:800;
-font-size:1.4rem;
-background:rgba(255,255,255,.25);
+  width:78px;
+  height:78px;
+  border-radius:24px;
+  flex-shrink:0;
+  display:grid;
+  place-items:center;
+  font-size:1.45rem;
+  font-weight:800;
+  background:rgba(255,255,255,.20);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(8px);
+}
+
+.patient-copy{
+  min-width:0;
 }
 
 .patient-name{
-font-size:1.3rem;
-font-weight:800;
+  margin:0;
+  font-size:clamp(1.35rem, 2.4vw, 2rem);
+  line-height:1.05;
+  letter-spacing:-.03em;
+  font-weight:800;
+}
+
+.patient-subline{
+  margin:8px 0 0;
+  color:rgba(255,255,255,.88);
+  font-size:14px;
+  line-height:1.6;
 }
 
 .patient-meta{
-font-size:.85rem;
-opacity:.9;
-display:flex;
-gap:12px;
-flex-wrap:wrap;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:16px;
 }
 
-.patient-badge{
-background:rgba(255,255,255,.2);
-padding:6px 12px;
-border-radius:999px;
-font-size:.75rem;
+.meta-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.16);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
 }
 
-/* =========================
-   LAYOUT
-========================= */
-
-.layout{
-display:grid;
-grid-template-columns:280px 1fr;
-gap:20px;
+.patient-status{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+  padding:0 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.16);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
 }
 
-.card{
-background:var(--surface-2);
-border-radius:18px;
-padding:18px;
-border:1px solid rgba(148,163,184,.18);
+.patient-status::before{
+  content:"";
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#fff;
+}
+
+.patient-kpis{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:14px;
+  margin-top:20px;
+}
+
+.kpi-card{
+  padding:16px;
+  border-radius:18px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(8px);
+}
+
+.kpi-card .kpi-label{
+  display:block;
+  margin-bottom:8px;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.80);
+}
+
+.kpi-card strong{
+  display:block;
+  font-size:1.3rem;
+  line-height:1;
+  color:#fff;
+}
+
+.kpi-card span{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  color:rgba(255,255,255,.82);
+}
+
+.patient-layout{
+  display:grid;
+  grid-template-columns:320px 1fr;
+  gap:20px;
+}
+
+.info-panel,
+.content-panel,
+.mini-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-sm);
+}
+
+.info-panel{
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.panel-title{
+  margin:0;
+  color:var(--text);
+  font-size:1rem;
+  font-weight:800;
+}
+
+.panel-kicker{
+  margin:0 0 6px;
+  color:var(--text-faint);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+
+.info-group{
+  display:grid;
+  gap:10px;
 }
 
 .info-item{
-margin-bottom:12px;
-font-size:.9rem;
+  padding:12px 14px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
 }
 
 .info-item strong{
-display:block;
-font-size:.75rem;
-color:#64748b;
-margin-bottom:2px;
+  display:block;
+  margin-bottom:4px;
+  color:var(--text-faint);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
 }
 
-/* =========================
-   TABS
-========================= */
+.info-item span{
+  display:block;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  word-break:break-word;
+}
+
+.quick-actions{
+  display:grid;
+  gap:10px;
+}
+
+.quick-actions .btn-ax{
+  width:100%;
+  justify-content:center;
+}
+
+.content-stack{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
 
 .tabs{
-display:flex;
-gap:8px;
-margin-bottom:14px;
-flex-wrap:wrap;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 .tab{
-padding:8px 14px;
-border-radius:10px;
-cursor:pointer;
-background:rgba(15,23,42,.06);
-font-size:.85rem;
-font-weight:600;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text-soft);
+  font-size:13px;
+  font-weight:800;
+  transition:all .18s ease;
 }
 
 .tab.active{
-background:#0ea5e9;
-color:white;
+  background:var(--brand);
+  border-color:var(--brand);
+  color:#fff;
 }
 
-.tab-content{
-background:var(--surface-2);
-border-radius:18px;
-padding:20px;
-border:1px solid rgba(148,163,184,.18);
+.content-panel{
+  padding:22px;
 }
 
-.actions{
-display:flex;
-gap:10px;
-margin-top:16px;
-flex-wrap:wrap;
+.content-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
 }
 
+.content-head h3{
+  margin:0;
+  color:var(--text);
+  font-size:1.1rem;
+}
+
+.content-head p{
+  margin:6px 0 0;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.main-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+
+.mini-card{
+  padding:18px;
+}
+
+.mini-card h4{
+  margin:0 0 8px;
+  color:var(--text);
+  font-size:15px;
+}
+
+.mini-card p{
+  margin:0;
+  color:var(--text-soft);
+  font-size:13px;
+  line-height:1.6;
+}
+
+.timeline{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+}
+
+.timeline-item{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:14px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+
+.timeline-dot{
+  width:12px;
+  height:12px;
+  margin-top:5px;
+  border-radius:50%;
+  background:var(--brand);
+  box-shadow:0 0 0 6px rgba(13,92,99,.10);
+  flex-shrink:0;
+}
+
+.timeline-item strong{
+  display:block;
+  margin-bottom:4px;
+  color:var(--text);
+  font-size:14px;
+}
+
+.timeline-item span{
+  display:block;
+  color:var(--text-soft);
+  font-size:13px;
+  line-height:1.5;
+}
+
+@media (max-width: 1160px){
+  .patient-layout{
+    grid-template-columns:1fr;
+  }
+
+  .patient-kpis{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px){
+  .patient-hero,
+  .info-panel,
+  .content-panel,
+  .mini-card{
+    border-radius:20px;
+  }
+
+  .patient-hero{
+    padding:18px;
+  }
+
+  .patient-main{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .patient-kpis{
+    grid-template-columns:1fr;
+  }
+
+  .summary-grid{
+    grid-template-columns:1fr;
+  }
+
+  .main-actions{
+    width:100%;
+  }
+
+  .main-actions .btn-ax{
+    width:100%;
+    justify-content:center;
+  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-
 {% set header_class = 'femenino' if paciente.sexo == 'F' else ('masculino' if paciente.sexo == 'M' else 'otro') %}
 
-<!-- =========================
-   HEADER
-========================= -->
+<div class="patient-page">
 
-<div class="patient-header {{ header_class }}">
+  <section class="patient-hero {{ header_class }}">
+    <div class="patient-hero-top">
+      <div class="patient-main">
+        <div class="avatar-lg">
+          {{ paciente.primer_nombre[:1] }}{{ paciente.primer_apellido[:1] }}
+        </div>
 
-<div class="patient-left">
+        <div class="patient-copy">
+          <h2 class="patient-name">
+            {{ paciente.primer_nombre }} {{ paciente.primer_apellido }}
+          </h2>
 
-<div class="avatar-lg">
-{{ paciente.primer_nombre[:1] }}{{ paciente.primer_apellido[:1] }}
+          <p class="patient-subline">
+            Perfil clínico principal del paciente, con acceso rápido a historia clínica,
+            evolución médica y datos administrativos relevantes.
+          </p>
+
+          <div class="patient-meta">
+            <span class="meta-chip">
+              <i class="fa-solid fa-id-card"></i>
+              {{ paciente.numero_documento or '-' }}
+            </span>
+
+            <span class="meta-chip">
+              <i class="fa-solid fa-venus-mars"></i>
+              {{ 'Masculino' if paciente.sexo == 'M' else 'Femenino' if paciente.sexo == 'F' else '-' }}
+            </span>
+
+            <span class="meta-chip">
+              <i class="fa-solid fa-phone"></i>
+              {{ paciente.celular or '-' }}
+            </span>
+
+            <span class="meta-chip">
+              <i class="fa-solid fa-hospital"></i>
+              {{ paciente.eps_nombre or '-' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="patient-status">
+        {{ paciente.estado or 'Sin estado' }}
+      </div>
+    </div>
+
+    <div class="patient-kpis">
+      <div class="kpi-card">
+        <span class="kpi-label">Edad</span>
+        <strong>{{ paciente.edad or '-' }}</strong>
+        <span>Años registrados</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Régimen</span>
+        <strong style="font-size:1rem;">{{ paciente.regimen_afiliacion or '-' }}</strong>
+        <span>Afiliación actual</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Ubicación</span>
+        <strong style="font-size:1rem;">
+          {% if paciente.hc_municipios %}
+            {{ paciente.hc_municipios.nombre }}
+          {% else %}
+            -
+          {% endif %}
+        </strong>
+        <span>
+          {% if paciente.hc_municipios and paciente.hc_municipios.hc_departamentos %}
+            {{ paciente.hc_municipios.hc_departamentos.nombre }}
+          {% else %}
+            Sin departamento
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Contacto</span>
+        <strong style="font-size:1rem;">{{ paciente.email or paciente.celular or '-' }}</strong>
+        <span>Canal disponible</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="patient-layout">
+
+    <aside class="info-panel">
+      <div>
+        <p class="panel-kicker">Ficha</p>
+        <h3 class="panel-title">Información del paciente</h3>
+      </div>
+
+      <div class="info-group">
+        <div class="info-item">
+          <strong>Documento</strong>
+          <span>{{ paciente.numero_documento or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Edad</strong>
+          <span>{{ paciente.edad or '-' }} años</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Sexo</strong>
+          <span>{{ 'Masculino' if paciente.sexo == 'M' else 'Femenino' if paciente.sexo == 'F' else '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Ubicación</strong>
+          <span>
+            {% if paciente.hc_municipios %}
+              {{ paciente.hc_municipios.nombre }}{% if paciente.hc_municipios.hc_departamentos %}, {{ paciente.hc_municipios.hc_departamentos.nombre }}{% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="info-item">
+          <strong>Email</strong>
+          <span>{{ paciente.email or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Dirección</strong>
+          <span>{{ paciente.direccion or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Celular</strong>
+          <span>{{ paciente.celular or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>EPS</strong>
+          <span>{{ paciente.eps_nombre or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Régimen</strong>
+          <span>{{ paciente.regimen_afiliacion or '-' }}</span>
+        </div>
+
+        <div class="info-item">
+          <strong>Estado</strong>
+          <span>{{ paciente.estado or '-' }}</span>
+        </div>
+      </div>
+
+      <div>
+        <p class="panel-kicker">Acciones rápidas</p>
+        <div class="quick-actions">
+          <a class="btn-ax primary" href="/hc/historia/paciente/{{ paciente.id }}">
+            <i class="fa-solid fa-notes-medical"></i>
+            Ver historia clínica
+          </a>
+
+          <a class="btn-ax ghost" href="/hc/evoluciones/nuevo/{{ paciente.id }}">
+            <i class="fa-solid fa-file-medical"></i>
+            Nueva evolución
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content-stack">
+      <div class="tabs">
+        <div class="tab active">Historia clínica</div>
+        <div class="tab">Citas</div>
+        <div class="tab">Órdenes</div>
+        <div class="tab">Resultados</div>
+        <div class="tab">Imágenes</div>
+      </div>
+
+      <article class="content-panel">
+        <div class="content-head">
+          <div>
+            <h3>Resumen clínico</h3>
+            <p>
+              Punto de entrada para consultar el historial médico, registrar seguimiento
+              y continuar la atención del paciente desde un único lugar.
+            </p>
+          </div>
+
+          <div class="main-actions">
+            <a class="btn-ax primary" href="/hc/historia/paciente/{{ paciente.id }}">
+              <i class="fa-solid fa-book-medical"></i>
+              Abrir historia
+            </a>
+
+            <a class="btn-ax ghost" href="/hc/evoluciones/nuevo/{{ paciente.id }}">
+              <i class="fa-solid fa-file-circle-plus"></i>
+              Registrar evolución
+            </a>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="mini-card">
+            <h4>Historia clínica</h4>
+            <p>Accede al registro longitudinal del paciente y revisa la continuidad asistencial.</p>
+          </div>
+
+          <div class="mini-card">
+            <h4>Atención en curso</h4>
+            <p>Usa esta ficha como punto central para abrir consultas, registrar evoluciones y revisar resultados.</p>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div>
+              <strong>Perfil principal disponible</strong>
+              <span>La información administrativa y clínica básica del paciente está centralizada en esta vista.</span>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div>
+              <strong>Acceso rápido a evolución</strong>
+              <span>Puedes iniciar un nuevo registro clínico sin salir de la ficha del paciente.</span>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div>
+              <strong>Navegación clínica preparada</strong>
+              <span>La estructura queda lista para incorporar citas, órdenes, resultados e imágenes.</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </div>
 </div>
-
-<div>
-
-<div class="patient-name">
-{{ paciente.primer_nombre }} {{ paciente.primer_apellido }}
-</div>
-
-<div class="patient-meta">
-
-<span>
-<i class="fa-solid fa-id-card"></i>
-{{ paciente.numero_documento }}
-</span>
-
-<span>
-<i class="fa-solid fa-venus-mars"></i>
-{{ 'Masculino' if paciente.sexo == 'M' else 'Femenino' if paciente.sexo == 'F' else '-' }}
-</span>
-
-<span>
-<i class="fa-solid fa-phone"></i>
-{{ paciente.celular or "-" }}
-</span>
-
-<span>
-<i class="fa-solid fa-hospital"></i>
-{{ paciente.eps_nombre or "-" }}
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="patient-badge">
-{{ paciente.estado }}
-</div>
-
-</div>
-
-<!-- =========================
-   LAYOUT
-========================= -->
-
-<div class="layout">
-
-<!-- SIDEBAR -->
-
-<div class="card">
-
-<div class="info-item">
-<strong>Edad</strong>
-{{ paciente.edad or "-" }} años
-</div>
-
-<div class="info-item">
-<strong>Ubicación</strong>
-{% if paciente.hc_municipios %}
-  {{ paciente.hc_municipios.nombre }},
-  {{ paciente.hc_municipios.hc_departamentos.nombre if paciente.hc_municipios.hc_departamentos else "" }}
-{% else %}
-  -
-{% endif %}
-</div>
-
-<div class="info-item">
-<strong>Email</strong>
-{{ paciente.email or "-" }}
-</div>
-
-<div class="info-item">
-<strong>Dirección</strong>
-{{ paciente.direccion or "-" }}
-</div>
-
-<div class="info-item">
-<strong>Régimen</strong>
-{{ paciente.regimen_afiliacion or "-" }}
-</div>
-
-</div>
-
-<!-- CONTENIDO -->
-
-<div>
-
-<div class="tabs">
-<div class="tab active">Historia clínica</div>
-<div class="tab">Citas</div>
-<div class="tab">Órdenes</div>
-<div class="tab">Resultados</div>
-<div class="tab">Imágenes</div>
-</div>
-
-<div class="tab-content">
-
-<h3>Historia clínica</h3>
-
-<p>Registro longitudinal de atenciones médicas del paciente.</p>
-
-<div class="actions">
-
-<a class="btn-ax primary"
-href="/hc/historia/paciente/{{ paciente.id }}">
-<i class="fa-solid fa-notes-medical"></i>
-Ver historia clínica
-</a>
-
-<a class="btn-ax ghost"
-href="/hc/evoluciones/nuevo/{{ paciente.id }}">
-<i class="fa-solid fa-file-medical"></i>
-Nueva evolución
-</a>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
 {% endblock %}

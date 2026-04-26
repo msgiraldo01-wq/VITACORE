@@ -11,10 +11,14 @@ Pacientes
 {% endblock %}
 
 {% block header_subtitle %}
-Gestión de pacientes del sistema
+Gestión operativa y consulta rápida del registro de pacientes
 {% endblock %}
 
 {% block header_actions %}
+<a class="btn-ax ghost" href="/hc/">
+  <i class="fa-solid fa-chart-line"></i>
+  Dashboard
+</a>
 <a class="btn-ax primary" href="/hc/pacientes/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo paciente
@@ -23,30 +27,188 @@ Gestión de pacientes del sistema
 
 {% block extra_css %}
 <style>
+.patients-page{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.patients-hero{
+  display:grid;
+  grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr);
+  gap:20px;
+}
+
+.hero-card,
+.summary-card,
+.toolbar-card,
+.table-card,
+.empty-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-sm);
+}
+
+.hero-card{
+  position:relative;
+  overflow:hidden;
+  padding:28px;
+  background:
+    radial-gradient(circle at top left, rgba(13,92,99,.10), transparent 28%),
+    linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.hero-card::after{
+  content:"";
+  position:absolute;
+  right:-60px;
+  top:-60px;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(13,92,99,.10), transparent 68%);
+  pointer-events:none;
+}
+
+.hero-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  margin-bottom:14px;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand-strong);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.hero-title{
+  margin:0;
+  font-size:clamp(1.8rem, 3vw, 2.5rem);
+  line-height:1.03;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+
+.hero-copy{
+  margin:14px 0 18px;
+  max-width:760px;
+  color:var(--text-soft);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.hero-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.hero-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 12px;
+  border-radius:999px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:13px;
+  font-weight:700;
+}
+
+.hero-chip i{
+  color:var(--brand);
+}
+
+.summary-card{
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.summary-card h3{
+  margin:0;
+  color:var(--text);
+  font-size:1rem;
+}
+
+.summary-card p{
+  margin:6px 0 0;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.summary-box{
+  padding:14px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+
+.summary-box strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:1.55rem;
+  line-height:1;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+
+.summary-box span{
+  color:var(--text-soft);
+  font-size:13px;
+}
+
+.toolbar-card{
+  padding:18px;
+}
 
 .toolbar{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:18px;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.toolbar-left{
+  display:flex;
+  align-items:center;
   gap:12px;
+  flex:1;
   flex-wrap:wrap;
 }
 
 .search-box{
   display:flex;
   align-items:center;
-  gap:8px;
-  border:1px solid rgba(203,213,225,.9);
-  border-radius:12px;
-  padding:8px 14px;
-  background:#fff;
+  gap:10px;
+  min-height:48px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface-2);
   flex:1;
-  max-width:400px;
+  min-width:280px;
+  max-width:460px;
 }
 
 .search-box i{
-  color:#64748b;
+  color:var(--text-faint);
 }
 
 .search-box input{
@@ -55,69 +217,107 @@ Gestión de pacientes del sistema
   font-size:.95rem;
   width:100%;
   background:transparent;
+  color:var(--text);
 }
 
-/* TABLA PRO */
+.search-box input::placeholder{
+  color:var(--text-faint);
+}
+
+.filter-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 12px;
+  border-radius:999px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-soft);
+  font-size:13px;
+  font-weight:700;
+}
+
+.toolbar-right{
+  color:var(--text-soft);
+  font-size:13px;
+  font-weight:700;
+}
+
+.table-card{
+  overflow:hidden;
+}
 
 .table-wrap{
-  max-height:600px;
+  max-height:680px;
   overflow:auto;
-  border-radius:20px;
-  border:1px solid rgba(226,232,240,.9);
-  background:var(--surface-2);
+  background:var(--surface);
 }
 
 .table-ax{
   width:100%;
-  border-collapse:collapse;
-  min-width:900px;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:1040px;
 }
 
-th{
-  text-align:left;
-  padding:14px 12px;
-  font-size:.78rem;
-  letter-spacing:.05em;
-  text-transform:uppercase;
-  background:rgba(14,165,255,.08);
+.table-ax thead th{
   position:sticky;
   top:0;
-  z-index:10;
+  z-index:5;
+  text-align:left;
+  padding:14px 14px;
+  font-size:.75rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border);
 }
 
-td{
-  padding:12px;
-  border-bottom:1px solid rgba(226,232,240,.7);
-  font-size:.9rem;
+.table-ax tbody td{
+  padding:14px;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+  color:var(--text);
+  font-size:.92rem;
 }
 
-/* PACIENTE CARD */
+.table-ax tbody tr{
+  transition:background .18s ease;
+}
+
+.table-ax tbody tr:hover{
+  background:rgba(13,92,99,.04);
+}
 
 .paciente-cell{
   display:flex;
   align-items:center;
   gap:12px;
+  min-width:220px;
 }
 
 .avatar{
-  width:42px;
-  height:42px;
-  border-radius:50%;
+  width:46px;
+  height:46px;
+  border-radius:16px;
   display:flex;
   align-items:center;
   justify-content:center;
   color:white;
-  font-weight:700;
-  font-size:.95rem;
+  font-weight:800;
+  font-size:.92rem;
   flex-shrink:0;
+  box-shadow:0 10px 18px rgba(15, 37, 42, .10);
 }
 
 .avatar.masculino{
-  background:linear-gradient(135deg,#0ea5e9,#22c55e);
+  background:linear-gradient(135deg,#1177b7,#0d5c63);
 }
 
 .avatar.femenino{
-  background:linear-gradient(135deg,#ec4899,#8b5cf6);
+  background:linear-gradient(135deg,#c63d8b,#6d4ec9);
 }
 
 .avatar.otro{
@@ -125,79 +325,116 @@ td{
 }
 
 .paciente-nombre{
-  font-weight:700;
+  font-weight:800;
   font-size:.95rem;
-  color:#0f172a;
+  color:var(--text);
+  line-height:1.25;
 }
 
 .paciente-sub{
   font-size:.82rem;
-  color:#64748b;
-  margin-top:2px;
+  color:var(--text-soft);
+  margin-top:3px;
 }
-
-/* BADGES */
 
 .badge{
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  padding:6px 12px;
+  gap:7px;
+  min-height:32px;
+  padding:0 11px;
   border-radius:999px;
-  font-size:.78rem;
-  font-weight:700;
+  font-size:.76rem;
+  font-weight:800;
+  letter-spacing:.02em;
+  border:1px solid transparent;
+  white-space:nowrap;
 }
 
 .badge.doc{
-  background:rgba(99,102,241,.12);
+  background:rgba(99,102,241,.10);
   color:#4338ca;
+  border-color:rgba(99,102,241,.14);
 }
 
 .badge.ok{
-  background:rgba(34,197,94,.12);
+  background:rgba(34,197,94,.10);
   color:#166534;
+  border-color:rgba(34,197,94,.14);
 }
 
 .badge.off{
-  background:rgba(239,68,68,.12);
+  background:rgba(239,68,68,.10);
   color:#991b1b;
+  border-color:rgba(239,68,68,.14);
 }
 
 .badge.eps{
-  background:rgba(14,165,255,.12);
+  background:rgba(14,165,255,.10);
   color:#0369a1;
+  border-color:rgba(14,165,255,.14);
 }
 
-/* ACCIONES */
+.contact-cell{
+  min-width:160px;
+}
+
+.contact-main{
+  color:var(--text);
+  font-weight:700;
+}
+
+.contact-sub{
+  margin-top:4px;
+  font-size:.82rem;
+  color:var(--text-soft);
+}
+
+.location-main{
+  font-weight:700;
+  color:var(--text);
+}
+
+.location-sub{
+  margin-top:4px;
+  font-size:.82rem;
+  color:var(--text-soft);
+}
+
+.muted{
+  color:var(--text-faint);
+}
 
 .actions{
   display:flex;
-  gap:6px;
+  gap:8px;
+  align-items:center;
 }
 
 .btn-icon{
-  width:34px;
-  height:34px;
-  border-radius:10px;
+  width:36px;
+  height:36px;
+  border-radius:12px;
   display:flex;
   align-items:center;
   justify-content:center;
   cursor:pointer;
   border:none;
-  transition:all .2s ease;
+  transition:all .18s ease;
+  text-decoration:none;
 }
 
 .btn-icon:hover{
-  transform:translateY(-2px);
+  transform:translateY(-1px);
 }
 
 .btn-edit{
-  background:rgba(14,165,255,.12);
+  background:rgba(14,165,255,.10);
   color:#0369a1;
 }
 
 .btn-edit:hover{
-  background:rgba(14,165,255,.2);
+  background:rgba(14,165,255,.18);
 }
 
 .btn-view{
@@ -206,33 +443,40 @@ td{
 }
 
 .btn-view:hover{
-  background:rgba(15,23,42,.15);
+  background:rgba(15,23,42,.14);
 }
 
 .btn-toggle{
-  background:rgba(239,68,68,.12);
+  background:rgba(239,68,68,.10);
   color:#991b1b;
 }
 
 .btn-toggle:hover{
-  background:rgba(239,68,68,.2);
+  background:rgba(239,68,68,.18);
 }
 
-/* MENSAJES */
-
 .msg-empty{
+  padding:48px 24px;
   text-align:center;
-  padding:50px 20px;
-  color:#64748b;
+  color:var(--text-soft);
 }
 
 .msg-empty i{
   font-size:3rem;
-  margin-bottom:16px;
-  color:#cbd5e1;
+  margin-bottom:14px;
+  color:var(--text-faint);
 }
 
-/* SCROLLBAR */
+.msg-empty h3{
+  margin:0 0 8px;
+  color:var(--text);
+}
+
+.msg-empty p{
+  margin:0 auto 18px;
+  max-width:480px;
+  line-height:1.6;
+}
 
 .table-wrap::-webkit-scrollbar{
   width:8px;
@@ -240,323 +484,415 @@ td{
 }
 
 .table-wrap::-webkit-scrollbar-track{
-  background:#f1f5f9;
-  border-radius:4px;
+  background:var(--surface-2);
 }
 
 .table-wrap::-webkit-scrollbar-thumb{
   background:#cbd5e1;
-  border-radius:4px;
+  border-radius:999px;
 }
 
 .table-wrap::-webkit-scrollbar-thumb:hover{
   background:#94a3b8;
 }
 
+@media (max-width: 1080px){
+  .patients-hero{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 720px){
+  .hero-card,
+  .summary-card,
+  .toolbar-card,
+  .table-card,
+  .empty-card{
+    border-radius:20px;
+  }
+
+  .hero-card,
+  .summary-card,
+  .toolbar-card{
+    padding:18px;
+  }
+
+  .summary-grid{
+    grid-template-columns:1fr;
+  }
+
+  .toolbar{
+    align-items:stretch;
+  }
+
+  .toolbar-left{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .search-box{
+    min-width:0;
+    max-width:none;
+  }
+
+  .toolbar-right{
+    text-align:left;
+  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="patients-page">
 
-<div class="toolbar">
+  <section class="patients-hero">
+    <article class="hero-card">
+      <div class="hero-kicker">
+        <i class="fa-solid fa-users"></i>
+        Gestión clínica
+      </div>
 
-  <div class="search-box">
-    <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" id="buscador" placeholder="Buscar por nombre, documento, celular o EPS...">
-  </div>
+      <h2 class="hero-title">Directorio de pacientes</h2>
 
-  <div style="font-size:.85rem;color:#64748b;">
-    <span id="contador">{{ pacientes|length }}</span> pacientes
-  </div>
+      <p class="hero-copy">
+        Consulta rápidamente el listado general de pacientes, revisa su estado,
+        localiza información de contacto y accede a su ficha clínica desde un solo lugar.
+      </p>
+
+      <div class="hero-meta">
+        <span class="hero-chip">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          Búsqueda local rápida
+        </span>
+        <span class="hero-chip">
+          <i class="fa-solid fa-notes-medical"></i>
+          Acceso directo a historia clínica
+        </span>
+        <span class="hero-chip">
+          <i class="fa-solid fa-user-plus"></i>
+          Registro de nuevos pacientes
+        </span>
+      </div>
+    </article>
+
+    <aside class="summary-card">
+      <div>
+        <h3>Resumen del módulo</h3>
+        <p>Vista rápida del comportamiento actual del registro de pacientes.</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <strong>{{ pacientes|length }}</strong>
+          <span>Total pacientes</span>
+        </div>
+
+        <div class="summary-box">
+          <strong>{{ pacientes|selectattr('estado', 'equalto', 'ACTIVO')|list|length }}</strong>
+          <span>Pacientes activos</span>
+        </div>
+      </div>
+
+      <a href="/hc/pacientes/nuevo" class="btn-ax primary">
+        <i class="fa-solid fa-plus"></i>
+        Nuevo paciente
+      </a>
+    </aside>
+  </section>
+
+  <section class="toolbar-card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="buscador" placeholder="Buscar por nombre, documento, celular o EPS...">
+        </div>
+
+        <div class="filter-pill">
+          <i class="fa-solid fa-filter"></i>
+          <span>Listado general</span>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <span id="contador">{{ pacientes|length }}</span> pacientes visibles
+      </div>
+    </div>
+  </section>
+
+  <section class="table-card">
+    {% if pacientes %}
+    <div class="table-wrap" id="tableWrap">
+      <table class="table-ax" id="tabla-pacientes">
+        <thead>
+          <tr>
+            <th>Paciente</th>
+            <th>Documento</th>
+            <th>Edad</th>
+            <th>Contacto</th>
+            <th>Ubicación</th>
+            <th>EPS</th>
+            <th>Estado</th>
+            <th style="width:132px;">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody id="tablaBody">
+          {% for p in pacientes %}
+
+          {% set avatar_class = 'femenino' if p.sexo == 'F' else ('masculino' if p.sexo == 'M' else 'otro') %}
+          {% set iniciales = (p.primer_nombre[:1] if p.primer_nombre else '') ~ (p.primer_apellido[:1] if p.primer_apellido else '') %}
+
+          {% if p.hc_municipios %}
+            {% set municipio_nombre = p.hc_municipios.nombre %}
+            {% set depto_nombre = p.hc_municipios.departamento_nombre or 'Sin departamento' %}
+          {% else %}
+            {% set municipio_nombre = None %}
+            {% set depto_nombre = None %}
+          {% endif %}
+
+          {% if p.hc_eps %}
+            {% set eps_nombre = p.eps_nombre or p.hc_eps.nombre or p.hc_eps.codigo or 'Sin EPS' %}
+          {% else %}
+            {% set eps_nombre = p.eps_nombre or p.aseguradora or None %}
+          {% endif %}
+
+          <tr class="data-row"
+              data-nombre="{{ ((p.primer_nombre or '') ~ ' ' ~ (p.segundo_nombre or '') ~ ' ' ~ (p.primer_apellido or '') ~ ' ' ~ (p.segundo_apellido or ''))|lower|trim }}"
+              data-documento="{{ (p.numero_documento or '')|lower }}"
+              data-celular="{{ (p.celular or '')|lower }}"
+              data-eps="{{ (eps_nombre or '')|lower }}">
+
+            <td>
+              <div class="paciente-cell">
+                <div class="avatar {{ avatar_class }}">
+                  {{ iniciales|upper }}
+                </div>
+                <div>
+                  <div class="paciente-nombre">
+                    {{ p.primer_apellido }} {{ p.segundo_apellido or '' }}
+                  </div>
+                  <div class="paciente-sub">
+                    {{ p.primer_nombre }} {{ p.segundo_nombre or '' }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="badge doc">
+                <i class="fa-solid fa-id-card"></i>
+                {{ p.numero_documento }}
+              </span>
+            </td>
+
+            <td>
+              {% if p.fecha_nacimiento %}
+              <span class="edad" data-fecha="{{ p.fecha_nacimiento }}"></span>
+              {% else %}
+              <span class="muted">-</span>
+              {% endif %}
+            </td>
+
+            <td class="contact-cell">
+              {% if p.celular %}
+              <div class="contact-main">
+                <i class="fa-solid fa-mobile-screen" style="color:#22c55e;margin-right:6px;"></i>{{ p.celular }}
+              </div>
+              {% endif %}
+              {% if p.telefono %}
+              <div class="contact-sub">
+                <i class="fa-solid fa-phone" style="margin-right:6px;"></i>{{ p.telefono }}
+              </div>
+              {% endif %}
+              {% if not p.celular and not p.telefono %}
+              <span class="muted">-</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if municipio_nombre %}
+              <div class="location-main">{{ municipio_nombre }}</div>
+              <div class="location-sub">{{ depto_nombre }}</div>
+              {% else %}
+              <span class="muted">-</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if eps_nombre %}
+              <span class="badge eps">
+                <i class="fa-solid fa-hospital"></i>
+                {{ eps_nombre }}
+              </span>
+              {% else %}
+              <span class="muted">-</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if p.estado == "ACTIVO" %}
+              <span class="badge ok">
+                <i class="fa-solid fa-circle-check"></i>
+                Activo
+              </span>
+              {% else %}
+              <span class="badge off">
+                <i class="fa-solid fa-circle-xmark"></i>
+                Inactivo
+              </span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="actions">
+                <a class="btn-icon btn-view"
+                   href="/hc/pacientes/ver/{{ p.id }}"
+                   title="Ver historia clínica">
+                  <i class="fa-solid fa-notes-medical"></i>
+                </a>
+
+                <a class="btn-icon btn-edit"
+                   href="/hc/pacientes/editar/{{ p.id }}"
+                   title="Editar paciente">
+                  <i class="fa-solid fa-pen"></i>
+                </a>
+
+                <form method="POST"
+                      action="{{ url_for('hc_pacientes.pacientes_toggle', item_id=p.id) }}"
+                      class="form-toggle"
+                      style="display:inline;">
+                  <button type="submit"
+                          class="btn-icon btn-toggle"
+                          title="{{ 'Inactivar' if p.estado == 'ACTIVO' else 'Activar' }}">
+                    <i class="fa-solid fa-power-off"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="msg-empty">
+      <i class="fa-solid fa-users-slash"></i>
+      <h3>No hay pacientes registrados</h3>
+      <p>Comienza agregando tu primer paciente para iniciar el seguimiento clínico.</p>
+      <a class="btn-ax primary" href="/hc/pacientes/nuevo">
+        <i class="fa-solid fa-plus"></i>
+        Nuevo paciente
+      </a>
+    </div>
+    {% endif %}
+  </section>
 
 </div>
-
-<div class="table-wrap" id="tableWrap">
-
-  <table class="table-ax" id="tabla-pacientes">
-
-    <thead>
-      <tr>
-        <th>Paciente</th>
-        <th>Documento</th>
-        <th>Edad</th>
-        <th>Contacto</th>
-        <th>Ubicación</th>
-        <th>EPS</th>
-        <th>Estado</th>
-        <th style="width:120px;">Acciones</th>
-      </tr>
-    </thead>
-
-    <tbody id="tablaBody">
-
-      {% for p in pacientes %}
-
-      {% set avatar_class = 'femenino' if p.sexo == 'F' else ('masculino' if p.sexo == 'M' else 'otro') %}
-      {% set iniciales = (p.primer_nombre[:1] if p.primer_nombre else '') ~ (p.primer_apellido[:1] if p.primer_apellido else '') %}
-      
-      {% if p.hc_municipios %}
-        {% set municipio_nombre = p.hc_municipios.nombre %}
-        {% set depto_nombre = p.hc_municipios.departamento_nombre or 'Sin departamento' %}
-      {% else %}
-        {% set municipio_nombre = None %}
-        {% set depto_nombre = None %}
-      {% endif %}
-      
-      {% if p.hc_eps %}
-        {% set eps_nombre = p.eps_nombre or p.hc_eps.nombre or p.hc_eps.codigo or 'Sin EPS' %}
-      {% else %}
-        {% set eps_nombre = p.eps_nombre or p.aseguradora or None %}
-      {% endif %}
-
-      <tr class="data-row" 
-          data-nombre="{{ ((p.primer_nombre or '') ~ ' ' ~ (p.segundo_nombre or '') ~ ' ' ~ (p.primer_apellido or '') ~ ' ' ~ (p.segundo_apellido or ''))|lower|trim }}"
-          data-documento="{{ (p.numero_documento or '')|lower }}"
-          data-celular="{{ (p.celular or '')|lower }}"
-          data-eps="{{ (eps_nombre or '')|lower }}">
-
-        <!-- PACIENTE -->
-        <td>
-          <div class="paciente-cell">
-            <div class="avatar {{ avatar_class }}">
-              {{ iniciales|upper }}
-            </div>
-            <div>
-              <div class="paciente-nombre">
-                {{ p.primer_apellido }} {{ p.segundo_apellido or '' }}
-              </div>
-              <div class="paciente-sub">
-                {{ p.primer_nombre }} {{ p.segundo_nombre or '' }}
-              </div>
-            </div>
-          </div>
-        </td>
-
-        <!-- DOCUMENTO -->
-        <td>
-          <span class="badge doc">
-            <i class="fa-solid fa-id-card"></i>
-            {{ p.numero_documento }}
-          </span>
-        </td>
-
-        <!-- EDAD -->
-        <td>
-          {% if p.fecha_nacimiento %}
-          <span class="edad" data-fecha="{{ p.fecha_nacimiento }}"></span>
-          {% else %}
-          <span style="color:#94a3b8;">-</span>
-          {% endif %}
-        </td>
-
-        <!-- CONTACTO -->
-        <td>
-          {% if p.celular %}
-          <div><i class="fa-solid fa-mobile-screen" style="color:#22c55e;margin-right:6px;"></i>{{ p.celular }}</div>
-          {% endif %}
-          {% if p.telefono %}
-          <div style="margin-top:4px;font-size:.8rem;color:#64748b;">
-            <i class="fa-solid fa-phone" style="margin-right:6px;"></i>{{ p.telefono }}
-          </div>
-          {% endif %}
-          {% if not p.celular and not p.telefono %}
-          <span style="color:#94a3b8;">-</span>
-          {% endif %}
-        </td>
-
-        <!-- UBICACIÓN -->
-        <td>
-          {% if municipio_nombre %}
-          <div style="font-weight:600;">{{ municipio_nombre }}</div>
-          <div style="font-size:.8rem;color:#64748b;">{{ depto_nombre }}</div>
-          {% else %}
-          <span style="color:#94a3b8;">-</span>
-          {% endif %}
-        </td>
-
-        <!-- EPS -->
-        <td>
-          {% if eps_nombre %}
-          <span class="badge eps">
-            <i class="fa-solid fa-hospital"></i>
-            {{ eps_nombre }}
-          </span>
-          {% else %}
-          <span style="color:#94a3b8;">-</span>
-          {% endif %}
-        </td>
-
-        <!-- ESTADO -->
-        <td>
-          {% if p.estado == "ACTIVO" %}
-          <span class="badge ok">
-            <i class="fa-solid fa-circle-check"></i> Activo
-          </span>
-          {% else %}
-          <span class="badge off">
-            <i class="fa-solid fa-circle-xmark"></i> Inactivo
-          </span>
-          {% endif %}
-        </td>
-
-        <!-- ACCIONES -->
-        <td>
-          <div class="actions">
-
-            <a class="btn-icon btn-view" 
-               href="/hc/pacientes/ver/{{ p.id }}"
-               title="Ver historia clínica">
-              <i class="fa-solid fa-notes-medical"></i>
-            </a>
-
-            <a class="btn-icon btn-edit"
-               href="/hc/pacientes/editar/{{ p.id }}"
-               title="Editar paciente">
-              <i class="fa-solid fa-pen"></i>
-            </a>
-
-            <form method="POST"
-                  action="{{ url_for('hc_pacientes.pacientes_toggle', item_id=p.id) }}"
-                  class="form-toggle"
-                  style="display:inline;">
-
-              <button type="submit" 
-                      class="btn-icon btn-toggle"
-                      title="{{ 'Inactivar' if p.estado == 'ACTIVO' else 'Activar' }}">
-                <i class="fa-solid fa-power-off"></i>
-              </button>
-
-            </form>
-
-          </div>
-        </td>
-
-      </tr>
-
-      {% endfor %}
-
-    </tbody>
-
-  </table>
-
-  {% if not pacientes %}
-  <div class="msg-empty">
-    <i class="fa-solid fa-users-slash"></i>
-    <h3 style="margin:0 0 8px 0;">No hay pacientes registrados</h3>
-    <p style="margin:0;">Comienza agregando tu primer paciente.</p>
-  </div>
-  {% endif %}
-
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-
-/* ===============================
-   EDAD
-   ================================ */
-
 document.querySelectorAll(".edad").forEach(el => {
-  const fecha = new Date(el.dataset.fecha)
-  const hoy = new Date()
-  let edad = hoy.getFullYear() - fecha.getFullYear()
-  const m = hoy.getMonth() - fecha.getMonth()
+  const fecha = new Date(el.dataset.fecha);
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - fecha.getFullYear();
+  const m = hoy.getMonth() - fecha.getMonth();
+
   if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) {
-    edad--
+    edad--;
   }
-  el.innerText = edad + " años"
-})
 
-/* ===============================
-   SCROLL INFINITO
-   ================================ */
+  el.innerText = edad + " años";
+});
 
-let visible = 30
+let visible = 30;
+const wrap = document.getElementById("tableWrap");
+const filas = document.querySelectorAll(".data-row");
+const buscador = document.getElementById("buscador");
 
 function updateRows() {
-  const rows = document.querySelectorAll(".data-row")
-  rows.forEach((row, index) => {
-    row.style.display = index < visible ? "" : "none"
-  })
+  const query = (buscador?.value || "").trim().toLowerCase();
+  let visibles = 0;
+  let mostrados = 0;
+
+  filas.forEach((row) => {
+    const nombre = row.dataset.nombre || "";
+    const documento = row.dataset.documento || "";
+    const celular = row.dataset.celular || "";
+    const eps = row.dataset.eps || "";
+
+    const match =
+      !query ||
+      nombre.includes(query) ||
+      documento.includes(query) ||
+      celular.includes(query) ||
+      eps.includes(query);
+
+    if (!match) {
+      row.style.display = "none";
+      return;
+    }
+
+    visibles++;
+
+    if (!query) {
+      if (mostrados < visible) {
+        row.style.display = "";
+        mostrados++;
+      } else {
+        row.style.display = "none";
+      }
+    } else {
+      row.style.display = "";
+    }
+  });
+
+  actualizarContador(query ? visibles : Math.min(visibles, visible));
 }
 
-// Inicializar visibilidad
-updateRows()
+updateRows();
 
-const wrap = document.getElementById("tableWrap")
 wrap?.addEventListener("scroll", function() {
+  if (buscador && buscador.value.trim().length > 0) return;
+
   if (wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 20) {
-    visible += 20
-    updateRows()
+    visible += 20;
+    updateRows();
   }
-})
-
-/* ===============================
-   BUSCADOR LOCAL
-   ================================ */
-
-const buscador = document.getElementById("buscador")
-const filas = document.querySelectorAll(".data-row")
+});
 
 buscador?.addEventListener("input", function() {
-  const q = this.value.trim().toLowerCase()
-  
+  const q = this.value.trim().toLowerCase();
+
   if (q.length === 0) {
-    // Mostrar todos
-    filas.forEach(fila => fila.style.display = "")
-    visible = 30
-    updateRows()
-    actualizarContador(filas.length)
-    return
+    visible = 30;
+    updateRows();
+    return;
   }
-  
-  if (q.length < 2) return
-  
-  let visibles = 0
-  filas.forEach(fila => {
-    const nombre = fila.dataset.nombre || ""
-    const documento = fila.dataset.documento || ""
-    const celular = fila.dataset.celular || ""
-    const eps = fila.dataset.eps || ""
-    
-    const match = nombre.includes(q) || 
-                  documento.includes(q) || 
-                  celular.includes(q) ||
-                  eps.includes(q)
-    
-    if (match) {
-      fila.style.display = ""
-      visibles++
-    } else {
-      fila.style.display = "none"
-    }
-  })
-  
-  actualizarContador(visibles)
-})
+
+  if (q.length < 2) {
+    updateRows();
+    return;
+  }
+
+  updateRows();
+});
 
 function actualizarContador(cantidad) {
-  const contador = document.getElementById("contador")
-  if (contador) {
-    contador.innerText = cantidad
-  }
+  const contador = document.getElementById("contador");
+  if (contador) contador.innerText = cantidad;
 }
-
-/* ===============================
-   CONFIRMAR TOGGLE
-   ================================ */
 
 document.addEventListener("click", function(e) {
   if (e.target.closest(".form-toggle button")) {
-    e.preventDefault()
-    const btn = e.target.closest("button")
-    const form = btn.closest("form")
-    const isActive = btn.title === "Inactivar"
+    e.preventDefault();
+
+    const btn = e.target.closest("button");
+    const form = btn.closest("form");
+    const isActive = btn.title === "Inactivar";
 
     Swal.fire({
       title: "¿Confirmar cambio?",
@@ -565,15 +901,13 @@ document.addEventListener("click", function(e) {
       showCancelButton: true,
       confirmButtonText: "Sí, continuar",
       cancelButtonText: "Cancelar",
-      confirmButtonColor: isActive ? "#ef4444" : "#22c55e"
+      confirmButtonColor: isActive ? "#c0392b" : "#2f7d32"
     }).then((result) => {
       if (result.isConfirmed) {
-        form.submit()
+        form.submit();
       }
-    })
+    });
   }
-})
-
+});
 </script>
-
 {% endblock %}
