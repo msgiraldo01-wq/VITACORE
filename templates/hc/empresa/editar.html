@@ -1,0 +1,754 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Editar empresa · Vitacore{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-building"></i>{% endblock %}
+{% block header_title %}Editar empresa{% endblock %}
+{% block header_subtitle %}Configuración institucional y personalización{% endblock %}
+
+{% block header_actions %}
+<a href="/empresa/seleccionar" class="btn-ax ghost">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* =========================
+   LAYOUT
+========================= */
+.form-wrap {
+  max-width: 1100px;
+  margin: auto;
+}
+
+.form-empresa {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================
+   CARDS
+========================= */
+.form-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  transition: all .2s ease;
+  animation: fadeInUp 0.5s ease both;
+}
+
+.form-section:hover {
+  border-color: var(--brand);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Staggered animation delays */
+.form-section:nth-child(1) { animation-delay: 0.05s; }
+.form-section:nth-child(2) { animation-delay: 0.10s; }
+.form-section:nth-child(3) { animation-delay: 0.15s; }
+
+/* =========================
+   TITLES
+========================= */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: var(--text);
+}
+
+/* =========================
+   GRID
+========================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* =========================
+   INPUTS PRO
+========================= */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo.full {
+  grid-column: 1 / -1;
+}
+
+.campo label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.campo label .required {
+  color: var(--danger, #ef4444);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  transition: all .15s ease;
+}
+
+.campo textarea {
+  height: 70px;
+  padding-top: 10px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.12);
+  outline: none;
+}
+
+.campo input:invalid:not(:placeholder-shown),
+.campo select:invalid:not(:placeholder-shown) {
+  border-color: var(--danger, #ef4444);
+}
+
+.campo input:invalid:not(:placeholder-shown):focus,
+.campo select:invalid:not(:placeholder-shown):focus {
+  box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+}
+
+.campo select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* =========================
+   PREVIEW VISUAL
+========================= */
+.preview-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.logo-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 2px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color .2s ease;
+}
+
+.logo-preview.has-image {
+  border-style: solid;
+  border-color: var(--brand);
+}
+
+.logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-preview .placeholder-icon {
+  color: var(--text-muted);
+  font-size: 20px;
+}
+
+.color-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.color-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+
+.color-preview .hex-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.color-preview:hover .hex-value {
+  opacity: 1;
+}
+
+/* =========================
+   COLOR PICKER
+========================= */
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-wrap input[type="color"] {
+  width: 44px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-wrap input[type="color"]::-webkit-color-swatch {
+  border-radius: 6px;
+  border: none;
+}
+
+/* =========================
+   TOOLTIP / HELP
+========================= */
+.campo .help-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* =========================
+   FOOTER
+========================= */
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-footer-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.form-footer-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* =========================
+   TOAST / FEEDBACK
+========================= */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  z-index: 9999;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.success { border-left: 4px solid #22c55e; }
+.toast.error   { border-left: 4px solid #ef4444; }
+
+/* =========================
+   SKELETON LOADING
+========================= */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 640px) {
+  .form-section {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .campo.full {
+    grid-column: 1 / -1;
+  }
+
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-footer-actions {
+    justify-content: stretch;
+  }
+
+  .form-footer-actions .btn-ax {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="form-wrap">
+
+<form method="POST" id="formEmpresa" class="form-empresa" novalidate>
+
+  <!-- INFO GENERAL -->
+  <section class="form-section">
+    <h3 class="section-title">
+      <i class="fa-solid fa-building"></i>
+      Información general
+    </h3>
+
+    <div class="form-grid">
+
+      <div class="campo">
+        <label>NIT <span class="required">*</span></label>
+        <input 
+          name="nit" 
+          required 
+          value="{{ empresa.nit }}"
+          placeholder="Ej: 900123456-7"
+          pattern="[0-9\-]+"
+          title="Solo números y guiones"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="campo">
+        <label>Estado</label>
+        <select name="estado">
+          <option value="ACTIVA" {{ 'selected' if empresa.estado=='ACTIVA' }}>Activa</option>
+          <option value="INACTIVA" {{ 'selected' if empresa.estado=='INACTIVA' }}>Inactiva</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>Tipo empresa</label>
+        <select name="tipo_empresa">
+          <option value="IPS" {{ 'selected' if empresa.tipo_empresa=='IPS' }}>IPS</option>
+          <option value="Hospital" {{ 'selected' if empresa.tipo_empresa=='Hospital' }}>Hospital</option>
+          <option value="Consultorio" {{ 'selected' if empresa.tipo_empresa=='Consultorio' }}>Consultorio</option>
+          <option value="Clínica" {{ 'selected' if empresa.tipo_empresa=='Clínica' }}>Clínica</option>
+          <option value="Laboratorio" {{ 'selected' if empresa.tipo_empresa=='Laboratorio' }}>Laboratorio</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>Nivel de complejidad</label>
+        <select name="nivel_complejidad">
+          <option value="Baja" {{ 'selected' if empresa.nivel_complejidad=='Baja' }}>Baja</option>
+          <option value="Media" {{ 'selected' if empresa.nivel_complejidad=='Media' }}>Media</option>
+          <option value="Alta" {{ 'selected' if empresa.nivel_complejidad=='Alta' }}>Alta</option>
+          <option value="Muy alta" {{ 'selected' if empresa.nivel_complejidad=='Muy alta' }}>Muy alta</option>
+        </select>
+      </div>
+
+      <div class="campo full">
+        <label>Razón social</label>
+        <input 
+          name="razon_social" 
+          value="{{ empresa.razon_social }}"
+          placeholder="Nombre legal de la empresa"
+          maxlength="200"
+        >
+      </div>
+
+      <div class="campo full">
+        <label>Nombre comercial</label>
+        <input 
+          name="nombre_comercial" 
+          value="{{ empresa.nombre_comercial }}"
+          placeholder="Nombre con el que se conoce públicamente"
+          maxlength="200"
+        >
+      </div>
+
+    </div>
+  </section>
+
+  <!-- UBICACION -->
+  <section class="form-section">
+    <h3 class="section-title">
+      <i class="fa-solid fa-location-dot"></i>
+      Ubicación y contacto
+    </h3>
+
+    <div class="form-grid">
+      <div class="campo">
+        <label>País</label>
+        <input name="pais" placeholder="Ej: Colombia" value="{{ empresa.pais }}" maxlength="100">
+      </div>
+
+      <div class="campo">
+        <label>Departamento</label>
+        <input name="departamento" placeholder="Ej: Antioquia" value="{{ empresa.departamento }}" maxlength="100">
+      </div>
+
+      <div class="campo">
+        <label>Municipio</label>
+        <input name="municipio" placeholder="Ej: Medellín" value="{{ empresa.municipio }}" maxlength="100">
+      </div>
+
+      <div class="campo">
+        <label>Teléfono</label>
+        <input 
+          name="telefono" 
+          placeholder="Ej: +57 300 123 4567" 
+          value="{{ empresa.telefono }}"
+          type="tel"
+          maxlength="50"
+        >
+      </div>
+
+      <div class="campo">
+        <label>Email</label>
+        <input 
+          name="email" 
+          placeholder="contacto@empresa.com" 
+          value="{{ empresa.email }}"
+          type="email"
+          maxlength="150"
+        >
+      </div>
+
+      <div class="campo full">
+        <label>Dirección</label>
+        <textarea 
+          name="direccion" 
+          placeholder="Dirección completa de la sede principal"
+          maxlength="300"
+        >{{ empresa.direccion }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISUAL -->
+  <section class="form-section">
+    <h3 class="section-title">
+      <i class="fa-solid fa-palette"></i>
+      Personalización visual
+    </h3>
+
+    <div class="form-grid">
+
+      <div class="campo full">
+        <label>URL del logo</label>
+        <input 
+          id="logo_url" 
+          name="logo_url" 
+          value="{{ empresa.logo_url }}"
+          placeholder="https://ejemplo.com/logo.png"
+          type="url"
+        >
+        <span class="help-text">Pega una URL de imagen válida (PNG, JPG, SVG). Se actualizará la vista previa automáticamente.</span>
+
+        <div class="preview-box">
+          <div class="logo-preview" id="logoPreview">
+            <i class="fa-solid fa-image placeholder-icon"></i>
+          </div>
+          <div>
+            <strong style="font-size:13px; color:var(--text);">Vista previa</strong>
+            <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0;">56×56 px recomendado</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Color primario</label>
+        <div class="color-picker-wrap">
+          <input 
+            id="color_primario" 
+            name="color_primario" 
+            value="{{ empresa.color_primario or '#0ea5e9' }}"
+            type="text"
+            placeholder="#0EA5E9"
+            maxlength="7"
+            pattern="^#[0-9A-Fa-f]{6}$"
+          >
+          <input type="color" id="colorPicker" value="{{ empresa.color_primario or '#0ea5e9' }}">
+        </div>
+        <span class="help-text">Hexadecimal de 6 caracteres (ej: #0EA5E9)</span>
+      </div>
+
+      <div class="campo">
+        <label>Vista previa del color</label>
+        <div class="color-preview" id="colorPreview">
+          <span class="hex-value" id="hexValue">#0EA5E9</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="form-footer">
+    <span class="form-footer-note">
+      <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
+      Configuración institucional · Última edición: {{ empresa.updated_at or '—' }}
+    </span>
+
+    <div class="form-footer-actions">
+      <a href="/empresa/seleccionar" class="btn-ax ghost">Cancelar</a>
+      <button type="submit" class="btn-ax primary" id="btnGuardar">
+        <i class="fa-solid fa-save"></i> Guardar cambios
+      </button>
+    </div>
+  </div>
+
+</form>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast">
+  <i class="fa-solid fa-circle-check" id="toastIcon"></i>
+  <span id="toastMessage">Cambios guardados</span>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+/* =========================
+   PREVIEW LOGO
+========================= */
+const logoInput = document.getElementById("logo_url");
+const logoPreview = document.getElementById("logoPreview");
+
+function updateLogoPreview() {
+  const url = logoInput.value.trim();
+  if (url) {
+    logoPreview.innerHTML = `<img src="${url}" alt="Logo preview" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\'fa-solid fa-triangle-exclamation placeholder-icon\' style=\'color:var(--danger,#ef4444)\'></i>';this.parentElement.classList.remove('has-image');">`;
+    logoPreview.classList.add("has-image");
+  } else {
+    logoPreview.innerHTML = `<i class="fa-solid fa-image placeholder-icon"></i>`;
+    logoPreview.classList.remove("has-image");
+  }
+}
+
+logoInput.addEventListener("input", updateLogoPreview);
+logoInput.addEventListener("blur", updateLogoPreview);
+
+/* =========================
+   PREVIEW COLOR
+========================= */
+const colorInput = document.getElementById("color_primario");
+const colorPicker = document.getElementById("colorPicker");
+const colorPreview = document.getElementById("colorPreview");
+const hexValue = document.getElementById("hexValue");
+
+function isValidHex(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(hex);
+}
+
+function updateColorPreview() {
+  let color = colorInput.value.trim();
+  if (!color.startsWith("#")) color = "#" + color;
+
+  if (isValidHex(color)) {
+    colorPreview.style.background = color;
+    hexValue.textContent = color.toUpperCase();
+    colorPicker.value = color;
+    colorInput.value = color.toUpperCase();
+  }
+}
+
+colorInput.addEventListener("input", updateColorPreview);
+colorInput.addEventListener("blur", updateColorPreview);
+
+colorPicker.addEventListener("input", (e) => {
+  colorInput.value = e.target.value.toUpperCase();
+  updateColorPreview();
+});
+
+/* =========================
+   FORM VALIDATION & SUBMIT
+========================= */
+const form = document.getElementById("formEmpresa");
+const btnGuardar = document.getElementById("btnGuardar");
+const toast = document.getElementById("toast");
+const toastIcon = document.getElementById("toastIcon");
+const toastMessage = document.getElementById("toastMessage");
+
+function showToast(message, type = "success") {
+  toastMessage.textContent = message;
+  toast.className = `toast ${type}`;
+  toastIcon.className = type === "success" 
+    ? "fa-solid fa-circle-check" 
+    : "fa-solid fa-circle-xmark";
+
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3500);
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  // Loading state
+  const originalText = btnGuardar.innerHTML;
+  btnGuardar.disabled = true;
+  btnGuardar.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Guardando...`;
+
+  try {
+    const formData = new FormData(form);
+    const response = await fetch(form.action || window.location.href, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    if (response.ok) {
+      showToast("Empresa actualizada correctamente", "success");
+      // Optional: redirect after delay
+      // setTimeout(() => window.location.href = "/empresa/seleccionar", 1500);
+    } else {
+      throw new Error("Error del servidor");
+    }
+  } catch (err) {
+    showToast("No se pudieron guardar los cambios", "error");
+    console.error(err);
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = originalText;
+  }
+});
+
+/* =========================
+   AUTO-SAVE DRAFT
+========================= */
+const STORAGE_KEY = "empresa_draft_{{ empresa.id or 'new' }}";
+
+function saveDraft() {
+  const data = {};
+  new FormData(form).forEach((value, key) => {
+    data[key] = value;
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadDraft() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
+
+  try {
+    const data = JSON.parse(saved);
+    // Only restore if user hasn't modified yet (simple check)
+    // Or show a "restore draft?" prompt
+  } catch (e) {
+    console.error("Error loading draft", e);
+  }
+}
+
+form.addEventListener("input", debounce(saveDraft, 1000));
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+/* =========================
+   KEYBOARD SHORTCUTS
+========================= */
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+    e.preventDefault();
+    form.dispatchEvent(new Event("submit"));
+  }
+});
+
+/* =========================
+   INIT
+========================= */
+updateLogoPreview();
+updateColorPreview();
+
+</script>
+{% endblock %}

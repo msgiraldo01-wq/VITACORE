@@ -26,13 +26,14 @@
 
 .emp-hero{
   display:grid;
-  grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
+  grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr);
   gap:20px;
 }
 
 .emp-hero-card,
 .emp-summary-card,
-.emp-card{
+.emp-card,
+.emp-empty{
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:24px;
@@ -95,8 +96,20 @@
   padding:22px;
   display:flex;
   flex-direction:column;
-  justify-content:space-between;
   gap:18px;
+}
+
+.emp-summary-card h3{
+  margin:0;
+  color:var(--text);
+  font-size:1rem;
+}
+
+.emp-summary-card p{
+  margin:6px 0 0;
+  color:var(--text-soft);
+  font-size:14px;
+  line-height:1.6;
 }
 
 .emp-summary-grid{
@@ -149,7 +162,7 @@
 
 .emp-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
   gap:18px;
 }
 
@@ -173,20 +186,41 @@
   gap:14px;
 }
 
+.emp-logo{
+  width:54px;
+  height:54px;
+  border-radius:18px;
+  overflow:hidden;
+  flex-shrink:0;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  display:grid;
+  place-items:center;
+}
+
+.emp-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
 .emp-icon{
-  width:50px;
-  height:50px;
-  border-radius:16px;
+  width:54px;
+  height:54px;
+  border-radius:18px;
   display:grid;
   place-items:center;
   flex-shrink:0;
-  background:var(--brand-soft);
-  color:var(--brand);
+  color:#fff;
   font-size:20px;
+  background:linear-gradient(135deg, var(--brand), #2d8b93);
+  box-shadow:0 12px 20px rgba(13,92,99,.18);
 }
 
 .emp-heading{
   min-width:0;
+  flex:1;
 }
 
 .emp-heading h3{
@@ -205,6 +239,20 @@
   word-break:break-word;
 }
 
+.emp-colors{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.color-dot{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);
+}
+
 .emp-meta{
   display:grid;
   gap:10px;
@@ -212,7 +260,7 @@
 
 .emp-meta-item{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:10px;
   padding:12px 14px;
   border-radius:16px;
@@ -220,12 +268,19 @@
   border:1px solid var(--border);
   color:var(--text-soft);
   font-size:13px;
+  line-height:1.5;
 }
 
 .emp-meta-item i{
   color:var(--brand);
   width:18px;
   text-align:center;
+  margin-top:2px;
+  flex-shrink:0;
+}
+
+.emp-meta-item strong{
+  color:var(--text);
 }
 
 .emp-footer{
@@ -235,6 +290,13 @@
   gap:12px;
   margin-top:auto;
   flex-wrap:wrap;
+}
+
+.emp-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
 
 .badge{
@@ -274,9 +336,8 @@
 .emp-empty{
   padding:30px;
   text-align:center;
-  border-radius:24px;
-  background:var(--surface);
-  border:1px dashed var(--border-strong);
+  border-style:dashed;
+  border-color:var(--border-strong);
   color:var(--text-soft);
 }
 
@@ -310,11 +371,6 @@
   .emp-card,
   .emp-empty{
     border-radius:20px;
-  }
-
-  .emp-hero-card,
-  .emp-summary-card,
-  .emp-card{
     padding:18px;
   }
 
@@ -327,8 +383,14 @@
     align-items:stretch;
   }
 
-  .emp-footer .btn-ax{
+  .emp-actions{
     width:100%;
+    flex-direction:column;
+  }
+
+  .emp-actions .btn-ax{
+    width:100%;
+    justify-content:center;
   }
 }
 </style>
@@ -347,15 +409,15 @@
       <h2 class="emp-hero-title">Seleccione la empresa con la que desea trabajar</h2>
 
       <p class="emp-hero-copy">
-        Desde este espacio puedes ingresar al entorno operativo de cada empresa registrada,
-        administrar su acceso y continuar con la gestión clínica o administrativa correspondiente.
+        Ingresa al entorno operativo de cada institución registrada, revisa su estado
+        y continúa con la gestión clínica o administrativa correspondiente.
       </p>
     </article>
 
     <aside class="emp-summary-card">
       <div>
-        <p class="section-kicker">Resumen</p>
-        <h3 class="section-title">Estado general</h3>
+        <h3>Resumen general</h3>
+        <p>Vista rápida de las entidades disponibles en el sistema.</p>
       </div>
 
       <div class="emp-summary-grid">
@@ -380,7 +442,7 @@
   <section class="emp-toolbar">
     <div class="emp-toolbar-copy">
       <h3>Empresas disponibles</h3>
-      <p>Selecciona una tarjeta para entrar directamente a su espacio de trabajo.</p>
+      <p>Selecciona una institución para entrar directamente a su espacio de trabajo.</p>
     </div>
   </section>
 
@@ -388,39 +450,87 @@
   <section class="emp-grid">
     {% for emp in empresas %}
     <article class="emp-card">
+
       <div class="emp-header">
+        {% if emp.logo_url %}
+        <div class="emp-logo">
+          <img src="{{ emp.logo_url }}" alt="{{ emp.nombre_comercial or emp.razon_social }}">
+        </div>
+        {% else %}
         <div class="emp-icon">
           <i class="fa-solid fa-hospital"></i>
         </div>
+        {% endif %}
 
         <div class="emp-heading">
           <h3>{{ emp.nombre_comercial or emp.razon_social }}</h3>
           <p>{{ emp.razon_social }}</p>
+
+          {% if emp.color_primario or emp.color_secundario %}
+          <div class="emp-colors">
+            {% if emp.color_primario %}
+            <span class="color-dot" style="background: {{ emp.color_primario }};" title="Color primario"></span>
+            {% endif %}
+            {% if emp.color_secundario %}
+            <span class="color-dot" style="background: {{ emp.color_secundario }};" title="Color secundario"></span>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
       </div>
 
       <div class="emp-meta">
         <div class="emp-meta-item">
-          <i class="fa-solid fa-building"></i>
-          <span>Entidad empresarial disponible para administración</span>
+          <i class="fa-solid fa-hashtag"></i>
+          <span><strong>NIT:</strong> {{ emp.nit or 'No registrado' }}</span>
         </div>
 
         <div class="emp-meta-item">
-          <i class="fa-solid fa-circle-check"></i>
-          <span>Estado actual: {{ emp.estado }}</span>
+          <i class="fa-solid fa-building"></i>
+          <span><strong>Tipo:</strong> {{ emp.tipo_empresa or 'No definido' }}</span>
+        </div>
+
+        <div class="emp-meta-item">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>
+            <strong>Ubicación:</strong>
+            {{ emp.municipio or 'Sin municipio' }}{% if emp.departamento %}, {{ emp.departamento }}{% endif %}
+          </span>
+        </div>
+
+        <div class="emp-meta-item">
+          <i class="fa-solid fa-envelope"></i>
+          <span><strong>Correo:</strong> {{ emp.email or 'No registrado' }}</span>
         </div>
       </div>
 
       <div class="emp-footer">
         <span class="badge {{ 'active' if emp.estado == 'ACTIVA' else 'inactive' }}">
-          {{ emp.estado }}
+          {{ emp.estado or 'SIN ESTADO' }}
         </span>
 
-        <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax ghost">
-          <i class="fa-solid fa-arrow-right-to-bracket"></i>
-          Entrar
-        </a>
+        <div class="emp-actions">
+          <a href="/empresa/editar/{{ emp.id }}" class="btn-ax ghost">
+            <i class="fa-solid fa-pen"></i>
+            Editar
+          </a>
+
+          <button
+            type="button"
+            class="btn-ax ghost btn-toggle-estado"
+            data-id="{{ emp.id }}"
+            data-estado="{{ emp.estado or 'INACTIVA' }}">
+            <i class="fa-solid {{ 'fa-ban' if emp.estado == 'ACTIVA' else 'fa-check' }}"></i>
+            {{ 'Desactivar' if emp.estado == 'ACTIVA' else 'Activar' }}
+          </button>
+
+          <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax primary">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            Entrar
+          </a>
+        </div>
       </div>
+
     </article>
     {% endfor %}
   </section>
@@ -439,4 +549,73 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+<script>
+(() => {
+  const botones = document.querySelectorAll(".btn-toggle-estado");
+
+  botones.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const empresaId = btn.dataset.id;
+      const estado = (btn.dataset.estado || "INACTIVA").toUpperCase();
+      const activar = estado !== "ACTIVA";
+      const nuevoEstado = activar ? "ACTIVA" : "INACTIVA";
+      const accion = activar ? "activar" : "desactivar";
+
+      const result = await Swal.fire({
+        title: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} empresa?`,
+        text: `La empresa cambiará su estado a ${nuevoEstado}.`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#0d5c63",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: `Sí, ${accion}`,
+        cancelButtonText: "Cancelar"
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const resp = await fetch(`/empresa/estado/${empresaId}`, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        });
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || !data.ok) {
+          Swal.fire({
+            icon: "error",
+            title: "No fue posible cambiar el estado",
+            text: data.message || "Ocurrió un error inesperado.",
+            confirmButtonColor: "#0d5c63"
+          });
+          return;
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Estado actualizado",
+          text: data.message || "El estado de la empresa fue actualizado.",
+          confirmButtonColor: "#0d5c63"
+        });
+
+        window.location.reload();
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error de conexión",
+          text: "No se pudo conectar con el servidor.",
+          confirmButtonColor: "#0d5c63"
+        });
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}
