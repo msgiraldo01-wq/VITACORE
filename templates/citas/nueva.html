@@ -1,0 +1,111 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Nueva Cita{% endblock %}
+{% block header_icon %}fa-solid fa-calendar-plus{% endblock %}
+{% block header_title %}Agendar Nueva Cita{% endblock %}
+{% block header_subtitle %}Registro clínico de atención{% endblock %}
+
+{% block content %}
+
+<style>
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.form-section h3 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+</style>
+
+<div class="form-grid">
+
+  <!-- PACIENTE -->
+  <div class="form-section">
+    <h3>Paciente</h3>
+    <select id="paciente_id" class="input"></select>
+  </div>
+
+  <!-- MÉDICO -->
+  <div class="form-section">
+    <h3>Médico</h3>
+    <select id="medico_id" class="input"></select>
+  </div>
+
+  <!-- FECHA -->
+  <div class="form-section">
+    <h3>Fecha y Hora</h3>
+    <input type="date" id="fecha" class="input">
+    <input type="time" id="hora_inicio" class="input">
+    <input type="number" id="duracion" class="input" placeholder="Duración (min)">
+  </div>
+
+  <!-- CLÍNICO -->
+  <div class="form-section">
+    <h3>Datos Clínicos</h3>
+    <select id="tipo_atencion" class="input">
+      <option>CONSULTA</option>
+    </select>
+
+    <select id="modalidad" class="input">
+      <option>PRESENCIAL</option>
+      <option>TELEMEDICINA</option>
+    </select>
+
+    <select id="finalidad_consulta" class="input">
+      <option>DIAGNOSTICO</option>
+      <option>CONTROL</option>
+    </select>
+
+    <input id="motivo_consulta" class="input" placeholder="Motivo consulta">
+  </div>
+
+</div>
+
+<br>
+
+<button class="btn" onclick="guardar()">Guardar Cita</button>
+
+<script>
+async function guardar() {
+
+  const payload = {
+    paciente_id: parseInt(document.getElementById("paciente_id").value),
+    medico_id: parseInt(document.getElementById("medico_id").value),
+    fecha: document.getElementById("fecha").value,
+    hora_inicio: document.getElementById("hora_inicio").value,
+    duracion: parseInt(document.getElementById("duracion").value || 20),
+    tipo_atencion: document.getElementById("tipo_atencion").value,
+    modalidad: document.getElementById("modalidad").value,
+    finalidad_consulta: document.getElementById("finalidad_consulta").value,
+    motivo_consulta: document.getElementById("motivo_consulta").value
+  };
+
+  const res = await fetch("/citas/api/crear", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    window.location.href = "/citas/";
+  } else {
+    alert(data.error);
+  }
+}
+</script>
+
+{% endblock %}

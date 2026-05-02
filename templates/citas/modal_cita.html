@@ -1,0 +1,200 @@
+<!-- templates/citas/modal_cita.html -->
+<!-- Modal Progresivo: 4 Pasos para Agendar Cita -->
+
+<div class="modal-overlay" id="modalCita">
+  <div class="modal-full">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h2>
+        <i class="fa-solid fa-calendar-plus"></i>
+        Agendar Nueva Cita
+        <span class="step-indicator" id="stepIndicator">Paso 1 de 4</span>
+      </h2>
+      <button onclick="cerrarModalCita()">✕</button>
+    </div>
+
+    <!-- STEPS PROGRESS -->
+    <div class="steps-progress">
+      <div class="step-dot active" data-step="1" id="stepDot1"></div>
+      <div class="step-dot" data-step="2" id="stepDot2"></div>
+      <div class="step-dot" data-step="3" id="stepDot3"></div>
+      <div class="step-dot" data-step="4" id="stepDot4"></div>
+    </div>
+
+    <!-- BODY -->
+    <div class="modal-body">
+
+      <!-- PASO 1: PACIENTE -->
+      <div class="step-content active" id="step1">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">
+          <i class="fa-solid fa-user"></i> Seleccionar Paciente
+        </h3>
+        
+        <div class="form-grid full-width">
+          <div class="search-box">
+            <i class="fa-solid fa-search"></i>
+            <input 
+              type="text" 
+              class="input" 
+              id="buscarPaciente" 
+              placeholder="Buscar por nombre o documento..." 
+              oninput="buscarPacientes(this.value)"
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <div class="select-list" id="listaPacientes">
+          <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+            Escribe para buscar pacientes...
+          </div>
+        </div>
+
+        <input type="hidden" id="paciente_id">
+        <input type="hidden" id="paciente_nombre">
+      </div>
+
+      <!-- PASO 2: MÉDICO Y FECHA -->
+      <div class="step-content" id="step2">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">
+          <i class="fa-solid fa-user-doctor"></i> Médico y Fecha
+        </h3>
+        
+        <div class="form-grid">
+          <div>
+            <label>Médico</label>
+            <select id="medico_id_modal" class="select" onchange="cargarHorariosMedico()">
+              <option value="">Seleccionar médico...</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Fecha</label>
+            <input type="date" id="fecha_modal" class="input" onchange="cargarHorariosMedico()">
+          </div>
+
+          <div>
+            <label>Hora de inicio</label>
+            <select id="hora_inicio" class="select">
+              <option value="">Seleccionar hora...</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Duración (minutos)</label>
+            <input type="number" id="duracion" class="input" value="20" min="5" step="5">
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding: 16px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border);">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+            <i class="fa-solid fa-clock"></i> Disponibilidad
+          </div>
+          <div id="infoHorarioMedico" style="font-size: 13px; color: var(--text);">
+            Seleccione un médico y fecha para ver disponibilidad
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: DETALLES -->
+      <div class="step-content" id="step3">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">
+          <i class="fa-solid fa-clipboard-list"></i> Detalles de la Cita
+        </h3>
+        
+        <div class="form-grid">
+          <div>
+            <label>Tipo de atención</label>
+            <select id="tipo_atencion" class="select">
+              <option value="CONSULTA">Consulta</option>
+              <option value="SEGUIMIENTO">Seguimiento</option>
+              <option value="URGENCIA">Urgencia</option>
+              <option value="PROCEDIMIENTO">Procedimiento</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Modalidad</label>
+            <select id="modalidad" class="select">
+              <option value="PRESENCIAL">Presencial</option>
+              <option value="TELEMEDICINA">Telemedicina</option>
+              <option value="DOMICILIO">Domicilio</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Finalidad consulta</label>
+            <select id="finalidad_consulta" class="select">
+              <option value="DIAGNOSTICO">Diagnóstico</option>
+              <option value="CONTROL">Control</option>
+              <option value="TRATAMIENTO">Tratamiento</option>
+              <option value="INTERCONSULTA">Interconsulta</option>
+              <option value="REMITIDO">Remitido</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Sede</label>
+            <select id="sede_id_modal" class="select">
+              <option value="">Seleccionar sede...</option>
+            </select>
+          </div>
+
+          <div style="grid-column: span 2;">
+            <label>Motivo de consulta</label>
+            <input type="text" id="motivo_consulta" class="input" placeholder="Describa el motivo de la consulta...">
+          </div>
+
+          <div style="grid-column: span 2;">
+            <label>Prioridad</label>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 400; text-transform: none;">
+                <input type="radio" name="prioridad" value="NORMAL" checked> Normal
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 400; text-transform: none;">
+                <input type="radio" name="prioridad" value="ALTA"> Alta
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 400; text-transform: none;">
+                <input type="radio" name="prioridad" value="URGENTE"> Urgente
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 4: RESUMEN -->
+      <div class="step-content" id="step4">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">
+          <i class="fa-solid fa-check-circle"></i> Confirmar Cita
+        </h3>
+        
+        <div class="resumen-cita" id="resumenCita">
+          <!-- Se llena dinámicamente -->
+        </div>
+
+        <div style="margin-top: 16px; padding: 12px 16px; background: rgba(245,158,11,0.1); border-radius: 10px; border: 1px solid rgba(245,158,11,0.3);">
+          <div style="font-size: 12px; color: var(--color-pendiente);">
+            <i class="fa-solid fa-triangle-exclamation"></i> 
+            Verifique los datos antes de confirmar. La cita quedará en estado PENDIENTE.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btnAnterior" onclick="pasoAnterior()" disabled>
+        <i class="fa-solid fa-arrow-left"></i> Anterior
+      </button>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="cerrarModalCita()">Cancelar</button>
+        <button class="btn btn-primary" id="btnSiguiente" onclick="pasoSiguiente()">
+          Siguiente <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

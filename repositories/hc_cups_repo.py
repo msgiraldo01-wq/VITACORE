@@ -2,6 +2,8 @@ from typing import Any
 from services.supabase_service import get_supabase_admin
 
 
+
+
 def _table():
     return "hc_cups"
 
