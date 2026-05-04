@@ -56,72 +56,58 @@ def api_agenda():
 # API: CREAR CITA
 # --------------------------------------------------
 
-
 @bp_citas.route("/api/crear", methods=["POST"])
 def api_crear_cita():
     try:
         data = request.json or {}
-
+ 
+        # -----------------------------
+        # EXTRAER PROCEDIMIENTOS ANTES
+        # (no forman parte del payload de hc_citas)
+        # -----------------------------
+        procedimientos = data.pop("procedimientos", [])
+ 
         # -----------------------------
         # VALIDACIÓN EMPRESA
         # -----------------------------
         empresa = session.get("empresa_id") or data.get("empresa_id")
-
+ 
         if empresa is None:
-            return {
-                "ok": False,
-                "error": "empresa_id es obligatorio"
-            }, 400
-
+            return {"ok": False, "error": "empresa_id es obligatorio"}, 400
+ 
         try:
             empresa = int(empresa)
         except:
-            return {
-                "ok": False,
-                "error": "empresa_id inválido"
-            }, 400
-
+            return {"ok": False, "error": "empresa_id inválido"}, 400
+ 
         data["empresa_id"] = empresa
-
+ 
         # -----------------------------
         # CAMPOS OBLIGATORIOS
         # -----------------------------
         campos_requeridos = [
-            "paciente_id",
-            "medico_id",
-            "fecha",
-            "hora_inicio",
-            "tipo_atencion",
-            "modalidad",
-            "finalidad_consulta",
-            "motivo_consulta"
+            "paciente_id", "medico_id", "fecha", "hora_inicio",
+            "tipo_atencion", "modalidad", "finalidad_consulta", "motivo_consulta"
         ]
-
+ 
         for campo in campos_requeridos:
             if not data.get(campo):
-                return {
-                    "ok": False,
-                    "error": f"Campo obligatorio: {campo}"
-                }, 400
-
+                return {"ok": False, "error": f"Campo obligatorio: {campo}"}, 400
+ 
         # -----------------------------
         # TIPOS NUMÉRICOS
         # -----------------------------
         try:
             data["paciente_id"] = int(data["paciente_id"])
-            data["medico_id"] = int(data["medico_id"])
+            data["medico_id"]   = int(data["medico_id"])
         except:
-            return {
-                "ok": False,
-                "error": "paciente_id o medico_id inválidos"
-            }, 400
-
+            return {"ok": False, "error": "paciente_id o medico_id inválidos"}, 400
+ 
         # -----------------------------
         # LIMPIEZA DE CAMPOS OPCIONALES
         # -----------------------------
         for campo in ["sede_id", "consultorio_id", "eps_id"]:
             valor = data.get(campo)
-
             if valor in (None, "", "None", "null"):
                 data[campo] = None
             else:
@@ -129,35 +115,31 @@ def api_crear_cita():
                     data[campo] = int(valor)
                 except:
                     data[campo] = None
-
+ 
         # -----------------------------
         # VALIDAR FORMATO HORA
         # -----------------------------
         try:
             hora_inicio = datetime.strptime(data["hora_inicio"], "%H:%M")
         except:
-            return {
-                "ok": False,
-                "error": "Formato de hora inválido (HH:MM)"
-            }, 400
-
+            return {"ok": False, "error": "Formato de hora inválido (HH:MM)"}, 400
+ 
         # -----------------------------
         # DURACIÓN
+        # La duración viene del frontend (suma de procedimientos o ajuste manual).
+        # Se respeta tal como llega — el usuario puede haberla modificado.
         # -----------------------------
         try:
             duracion = int(data.get("duracion", 20))
         except:
-            return {
-                "ok": False,
-                "error": "duracion inválida"
-            }, 400
-
+            return {"ok": False, "error": "duracion inválida"}, 400
+ 
         # -----------------------------
         # CALCULAR HORA FIN
         # -----------------------------
-        hora_fin = hora_inicio + timedelta(minutes=duracion)
+        hora_fin         = hora_inicio + timedelta(minutes=duracion)
         data["hora_fin"] = hora_fin.time().isoformat()
-
+ 
         # -----------------------------
         # VALIDAR CRUCES
         # -----------------------------
@@ -166,45 +148,46 @@ def api_crear_cita():
             medico_id=data["medico_id"],
             empresa_id=data["empresa_id"]
         )
-
+ 
         for c in citas:
-
             if c.get("estado") == "CANCELADA":
                 continue
-
+ 
             try:
-                inicio_existente = datetime.strptime(
-                    c["hora_inicio"][:5], "%H:%M"
-                )
-
-                fin_existente = datetime.strptime(
-                    (c.get("hora_fin") or c["hora_inicio"])[:5],
-                    "%H:%M"
+                inicio_existente = datetime.strptime(c["hora_inicio"][:5], "%H:%M")
+                fin_existente    = datetime.strptime(
+                    (c.get("hora_fin") or c["hora_inicio"])[:5], "%H:%M"
                 )
             except:
                 continue
-
+ 
             if hora_inicio < fin_existente and hora_fin > inicio_existente:
                 return {
                     "ok": False,
                     "error": "El médico ya tiene una cita en ese horario"
                 }, 400
-
+ 
         # -----------------------------
-        # CREAR
+        # CREAR CITA
         # -----------------------------
         cita = repo.crear(data)
-
-        return {
-            "ok": True,
-            "data": cita
-        }
-
+ 
+        if not cita:
+            return {"ok": False, "error": "No se pudo crear la cita"}, 500
+ 
+        # -----------------------------
+        # GUARDAR PROCEDIMIENTOS
+        # Solo se insertan si vienen en el payload.
+        # -----------------------------
+        if procedimientos:
+            from repositories import hc_cita_procedimientos_repo
+            hc_cita_procedimientos_repo.crear_bulk(cita["id"], procedimientos)
+ 
+        return {"ok": True, "data": cita}
+ 
     except Exception as e:
-        return {
-            "ok": False,
-            "error": str(e)
-        }, 500
+        return {"ok": False, "error": str(e)}, 500
+
 
 # --------------------------------------------------
 # API: CAMBIAR ESTADO
@@ -315,3 +298,49 @@ def api_sedes():
     
     except Exception as e:
         return {"ok": False, "error": str(e)}, 500
+    
+
+# ------------------------------------------------------------------
+# GET /citas/api/medico/<medico_id>/procedimientos
+# Devuelve los CUPS asignados al médico (para poblar el buscador)
+# ------------------------------------------------------------------
+@bp_citas.route("/api/medico/<int:medico_id>/procedimientos", methods=["GET"])
+def api_procedimientos_medico(medico_id):
+    try:
+        from repositories import prof_procedimientos_repository as prof_cups
+ 
+        data = prof_cups.listar_por_profesional(medico_id)
+ 
+        resultado = []
+        for row in data:
+            cups = row.get("hc_cups") or {}
+            resultado.append({
+                "id":          row["id"],
+                "cups_id":     row["cups_id"],
+                "codigo":      cups.get("codigo", ""),
+                "descripcion": cups.get("descripcion", ""),
+                "duracion_min": row.get("duracion_min", 20),
+            })
+ 
+        return jsonify({"ok": True, "data": resultado})
+ 
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+ 
+
+
+
+@bp_citas.route("/api/detalle/<int:cita_id>", methods=["GET"])
+def api_detalle_cita(cita_id):
+    try:
+        detalle = repo.obtener_detalle(cita_id)
+ 
+        if not detalle:
+            return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+ 
+        return jsonify({"ok": True, "data": detalle})
+ 
+    except Exception as e:
+        import traceback
+        print("ERROR /api/detalle:", traceback.format_exc())
+        return jsonify({"ok": False, "error": str(e)}), 500

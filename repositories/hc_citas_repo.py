@@ -241,3 +241,105 @@ def _normalize_agenda(row):
     })
 
     return base
+
+# Agregar esta función al final de repositories/hc_citas_repo.py
+
+def obtener_detalle(cita_id: int, empresa_id: int = None):
+    """
+    Devuelve una cita completa con joins de paciente, médico, sede
+    y sus procedimientos CUPS.
+    """
+    sb      = _supabase()
+    empresa = empresa_id or _empresa_id()
+
+    res = (
+        sb.table(_table())
+        .select("""
+            *,
+            paciente:hc_pacientes(
+                id,
+                numero_documento,
+                tipo_documento:hc_tipos_documento(nombre),
+                primer_nombre,
+                segundo_nombre,
+                primer_apellido,
+                segundo_apellido,
+                celular,
+                email
+            ),
+            medico:hc_profesionales(
+                id,
+                nombre_completo,
+                especialidad:hc_especialidades(nombre)
+            ),
+            sede:hc_sedes(
+                id,
+                nombre
+            )
+        """)
+        .eq("id", cita_id)
+        .eq("empresa_id", empresa)
+        .limit(1)
+        .execute()
+    )
+
+    if not res.data:
+        return None
+
+    row = res.data[0]
+
+    pac    = row.get("paciente") or {}
+    medico = row.get("medico")   or {}
+    sede   = row.get("sede")     or {}
+
+    nombre_paciente = " ".join(filter(None, [
+        pac.get("primer_nombre"),
+        pac.get("segundo_nombre"),
+        pac.get("primer_apellido"),
+        pac.get("segundo_apellido"),
+    ])) or "Sin nombre"
+
+    # Procedimientos CUPS (join separado)
+    from repositories import hc_cita_procedimientos_repo
+    procedimientos_raw = hc_cita_procedimientos_repo.listar_por_cita(cita_id)
+    procedimientos = []
+    for p in procedimientos_raw:
+        cups = p.get("hc_cups") or {}
+        procedimientos.append({
+            "id":           p["id"],
+            "orden":        p.get("orden", 1),
+            "cups_id":      p["cups_id"],
+            "codigo":       cups.get("codigo", ""),
+            "descripcion":  cups.get("descripcion", ""),
+            "duracion_min": p.get("duracion_min", 20),
+        })
+
+    return {
+        # Cita base
+        "id":                 row.get("id"),
+        "estado":             row.get("estado"),
+        "fecha":              row.get("fecha"),
+        "hora_inicio":        row.get("hora_inicio"),
+        "hora_fin":           row.get("hora_fin"),
+        "duracion":           row.get("duracion"),
+        "tipo_atencion":      row.get("tipo_atencion"),
+        "modalidad":          row.get("modalidad"),
+        "finalidad_consulta": row.get("finalidad_consulta"),
+        "motivo_consulta":    row.get("motivo_consulta"),
+        "prioridad":          row.get("prioridad"),
+        # Paciente
+        "paciente_id":        pac.get("id"),
+        "paciente_nombre":    nombre_paciente,
+        "paciente_documento": f"{pac.get('tipo_documento_id','CC')} {pac.get('numero_documento','')}".strip(),
+        "paciente_celular":   pac.get("celular", ""),
+        "paciente_email":     pac.get("email", ""),
+        # Médico
+        "medico_id":          medico.get("id"),
+        "medico_nombre":      medico.get("nombre_completo", ""),
+        "medico_especialidad": (medico.get("especialidad") or {}).get("nombre", ""),
+        # Sede
+        "sede_id":            sede.get("id"),
+        "sede_nombre":        sede.get("nombre", ""),
+        # Procedimientos
+        "procedimientos":     procedimientos,
+    }

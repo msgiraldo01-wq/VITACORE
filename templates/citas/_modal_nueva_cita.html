@@ -240,6 +240,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 48px;
 }
 
 .cita-card:hover {
@@ -1188,6 +1189,114 @@ function filtrarPacientes() {
     return nombre.includes(query) || doc.includes(query);
   });
   renderPacientes(filtrados);
+}
+
+// ---------------------------------------------------------------
+// FILTRAR CUPS — búsqueda en los procedimientos del médico
+// ---------------------------------------------------------------
+function filtrarCups(query) {
+  const box = document.getElementById('sugerenciasCups');
+ 
+  if (!query.trim()) {
+    box.style.display = 'none';
+    return;
+  }
+ 
+  const q           = query.toLowerCase();
+  const coincidencias = procedimientosMedico.filter(p =>
+    p.codigo.toLowerCase().includes(q) ||
+    p.descripcion.toLowerCase().includes(q)
+  );
+ 
+  if (!coincidencias.length) {
+    box.innerHTML     = `<div style="padding:12px 16px; font-size:13px; color:var(--text-muted); text-align:center;">Sin resultados para "${query}"</div>`;
+    box.style.display = 'block';
+    return;
+  }
+ 
+  box.innerHTML = coincidencias.map(p => `
+    <div
+      onclick="agregarProcedimiento(${p.cups_id}, '${p.codigo}', '${p.descripcion.replace(/'/g,"\\'")}', ${p.duracion_min})"
+      style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border);
+             display:flex; justify-content:space-between; align-items:center;
+             font-size:13px; transition:background 0.15s;"
+      onmouseover="this.style.background='rgba(59,130,246,0.06)'"
+      onmouseout="this.style.background=''"
+    >
+      <div>
+        <span style="font-weight:600; color:var(--text);">${p.codigo}</span>
+        <span style="color:var(--text-muted); margin-left:8px;">${p.descripcion}</span>
+      </div>
+      <span style="font-size:11px; color:var(--color-confirmada);
+                   background:rgba(59,130,246,0.1); padding:2px 8px;
+                   border-radius:20px; white-space:nowrap; margin-left:8px;">
+        ${p.duracion_min} min
+      </span>
+    </div>
+  `).join('');
+ 
+  box.style.display = 'block';
+}
+
+// ---------------------------------------------------------------
+// AGREGAR PROCEDIMIENTO
+// ---------------------------------------------------------------
+function agregarProcedimiento(cups_id, codigo, descripcion, duracion_min) {
+  if (procedimientosSeleccionados.find(p => p.cups_id === cups_id)) {
+    mostrarToast('Este procedimiento ya está agregado', 'info');
+    return;
+  }
+ 
+  procedimientosSeleccionados.push({ cups_id, codigo, descripcion, duracion_min });
+ 
+  document.getElementById('buscarCups').value              = '';
+  document.getElementById('sugerenciasCups').style.display = 'none';
+ 
+  renderProcedimientosSeleccionados();
+  sincronizarDuracion();
+}
+ 
+ 
+// ---------------------------------------------------------------
+// QUITAR PROCEDIMIENTO
+// ---------------------------------------------------------------
+function quitarProcedimiento(cups_id) {
+  procedimientosSeleccionados = procedimientosSeleccionados.filter(p => p.cups_id !== cups_id);
+  renderProcedimientosSeleccionados();
+  sincronizarDuracion();
+}
+
+// ---------------------------------------------------------------
+// ACTUALIZAR DURACIÓN DE UN PROCEDIMIENTO INDIVIDUAL (fila)
+// ---------------------------------------------------------------
+function actualizarDuracionProcedimiento(cups_id, nuevaDuracion) {
+  const p = procedimientosSeleccionados.find(p => p.cups_id === cups_id);
+  if (p) {
+    p.duracion_min = Math.max(5, parseInt(nuevaDuracion) || 5);
+    sincronizarDuracion();
+  }
+}
+
+// ---------------------------------------------------------------
+// SINCRONIZAR DURACIÓN TOTAL
+// Calcula la suma de procedimientos y la pone en el campo #duracion.
+// Si el usuario edita #duracion manualmente, ese valor prevalece.
+// ---------------------------------------------------------------
+function sincronizarDuracion(forzar = true) {
+  const campoDuracion = document.getElementById('duracion');
+ 
+  if (forzar || procedimientosSeleccionados.length > 0) {
+    const suma = procedimientosSeleccionados.reduce((s, p) => s + (p.duracion_min || 0), 0);
+    const nueva = suma > 0 ? suma : 20;
+ 
+    // Solo sobreescribir si hay procedimientos (respeta edición manual cuando no hay)
+    if (procedimientosSeleccionados.length > 0) {
+      campoDuracion.value = nueva;
+      citaForm.duracion   = nueva;
+    }
+  }
+ 
+  actualizarHoraFin();
 }
 
 function seleccionarPaciente(id, nombre) {

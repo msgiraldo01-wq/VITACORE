@@ -56,23 +56,101 @@
       </div>
 
       <!-- PASO 2: MÉDICO Y FECHA -->
+
       <div class="step-content" id="step2">
         <h3 style="margin: 0 0 16px 0; font-size: 16px;">
-          <i class="fa-solid fa-user-doctor"></i> Médico y Fecha
+          <i class="fa-solid fa-user-doctor"></i> Médico, Procedimientos y Fecha
         </h3>
-        
-        <div class="form-grid">
+
+        <!-- Médico y Fecha -->
+        <div class="form-grid" style="margin-bottom: 16px;">
           <div>
             <label>Médico</label>
-            <select id="medico_id_modal" class="select" onchange="cargarHorariosMedico()">
+            <select id="medico_id_modal" class="select" onchange="onMedicoChange()">
               <option value="">Seleccionar médico...</option>
             </select>
           </div>
-
           <div>
             <label>Fecha</label>
             <input type="date" id="fecha_modal" class="input" onchange="cargarHorariosMedico()">
           </div>
+        </div>
+
+        <!-- Sección procedimientos CUPS (se muestra al elegir médico) -->
+        <div id="seccionProcedimientos" style="display:none; margin-bottom: 16px;">
+          <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted);
+                        margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;">
+            Procedimientos CUPS
+          </label>
+
+          <!-- Buscador -->
+          <div class="search-box" style="margin-bottom: 8px;">
+            <i class="fa-solid fa-search"></i>
+            <input
+              type="text"
+              class="input"
+              id="buscarCups"
+              placeholder="Buscar por código o nombre..."
+              oninput="filtrarCups(this.value)"
+              autocomplete="off"
+              style="padding-left: 36px;"
+            >
+          </div>
+
+          <!-- Sugerencias -->
+          <div id="sugerenciasCups" style="
+            display: none;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            background: var(--surface);
+          "></div>
+
+          <!-- Tabla de seleccionados -->
+          <div id="tablaProcedimientosWrap" style="display: none;">
+            <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 8px;">
+              <!-- Encabezado -->
+              <div style="
+                display: grid;
+                grid-template-columns: 90px 1fr 90px 36px;
+                background: var(--bg);
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--border);
+                font-size: 11px;
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+              ">
+                <span>Código</span>
+                <span>Descripción</span>
+                <span style="text-align:center;">Min</span>
+                <span></span>
+              </div>
+              <!-- Filas (generadas por JS) -->
+              <div id="listaProcedimientosSeleccionados"></div>
+            </div>
+          </div>
+
+          <!-- Mensaje vacío -->
+          <div id="msgSinProcedimientos" style="
+            padding: 10px 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+            background: var(--bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            text-align: center;
+          ">
+            <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+            Busca y agrega procedimientos CUPS para esta cita
+          </div>
+        </div>
+
+        <!-- Hora inicio · Duración · Hora fin -->
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 16px;">
 
           <div>
             <label>Hora de inicio</label>
@@ -82,12 +160,52 @@
           </div>
 
           <div>
-            <label>Duración (minutos)</label>
-            <input type="number" id="duracion" class="input" value="20" min="5" step="5">
+            <label style="display:flex; align-items:center; gap:6px;">
+              Duración (min)
+              <span style="
+                font-size: 10px;
+                font-weight: 400;
+                color: var(--color-confirmada);
+                background: rgba(59,130,246,0.1);
+                padding: 1px 6px;
+                border-radius: 20px;
+                text-transform: none;
+                letter-spacing: 0;
+              ">auto · editable</span>
+            </label>
+            <!--
+              No tiene readonly: el usuario puede ajustar la duración total
+              a mano en intervalos de 5, aunque haya procedimientos cargados.
+              onchange → recalcula hora fin y actualiza citaForm.duracion
+            -->
+            <input
+              type="number"
+              id="duracion"
+              class="input"
+              value="20"
+              min="5"
+              step="5"
+              onchange="actualizarHoraFin()"
+              style="font-weight: 600; color: var(--color-confirmada);"
+            >
           </div>
+
+          <div>
+            <label>Hora fin estimada</label>
+            <input
+              type="text"
+              id="hora_fin_estimada"
+              class="input"
+              readonly
+              placeholder="--:--"
+              style="background: var(--bg); color: var(--text-muted);"
+            >
+          </div>
+
         </div>
 
-        <div style="margin-top: 16px; padding: 16px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border);">
+        <!-- Info de disponibilidad -->
+        <div style="padding: 16px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border);">
           <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
             <i class="fa-solid fa-clock"></i> Disponibilidad
           </div>
@@ -95,6 +213,7 @@
             Seleccione un médico y fecha para ver disponibilidad
           </div>
         </div>
+
       </div>
 
       <!-- PASO 3: DETALLES -->

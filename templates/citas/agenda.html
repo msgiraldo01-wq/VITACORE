@@ -1,7 +1,7 @@
 {% extends "hc/base.html" %}
 
 {% block title %}Citas{% endblock %}
-{% block header_icon %}fa-solid fa-calendar-days{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-calendar-days"></i>{% endblock %}
 {% block header_title %}Agenda Clínica{% endblock %}
 {% block header_subtitle %}Gestión inteligente de citas{% endblock %}
 
@@ -859,16 +859,18 @@
 
 <!-- INCLUIR MODAL DESDE ARCHIVO SEPARADO -->
 {% include "citas/modal_cita.html" %}
+{% include "citas/modal_detalle.html" %}
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
-
 <script>
 // ===== ESTADO =====
 let citasData = [];
 let pacientesData = [];
 let medicosData = [];
 let sedesData = [];
+let procedimientosMedico       = [];  
+let procedimientosSeleccionados = []; 
 let currentStep = 1;
 const totalSteps = 4;
 
@@ -901,6 +903,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cerrar modal al hacer click fuera
   document.getElementById('modalCita').addEventListener('click', (e) => {
     if (e.target.id === 'modalCita') cerrarModalCita();
+  });
+  
+  document.getElementById('modalDetalleCita').addEventListener('click', (e) => {
+    if (e.target.id === 'modalDetalleCita') cerrarModalDetalle();
   });
 });
 
@@ -1005,14 +1011,12 @@ function renderAgenda(lista) {
   let html = '<div class="timeline">';
   const startHour = 6, endHour = 20;
 
-    console.log("🔥 LISTA QUE LLEGA:", lista);
-
   for (let h = startHour; h < endHour; h++) {
     for (let m = 0; m < 60; m += 5) {
       const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
       const mostrarHora = (m === 0);
       const esMediaHora = (m === 30);
-      
+
       html += `
         <div class="timeline-hour" style="${esMediaHora ? 'opacity: 0.6;' : ''}">
           ${mostrarHora ? `${String(h).padStart(2,'0')}:00` : (esMediaHora ? ':30' : '')}
@@ -1026,23 +1030,17 @@ function renderAgenda(lista) {
 
   const citasPorSlot = {};
   lista.forEach(c => {
-    let horaKey = "00:00";
+    if (c.hora_inicio === null || c.hora_inicio === undefined) return;
 
-    if (c.hora_inicio !== null && c.hora_inicio !== undefined) {
+    const clean  = String(c.hora_inicio).trim();
+    const partes = clean.split(":");
+    const h      = String(parseInt(partes[0] || 0)).padStart(2, '0');
+    const m      = String(parseInt(partes[1] || 0)).padStart(2, '0');
+    const horaKey = `${h}:${m}`;
 
-        const clean = String(c.hora_inicio).trim();
-        const partes = clean.split(":");
-
-        const h = String(parseInt(partes[0] || 0)).padStart(2,'0');
-        const m = String(parseInt(partes[1] || 0)).padStart(2,'0');
-
-        horaKey = `${h}:${m}`;
-
-        if (!citasPorSlot[horaKey]) citasPorSlot[horaKey] = [];
-        citasPorSlot[horaKey].push(c);
-
-    } // 👈 ESTA LLAVE FALTABA
-    });
+    if (!citasPorSlot[horaKey]) citasPorSlot[horaKey] = [];
+    citasPorSlot[horaKey].push(c);
+  });
 
   Object.entries(citasPorSlot).forEach(([hora, citas]) => {
     const slot = document.getElementById(`slot-${hora}`);
@@ -1050,37 +1048,46 @@ function renderAgenda(lista) {
 
     citas.forEach((c, index) => {
       const duracion = c.duracion || 20;
-      const altura = (duracion / 5) * 16 - 2;
-      
+      // Mínimo 48px para que siempre quepa el nombre aunque sea una cita corta
+      const altura   = Math.max(48, (duracion / 5) * 16 - 2);
+
       const div = document.createElement("div");
-      div.className = `cita-card estado-${c.estado}`;
+      div.className  = `cita-card estado-${c.estado}`;
       div.style.height = `${altura}px`;
       div.style.zIndex = 5 + index;
-      
+
       if (citas.length > 1) {
-        const width = 100 / citas.length;
+        const width    = 100 / citas.length;
         div.style.width = `${width - 1}%`;
-        div.style.left = `${index * width}%`;
+        div.style.left  = `${index * width}%`;
       }
 
-      const urgenteBadge = c.prioridad === 'URGENTE' ? '<span class="urgente-badge">Urgente</span>' : '';
-      
+      const urgenteBadge = c.prioridad === 'URGENTE'
+        ? '<span class="urgente-badge">Urgente</span>'
+        : '';
+
+      // Mostrar líneas extra solo si hay espacio suficiente
+      const mostrarMedico = duracion >= 20;
+      const mostrarEstado = duracion >= 30;
+
       div.innerHTML = `
         <div class="cita-paciente">${urgenteBadge}${c.paciente_nombre || "Paciente"}</div>
-        <div class="cita-meta">${c.medico_nombre || "-"} · ${c.duracion || 20}min</div>
-        <div class="cita-meta">${c.estado}</div>
+        ${mostrarMedico ? `<div class="cita-meta">${c.medico_nombre || "-"} · ${duracion}min</div>` : ''}
+        ${mostrarEstado ? `<div class="cita-meta">${c.estado}</div>` : ''}
         <div class="cita-actions">
-          ${c.estado === 'PENDIENTE' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'CONFIRMADA', event)" title="Confirmar"><i class="fa-solid fa-check"></i></button>` : ''}
-          ${c.estado === 'CONFIRMADA' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'EN_ATENCION', event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>` : ''}
-          ${c.estado === 'EN_ATENCION' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'FINALIZADA', event)" title="Finalizar"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
-          <button class="cita-action-btn danger" onclick="cancelarCita(${c.id}, event)" title="Cancelar"><i class="fa-solid fa-xmark"></i></button>
+          ${c.estado === 'PENDIENTE'   ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'CONFIRMADA', event)"  title="Confirmar"><i class="fa-solid fa-check"></i></button>`           : ''}
+          ${c.estado === 'CONFIRMADA'  ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'EN_ATENCION', event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>`             : ''}
+          ${c.estado === 'EN_ATENCION' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'FINALIZADA', event)"  title="Finalizar"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
+          <button class="cita-action-btn danger" onclick="cancelarCita(${c.id}, event)" title="Cancelar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
       `;
-      
+
       div.addEventListener('click', (e) => {
         if (!e.target.closest('.cita-action-btn')) abrirDetalleCita(c);
       });
-      
+
       slot.appendChild(div);
     });
   });
@@ -1120,8 +1127,184 @@ async function cancelarCita(id, event) {
   } catch (e) { mostrarToast('Error', 'error'); }
 }
 
-function abrirDetalleCita(cita) {
-  console.log('Detalle:', cita);
+async function abrirDetalleCita(cita) {
+  // Mostrar el modal con loading
+  const overlay = document.getElementById('modalDetalleCita');
+  overlay.classList.add('active');
+ 
+  document.getElementById('detalleLoading').style.display    = 'block';
+  document.getElementById('detalleContenido').style.display  = 'none';
+  document.getElementById('detalleFooter').style.display     = 'none';
+ 
+  try {
+    const res  = await fetch(`/citas/api/detalle/${cita.id}`);
+    const data = await res.json();
+ 
+    if (!data.ok) {
+      mostrarToast(data.error || 'Error al cargar la cita', 'error');
+      cerrarModalDetalle();
+      return;
+    }
+ 
+    poblarModalDetalle(data.data);
+ 
+  } catch (e) {
+    mostrarToast('Error de conexión', 'error');
+    cerrarModalDetalle();
+  }
+}
+
+// ---------------------------------------------------------------
+// POBLAR EL MODAL CON LOS DATOS
+// ---------------------------------------------------------------
+function poblarModalDetalle(c) {
+  // Badge de estado
+  const badge = document.getElementById('detalle-estado-badge');
+  badge.textContent  = c.estado || '—';
+  badge.className    = `detalle-estado-badge badge-${c.estado}`;
+ 
+  // Paciente
+  document.getElementById('d-paciente-nombre').textContent  = c.paciente_nombre  || '—';
+  document.getElementById('d-paciente-doc').textContent     = c.paciente_documento || '—';
+  document.getElementById('d-paciente-celular').textContent = c.paciente_celular  || '—';
+  document.getElementById('d-paciente-email').textContent   = c.paciente_email    || '—';
+ 
+  // Médico y horario
+  document.getElementById('d-medico-nombre').textContent = c.medico_nombre      || '—';
+  document.getElementById('d-medico-esp').textContent    = c.medico_especialidad || '—';
+ 
+  // Fecha formateada
+  if (c.fecha) {
+    const [y, m, d] = c.fecha.split('-');
+    document.getElementById('d-fecha').textContent = `${d}/${m}/${y}`;
+  } else {
+    document.getElementById('d-fecha').textContent = '—';
+  }
+ 
+  // Horario inicio → fin
+  const horaInicio = (c.hora_inicio || '').slice(0, 5);
+  const horaFin    = (c.hora_fin    || '').slice(0, 5);
+  document.getElementById('d-horario').textContent =
+    horaInicio ? `${horaInicio}${horaFin ? ' → ' + horaFin : ''}` : '—';
+ 
+  document.getElementById('d-duracion').textContent =
+    c.duracion ? `${c.duracion} min` : '—';
+ 
+  document.getElementById('d-sede').textContent = c.sede_nombre || '—';
+ 
+  // Atención
+  document.getElementById('d-tipo').textContent      = c.tipo_atencion      || '—';
+  document.getElementById('d-modalidad').textContent = c.modalidad          || '—';
+  document.getElementById('d-finalidad').textContent = c.finalidad_consulta || '—';
+  document.getElementById('d-motivo').textContent    = c.motivo_consulta    || '—';
+ 
+  // Prioridad con color
+  const prioEl = document.getElementById('d-prioridad');
+  prioEl.textContent = c.prioridad || '—';
+  prioEl.className   = `detalle-value${c.prioridad === 'URGENTE' ? ' detalle-prioridad-URGENTE' : ''}`;
+ 
+  // Procedimientos CUPS
+  const seccionCups = document.getElementById('detalle-seccion-cups');
+  const listaCups   = document.getElementById('detalle-cups-lista');
+ 
+  if (c.procedimientos && c.procedimientos.length > 0) {
+    seccionCups.style.display = 'block';
+    listaCups.innerHTML = c.procedimientos.map(p => `
+      <div class="cups-row">
+        <span class="cups-codigo">${p.codigo}</span>
+        <span class="cups-desc" title="${p.descripcion}">${p.descripcion}</span>
+        <span class="cups-min">${p.duracion_min} min</span>
+      </div>
+    `).join('');
+  } else {
+    seccionCups.style.display = 'none';
+  }
+ 
+  // Acciones según estado
+  const acciones = document.getElementById('detalle-acciones');
+  acciones.innerHTML = '';
+ 
+  if (c.estado === 'PENDIENTE') {
+    acciones.innerHTML += `
+      <button class="btn btn-accion-confirmar" onclick="cambiarEstadoDesdeDetalle(${c.id}, 'CONFIRMADA')">
+        <i class="fa-solid fa-check"></i> Confirmar
+      </button>`;
+  }
+  if (c.estado === 'CONFIRMADA') {
+    acciones.innerHTML += `
+      <button class="btn btn-accion-iniciar" onclick="cambiarEstadoDesdeDetalle(${c.id}, 'EN_ATENCION')">
+        <i class="fa-solid fa-play"></i> Iniciar atención
+      </button>`;
+  }
+  if (c.estado === 'EN_ATENCION') {
+    acciones.innerHTML += `
+      <button class="btn btn-accion-finalizar" onclick="cambiarEstadoDesdeDetalle(${c.id}, 'FINALIZADA')">
+        <i class="fa-solid fa-flag-checkered"></i> Finalizar
+      </button>`;
+  }
+  if (c.estado !== 'CANCELADA' && c.estado !== 'FINALIZADA') {
+    acciones.innerHTML += `
+      <button class="btn btn-accion-cancelar" onclick="cancelarDesdeDetalle(${c.id})">
+        <i class="fa-solid fa-ban"></i> Cancelar cita
+      </button>`;
+  }
+ 
+  // Mostrar contenido
+  document.getElementById('detalleLoading').style.display   = 'none';
+  document.getElementById('detalleContenido').style.display = 'block';
+  document.getElementById('detalleFooter').style.display    = 'flex';
+}
+ 
+ 
+// ---------------------------------------------------------------
+// CERRAR MODAL DETALLE
+// ---------------------------------------------------------------
+function cerrarModalDetalle() {
+  document.getElementById('modalDetalleCita').classList.remove('active');
+}
+ 
+ 
+// ---------------------------------------------------------------
+// CAMBIAR ESTADO DESDE EL DETALLE
+// ---------------------------------------------------------------
+async function cambiarEstadoDesdeDetalle(id, nuevoEstado) {
+  try {
+    const res  = await fetch('/citas/api/estado', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ cita_id: id, estado: nuevoEstado }),
+    });
+    const data = await res.json();
+ 
+    if (data.ok) {
+      mostrarToast(`Cita ${nuevoEstado.toLowerCase().replace('_', ' ')}`, 'success');
+      cerrarModalDetalle();
+      cargarAgenda();
+    } else {
+      mostrarToast(data.error || 'Error al cambiar estado', 'error');
+    }
+  } catch {
+    mostrarToast('Error de conexión', 'error');
+  }
+}
+ 
+ 
+// ---------------------------------------------------------------
+// CANCELAR DESDE EL DETALLE
+// ---------------------------------------------------------------
+async function cancelarDesdeDetalle(id) {
+  if (!confirm('¿Seguro que deseas cancelar esta cita?')) return;
+ 
+  try {
+    const res  = await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });
+    const data = await res.json();
+ 
+    mostrarToast('Cita cancelada', 'info');
+    cerrarModalDetalle();
+    cargarAgenda();
+  } catch {
+    mostrarToast('Error de conexión', 'error');
+  }
 }
 
 // ===== MODAL PROGRESIVO =====
@@ -1146,13 +1329,82 @@ function resetForm() {
     finalidad_consulta: 'DIAGNOSTICO', sede_id: null, sede_nombre: '',
     motivo_consulta: '', prioridad: 'NORMAL'
   };
-  
+ 
+  procedimientosSeleccionados = [];
+  procedimientosMedico        = [];
+ 
   document.getElementById('buscarPaciente').value = '';
-  document.getElementById('listaPacientes').innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">Escribe para buscar pacientes...</div>';
+  document.getElementById('listaPacientes').innerHTML =
+    '<div style="padding: 40px; text-align: center; color: var(--text-muted);">Escribe para buscar pacientes...</div>';
   document.getElementById('medico_id_modal').value = '';
-  document.getElementById('hora_inicio').innerHTML = '<option value="">Seleccionar hora...</option>';
-  document.getElementById('motivo_consulta').value = '';
+  document.getElementById('hora_inicio').innerHTML  = '<option value="">Seleccionar hora...</option>';
+  document.getElementById('motivo_consulta').value  = '';
   document.querySelector('input[name="prioridad"][value="NORMAL"]').checked = true;
+ 
+  if (document.getElementById('buscarCups')) {
+    document.getElementById('buscarCups').value        = '';
+    document.getElementById('sugerenciasCups').style.display = 'none';
+    renderProcedimientosSeleccionados();
+    sincronizarDuracion();  // resetea el campo duración a 20
+  }
+}
+
+// ---------------------------------------------------------------
+// CUANDO CAMBIA EL MÉDICO
+// ---------------------------------------------------------------
+async function onMedicoChange() {
+  const medicoId = document.getElementById('medico_id_modal').value;
+  citaForm.medico_id     = medicoId;
+  citaForm.medico_nombre = medicosData.find(m => m.id == medicoId)?.nombre_completo || '';
+ 
+  procedimientosSeleccionados = [];
+  procedimientosMedico        = [];
+  renderProcedimientosSeleccionados();
+  sincronizarDuracion();
+ 
+  const seccion = document.getElementById('seccionProcedimientos');
+  if (!medicoId) {
+    seccion.style.display = 'none';
+    return;
+  }
+ 
+  seccion.style.display = 'block';
+ 
+  try {
+    const res  = await fetch(`/citas/api/medico/${medicoId}/procedimientos`);
+    const data = await res.json();
+    procedimientosMedico = data.ok ? data.data : [];
+  } catch {
+    procedimientosMedico = [];
+  }
+ 
+  document.getElementById('buscarCups').value              = '';
+  document.getElementById('sugerenciasCups').style.display = 'none';
+ 
+  cargarHorariosMedico();
+}
+
+// ---------------------------------------------------------------
+// ACTUALIZAR HORA FIN ESTIMADA
+// Se llama tras cambiar hora inicio o duración
+// ---------------------------------------------------------------
+function actualizarHoraFin() {
+  const campoDuracion = document.getElementById('duracion');
+  const duracion      = Math.max(5, parseInt(campoDuracion.value) || 20);
+  citaForm.duracion   = duracion;
+ 
+  const horaInicio = document.getElementById('hora_inicio').value;
+  if (!horaInicio) {
+    document.getElementById('hora_fin_estimada').value = '';
+    return;
+  }
+ 
+  const [h, m] = horaInicio.split(':').map(Number);
+  const finMin  = h * 60 + m + duracion;
+  const fH      = String(Math.floor(finMin / 60)).padStart(2, '0');
+  const fM      = String(finMin % 60).padStart(2, '0');
+ 
+  document.getElementById('hora_fin_estimada').value = `${fH}:${fM}`;
 }
 
 function actualizarStepUI() {
@@ -1183,6 +1435,64 @@ function actualizarStepUI() {
   }
 }
 
+// ---------------------------------------------------------------
+// RENDER TABLA DE PROCEDIMIENTOS SELECCIONADOS
+// ---------------------------------------------------------------
+function renderProcedimientosSeleccionados() {
+  const lista = document.getElementById('listaProcedimientosSeleccionados');
+  const tabla = document.getElementById('tablaProcedimientosWrap');
+  const msg   = document.getElementById('msgSinProcedimientos');
+ 
+  if (!lista) return;
+ 
+  if (!procedimientosSeleccionados.length) {
+    tabla.style.display = 'none';
+    msg.style.display   = 'block';
+    lista.innerHTML     = '';
+    return;
+  }
+ 
+  tabla.style.display = 'block';
+  msg.style.display   = 'none';
+ 
+  lista.innerHTML = procedimientosSeleccionados.map((p, i) => `
+    <div style="
+      display: grid;
+      grid-template-columns: 90px 1fr 90px 36px;
+      align-items: center;
+      padding: 9px 12px;
+      border-bottom: ${i < procedimientosSeleccionados.length - 1 ? '1px solid var(--border)' : 'none'};
+      font-size: 13px;
+    ">
+      <span style="font-weight:600; color:var(--text);">${p.codigo}</span>
+      <span style="color:var(--text); overflow:hidden; text-overflow:ellipsis;
+                   white-space:nowrap; padding-right:8px;" title="${p.descripcion}">
+        ${p.descripcion}
+      </span>
+      <input
+        type="number"
+        value="${p.duracion_min}"
+        min="5"
+        step="5"
+        class="input"
+        style="padding:4px 8px; text-align:center; font-size:12px;"
+        onchange="actualizarDuracionProcedimiento(${p.cups_id}, this.value)"
+      >
+      <button
+        onclick="quitarProcedimiento(${p.cups_id})"
+        title="Quitar"
+        style="background:none; border:none; cursor:pointer; color:var(--color-cancelada);
+               font-size:14px; display:flex; align-items:center; justify-content:center;
+               width:28px; height:28px; border-radius:6px; transition:background 0.15s;"
+        onmouseover="this.style.background='rgba(239,68,68,0.1)'"
+        onmouseout="this.style.background=''"
+      >
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
 function pasoSiguiente() {
   if (!validarPaso(currentStep)) return;
   if (currentStep === totalSteps) {
@@ -1209,14 +1519,14 @@ function validarPaso(step) {
       }
       return true;
     case 2:
-      citaForm.medico_id = document.getElementById('medico_id_modal').value;
-      citaForm.fecha = document.getElementById('fecha_modal').value;
+      citaForm.medico_id   = document.getElementById('medico_id_modal').value;
+      citaForm.fecha       = document.getElementById('fecha_modal').value;
       citaForm.hora_inicio = document.getElementById('hora_inicio').value;
-      citaForm.duracion = parseInt(document.getElementById('duracion').value) || 20;
-      
-      if (!citaForm.medico_id) { mostrarToast('Seleccione un médico', 'error'); return false; }
-      if (!citaForm.fecha) { mostrarToast('Seleccione una fecha', 'error'); return false; }
-      if (!citaForm.hora_inicio) { mostrarToast('Seleccione una hora', 'error'); return false; }
+      citaForm.duracion    = Math.max(5, parseInt(document.getElementById('duracion').value) || 20);
+ 
+      if (!citaForm.medico_id)   { mostrarToast('Seleccione un médico', 'error'); return false; }
+      if (!citaForm.fecha)       { mostrarToast('Seleccione una fecha', 'error'); return false; }
+      if (!citaForm.hora_inicio) { mostrarToast('Seleccione una hora de inicio', 'error'); return false; }
       return true;
     case 3:
       citaForm.tipo_atencion = document.getElementById('tipo_atencion').value;
@@ -1325,52 +1635,77 @@ function seleccionarPaciente(id, nombre) {
 // ===== PASO 2: HORARIOS =====
 async function cargarHorariosMedico() {
   const medicoId = document.getElementById('medico_id_modal').value;
-  const fecha = document.getElementById('fecha_modal').value;
-  
+  const fecha    = document.getElementById('fecha_modal').value;
+ 
   if (!medicoId || !fecha) return;
-  
-  citaForm.medico_id = medicoId;
+ 
+  citaForm.medico_id     = medicoId;
   citaForm.medico_nombre = medicosData.find(m => m.id == medicoId)?.nombre_completo || '';
-  citaForm.fecha = fecha;
-  
+  citaForm.fecha         = fecha;
+ 
   const selectHora = document.getElementById('hora_inicio');
   selectHora.innerHTML = '<option value="">Cargando...</option>';
-  
+ 
   try {
-    const res = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
-    const data = await res.json();
+    const res             = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
+    const data            = await res.json();
     const citasExistentes = data.data || [];
-    
+    const duracionActual  = parseInt(document.getElementById('duracion').value) || 20;
+ 
     const slots = [];
     for (let h = 6; h < 20; h++) {
-      for (let m = 0; m < 60; m += 20) {
-        const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      for (let m = 0; m < 60; m += 5) {
+        const slotMin = h * 60 + m;
+        const finSlot = slotMin + duracionActual;
+        const hora    = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+ 
         const ocupado = citasExistentes.some(c => {
           if (c.estado === 'CANCELADA') return false;
-          const [ch, cm] = c.hora_inicio.split(':').map(Number);
-          const inicioMin = ch * 60 + cm;
-          const slotMin = h * 60 + m;
-          const finMin = inicioMin + (c.duracion || 20);
-          return slotMin >= inicioMin && slotMin < finMin;
+          const [ch, cm]    = c.hora_inicio.split(':').map(Number);
+          const inicioC     = ch * 60 + cm;
+          const finC        = inicioC + (c.duracion || 20);
+          return slotMin < finC && finSlot > inicioC;
         });
+ 
         if (!ocupado) slots.push(hora);
       }
     }
-    
-    selectHora.innerHTML = '<option value="">Seleccionar hora...</option>' + 
+ 
+    selectHora.innerHTML =
+      '<option value="">Seleccionar hora...</option>' +
       slots.map(h => `<option value="${h}">${h}</option>`).join('');
-    
+ 
     document.getElementById('infoHorarioMedico').innerHTML = `
-      <strong>${citasExistentes.filter(c => c.estado !== 'CANCELADA').length}</strong> citas agendadas · 
-      <strong>${slots.length}</strong> slots disponibles
+      <strong>${citasExistentes.filter(c => c.estado !== 'CANCELADA').length}</strong> citas agendadas ·
+      <strong>${slots.length}</strong> slots disponibles para ${duracionActual} min
     `;
-  } catch (error) {
+ 
+    // Al seleccionar hora → actualizar hora fin
+    selectHora.onchange = () => {
+      citaForm.hora_inicio = selectHora.value;
+      actualizarHoraFin();
+    };
+ 
+  } catch {
     selectHora.innerHTML = '<option value="">Error cargando horarios</option>';
   }
 }
 
 // ===== PASO 4: RESUMEN =====
 function generarResumen() {
+  const duracionFinal = Math.max(5, parseInt(document.getElementById('duracion').value) || 20);
+ 
+  const procs = procedimientosSeleccionados.length
+    ? procedimientosSeleccionados.map(p => `
+        <div style="display:flex; justify-content:space-between; font-size:12px;
+                    padding:4px 0; border-bottom:1px solid var(--border);">
+          <span><strong>${p.codigo}</strong> — ${p.descripcion}</span>
+          <span style="color:var(--color-confirmada); white-space:nowrap; margin-left:8px;">
+            ${p.duracion_min} min
+          </span>
+        </div>`).join('')
+    : '<div style="font-size:12px; color:var(--text-muted);">Sin procedimientos específicos</div>';
+ 
   document.getElementById('resumenCita').innerHTML = `
     <div class="resumen-row">
       <span class="resumen-label"><i class="fa-solid fa-user"></i> Paciente</span>
@@ -1381,8 +1716,15 @@ function generarResumen() {
       <span class="resumen-value">${citaForm.medico_nombre}</span>
     </div>
     <div class="resumen-row">
-      <span class="resumen-label"><i class="fa-solid fa-calendar"></i> Fecha y Hora</span>
-      <span class="resumen-value">${citaForm.fecha} · ${citaForm.hora_inicio} (${citaForm.duracion} min)</span>
+      <span class="resumen-label"><i class="fa-solid fa-calendar"></i> Fecha y hora</span>
+      <span class="resumen-value">
+        ${citaForm.fecha} · ${citaForm.hora_inicio}
+        <span style="color:var(--text-muted); font-weight:400;">(${duracionFinal} min)</span>
+      </span>
+    </div>
+    <div class="resumen-row" style="flex-direction:column; gap:8px;">
+      <span class="resumen-label"><i class="fa-solid fa-syringe"></i> Procedimientos CUPS</span>
+      <div style="width:100%;">${procs}</div>
     </div>
     <div class="resumen-row">
       <span class="resumen-label"><i class="fa-solid fa-stethoscope"></i> Tipo</span>
@@ -1398,7 +1740,9 @@ function generarResumen() {
     </div>
     <div class="resumen-row">
       <span class="resumen-label"><i class="fa-solid fa-flag"></i> Prioridad</span>
-      <span class="resumen-value" style="color: ${citaForm.prioridad === 'URGENTE' ? 'var(--color-urgente)' : 'var(--text)'}">${citaForm.prioridad}</span>
+      <span class="resumen-value" style="color:${citaForm.prioridad === 'URGENTE' ? 'var(--color-urgente)' : 'var(--text)'}">
+        ${citaForm.prioridad}
+      </span>
     </div>
   `;
 }
@@ -1406,34 +1750,41 @@ function generarResumen() {
 // ===== GUARDAR CITA =====
 async function guardarCita() {
   const btn = document.getElementById('btnSiguiente');
-  btn.disabled = true;
+  btn.disabled  = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-  
+ 
   try {
+    // Leer la duración final que el usuario pudo haber ajustado manualmente
+    const duracionFinal = Math.max(5, parseInt(document.getElementById('duracion').value) || 20);
+ 
     const payload = {
-      empresa_id: 1,
-      paciente_id: citaForm.paciente_id,
-      medico_id: citaForm.medico_id,
-      fecha: citaForm.fecha,
-      hora_inicio: citaForm.hora_inicio,
-      duracion: citaForm.duracion,
-      tipo_atencion: citaForm.tipo_atencion,
-      modalidad: citaForm.modalidad,
+      empresa_id:         1,
+      paciente_id:        citaForm.paciente_id,
+      medico_id:          citaForm.medico_id,
+      fecha:              citaForm.fecha,
+      hora_inicio:        citaForm.hora_inicio,
+      duracion:           duracionFinal,
+      tipo_atencion:      citaForm.tipo_atencion,
+      modalidad:          citaForm.modalidad,
       finalidad_consulta: citaForm.finalidad_consulta,
-      sede_id: citaForm.sede_id,
-      motivo_consulta: citaForm.motivo_consulta,
-      prioridad: citaForm.prioridad,
-      estado: 'PENDIENTE'
+      sede_id:            citaForm.sede_id,
+      motivo_consulta:    citaForm.motivo_consulta,
+      prioridad:          citaForm.prioridad,
+      estado:             'PENDIENTE',
+      procedimientos:     procedimientosSeleccionados.map((p, i) => ({
+        cups_id:      p.cups_id,
+        duracion_min: p.duracion_min,
+        orden:        i + 1,
+      })),
     };
-    
-    const res = await fetch('/citas/api/crear', {
-      method: 'POST',
+ 
+    const res  = await fetch('/citas/api/crear', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body:    JSON.stringify(payload),
     });
-    
     const data = await res.json();
-    
+ 
     if (data.ok) {
       mostrarToast('Cita creada correctamente', 'success');
       cerrarModalCita();
@@ -1441,7 +1792,7 @@ async function guardarCita() {
     } else {
       mostrarToast(data.error || 'Error al crear cita', 'error');
     }
-  } catch (error) {
+  } catch {
     mostrarToast('Error de conexión', 'error');
   } finally {
     btn.disabled = false;
@@ -1460,6 +1811,102 @@ function mostrarToast(mensaje, tipo = 'info') {
   setTimeout(() => { toast.classList.add('hiding'); setTimeout(() => toast.remove(), 300); }, 4000);
   toast.addEventListener('click', () => { toast.classList.add('hiding'); setTimeout(() => toast.remove(), 300); });
 }
+
+
+
+function filtrarCups(query) {
+  const box = document.getElementById('sugerenciasCups');
+
+  if (!query.trim()) {
+    box.style.display = 'none';
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const coincidencias = procedimientosMedico.filter(p =>
+    p.codigo.toLowerCase().includes(q) ||
+    p.descripcion.toLowerCase().includes(q)
+  );
+
+  if (!coincidencias.length) {
+    box.innerHTML     = `<div style="padding:12px 16px; font-size:13px; color:var(--text-muted); text-align:center;">Sin resultados para "${query}"</div>`;
+    box.style.display = 'block';
+    return;
+  }
+
+  box.innerHTML = coincidencias.map(p => `
+    <div
+      onclick="agregarProcedimiento(${p.cups_id}, '${p.codigo}', '${p.descripcion.replace(/'/g,"\\'")}', ${p.duracion_min})"
+      style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border);
+             display:flex; justify-content:space-between; align-items:center;
+             font-size:13px; transition:background 0.15s;"
+      onmouseover="this.style.background='rgba(59,130,246,0.06)'"
+      onmouseout="this.style.background=''"
+    >
+      <div>
+        <span style="font-weight:600; color:var(--text);">${p.codigo}</span>
+        <span style="color:var(--text-muted); margin-left:8px;">${p.descripcion}</span>
+      </div>
+      <span style="font-size:11px; color:var(--color-confirmada);
+                   background:rgba(59,130,246,0.1); padding:2px 8px;
+                   border-radius:20px; white-space:nowrap; margin-left:8px;">
+        ${p.duracion_min} min
+      </span>
+    </div>
+  `).join('');
+
+  box.style.display = 'block';
+}
+
+function agregarProcedimiento(cups_id, codigo, descripcion, duracion_min) {
+  if (procedimientosSeleccionados.find(p => p.cups_id === cups_id)) {
+    mostrarToast('Este procedimiento ya está agregado', 'info');
+    return;
+  }
+
+  procedimientosSeleccionados.push({ cups_id, codigo, descripcion, duracion_min });
+
+  document.getElementById('buscarCups').value              = '';
+  document.getElementById('sugerenciasCups').style.display = 'none';
+
+  renderProcedimientosSeleccionados();
+  sincronizarDuracion();
+}
+
+function quitarProcedimiento(cups_id) {
+  procedimientosSeleccionados = procedimientosSeleccionados.filter(p => p.cups_id !== cups_id);
+  renderProcedimientosSeleccionados();
+  sincronizarDuracion();
+}
+
+function actualizarDuracionProcedimiento(cups_id, nuevaDuracion) {
+  const p = procedimientosSeleccionados.find(p => p.cups_id === cups_id);
+  if (p) {
+    p.duracion_min = Math.max(5, parseInt(nuevaDuracion) || 5);
+    sincronizarDuracion();
+  }
+}
+
+function sincronizarDuracion() {
+  const campoDuracion = document.getElementById('duracion');
+  if (!campoDuracion) return;
+
+  const suma = procedimientosSeleccionados.reduce((s, p) => s + (p.duracion_min || 0), 0);
+
+  // Solo sobreescribir si hay procedimientos cargados.
+  // Si no hay ninguno, el campo queda en lo que el usuario haya puesto (default 20).
+  if (procedimientosSeleccionados.length > 0) {
+    campoDuracion.value = suma;
+    citaForm.duracion   = suma;
+  } else {
+    campoDuracion.value = 20;
+    citaForm.duracion   = 20;
+  }
+
+  actualizarHoraFin();
+}
+
+
 </script>
 
 {% endblock %}

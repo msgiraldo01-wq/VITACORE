@@ -1,0 +1,250 @@
+<div class="modal-overlay" id="modalDetalleCita">
+  <div class="modal-full" style="max-width: 620px;">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h2 style="font-size: 16px; gap: 12px;">
+        <i class="fa-solid fa-calendar-check" style="color: var(--color-confirmada);"></i>
+        Detalle de Cita
+        <span id="detalle-estado-badge" class="detalle-estado-badge"></span>
+      </h2>
+      <button onclick="cerrarModalDetalle()" aria-label="Cerrar">✕</button>
+    </div>
+
+    <!-- BODY -->
+    <div class="modal-body" id="modalDetalleBody" style="padding: 0;">
+
+      <!-- LOADING -->
+      <div id="detalleLoading" style="padding: 60px; text-align: center; color: var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+        Cargando...
+      </div>
+
+      <!-- CONTENIDO (oculto mientras carga) -->
+      <div id="detalleContenido" style="display: none;">
+
+        <!-- PACIENTE -->
+        <div class="detalle-seccion">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-user"></i> Paciente
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Nombre completo</span>
+              <span class="detalle-value" id="d-paciente-nombre">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Documento</span>
+              <span class="detalle-value" id="d-paciente-doc">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Celular</span>
+              <span class="detalle-value" id="d-paciente-celular">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Email</span>
+              <span class="detalle-value" id="d-paciente-email">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÉDICO Y HORARIO -->
+        <div class="detalle-seccion">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-user-doctor"></i> Médico y Horario
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Médico</span>
+              <span class="detalle-value" id="d-medico-nombre">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Especialidad</span>
+              <span class="detalle-value" id="d-medico-esp">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Fecha</span>
+              <span class="detalle-value" id="d-fecha">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Horario</span>
+              <span class="detalle-value" id="d-horario">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Duración</span>
+              <span class="detalle-value" id="d-duracion">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Sede</span>
+              <span class="detalle-value" id="d-sede">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DETALLES DE ATENCIÓN -->
+        <div class="detalle-seccion">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-stethoscope"></i> Atención
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Tipo</span>
+              <span class="detalle-value" id="d-tipo">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Modalidad</span>
+              <span class="detalle-value" id="d-modalidad">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Finalidad</span>
+              <span class="detalle-value" id="d-finalidad">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Prioridad</span>
+              <span class="detalle-value" id="d-prioridad">—</span>
+            </div>
+            <div class="detalle-field" style="grid-column: span 2;">
+              <span class="detalle-label">Motivo de consulta</span>
+              <span class="detalle-value" id="d-motivo">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROCEDIMIENTOS CUPS -->
+        <div class="detalle-seccion" id="detalle-seccion-cups" style="display: none;">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-syringe"></i> Procedimientos CUPS
+          </div>
+          <div id="detalle-cups-lista"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER CON ACCIONES -->
+    <div class="modal-footer" id="detalleFooter" style="display: none;">
+      <button class="btn btn-outline" onclick="cerrarModalDetalle()">
+        <i class="fa-solid fa-xmark"></i> Cerrar
+      </button>
+      <div class="btn-group" id="detalle-acciones"></div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ===== MODAL DETALLE ===== */
+.detalle-seccion {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detalle-seccion:last-child {
+  border-bottom: none;
+}
+
+.detalle-seccion-titulo {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detalle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detalle-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detalle-value {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.detalle-estado-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-PENDIENTE   { background: rgba(245,158,11,0.15);  color: var(--color-pendiente); }
+.badge-CONFIRMADA  { background: rgba(59,130,246,0.15);  color: var(--color-confirmada); }
+.badge-EN_ATENCION { background: rgba(16,185,129,0.15);  color: var(--color-atencion); }
+.badge-FINALIZADA  { background: rgba(107,114,128,0.12); color: var(--color-finalizada); }
+.badge-CANCELADA   { background: rgba(239,68,68,0.12);   color: var(--color-cancelada); }
+
+.detalle-prioridad-URGENTE {
+  color: var(--color-urgente);
+  font-weight: 700;
+}
+
+.cups-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.cups-row:last-child {
+  border-bottom: none;
+}
+
+.cups-codigo {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cups-desc {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cups-min {
+  font-size: 12px;
+  color: var(--color-confirmada);
+  background: rgba(59,130,246,0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Botones de acción del detalle */
+.btn-accion-confirmar  { background: var(--color-confirmada); color: white; }
+.btn-accion-iniciar    { background: var(--color-atencion);   color: white; }
+.btn-accion-finalizar  { background: var(--color-finalizada);  color: white; }
+.btn-accion-cancelar   { background: var(--color-cancelada);  color: white; }
+
+.btn-accion-confirmar:hover  { background: #2563eb; }
+.btn-accion-iniciar:hover    { background: #059669; }
+.btn-accion-finalizar:hover  { background: #4b5563; }
+.btn-accion-cancelar:hover   { background: #dc2626; }
+</style>
