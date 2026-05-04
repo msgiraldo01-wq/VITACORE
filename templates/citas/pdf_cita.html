@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cita #{{ cita_id }} - {{ paciente_nombre }}</title>
+  <style>
+    /* ============================================
+       CONFIGURACIÓN DE PÁGINA (para impresión/PDF)
+       ============================================ */
+    @page {
+      size: letter;
+      margin: 1.2cm 1.5cm 1.8cm 1.5cm;
+      
+      @bottom-center {
+        content: "Documento generado por VITACORE · Sistema de Historia Clínica · {{ sede_nombre }}{% if sede_ciudad %}, {{ sede_ciudad }}{% endif %} · Página " counter(page) " de " counter(pages);
+        font-size: 7.5pt;
+        color: #94a3b8;
+      }
+    }
+
+    /* ============================================
+       RESET Y BASE
+       ============================================ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      font-size: 9.5pt;
+      color: #1e293b;
+      line-height: 1.45;
+      background: #fff;
+    }
+
+    /* ============================================
+       CABECERA
+       ============================================ */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 10px;
+      border-bottom: 2.5px solid #0d5c63;
+      margin-bottom: 14px;
+    }
+
+    .logo-area img {
+      height: 48px;
+      max-width: 220px;
+    }
+
+    .cita-info {
+      text-align: right;
+    }
+
+    .cita-label {
+      font-size: 8pt;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .cita-numero {
+      font-size: 26pt;
+      font-weight: 800;
+      color: #0d5c63;
+      line-height: 1;
+    }
+
+    /* ============================================
+       TÍTULO
+       ============================================ */
+    .titulo-principal {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0d5c63;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* ============================================
+       GRID DE DATOS (reemplaza tablas anidadas)
+       ============================================ */
+    .datos-grid {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    .dato-label {
+      font-weight: 600;
+      color: #475569;
+      text-align: right;
+      padding-top: 1px;
+    }
+
+    .dato-value {
+      color: #1e293b;
+    }
+
+    .dato-value strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .dato-value .muted {
+      color: #64748b;
+      font-size: 9pt;
+    }
+
+    /* Elementos inline */
+    .inline-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      align-items: baseline;
+    }
+
+    .sep {
+      color: #cbd5e1;
+      margin: 0 4px;
+    }
+
+    /* Badge tipo atención */
+    .badge {
+      display: inline-block;
+      background: #0d5c63;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 2px 8px;
+      border-radius: 3px;
+      line-height: 1.4;
+    }
+
+    .badge-urgente {
+      background: #dc2626;
+    }
+
+    /* ============================================
+       TABLA DE PROCEDIMIENTOS
+       ============================================ */
+    .procs-box {
+      margin-top: 4px;
+    }
+
+    .procs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .procs-table thead th {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 4px 8px;
+      border-bottom: 1.5px solid #cbd5e1;
+    }
+
+    .procs-table tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    .procs-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .proc-codigo {
+      font-weight: 700;
+      color: #0d5c63;
+      font-family: 'SF Mono', monospace;
+      font-size: 8.5pt;
+      white-space: nowrap;
+      width: 90px;
+    }
+
+    .proc-desc {
+      color: #1e293b;
+    }
+
+    .proc-dur {
+      text-align: right;
+      color: #64748b;
+      font-size: 8.5pt;
+      white-space: nowrap;
+      width: 60px;
+    }
+
+    /* ============================================
+       NOTAS / INSTRUCCIONES
+       ============================================ */
+    .section-box {
+      margin-top: 14px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: #132226;
+      color: #fff;
+      font-size: 9pt;
+      font-weight: 700;
+      padding: 5px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .section-body {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-top: none;
+      padding: 10px 14px;
+    }
+
+    .instrucciones-list {
+      list-style: none;
+      counter-reset: item;
+    }
+
+    .instrucciones-list li {
+      position: relative;
+      padding-left: 22px;
+      margin-bottom: 5px;
+      font-size: 8.5pt;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .instrucciones-list li::before {
+      counter-increment: item;
+      content: counter(item) ".";
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-weight: 700;
+      color: #0d5c63;
+    }
+
+    .instrucciones-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .highlight {
+      background: #fef3c7;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-weight: 600;
+      color: #92400e;
+    }
+
+    /* Notas adicionales */
+    .notas-adicionales {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 8.5pt;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    /* ============================================
+       PIE (fallback si @page no funciona)
+       ============================================ */
+    .footer-fallback {
+      margin-top: 20px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 7.5pt;
+      color: #94a3b8;
+    }
+
+    /* ============================================
+       UTILIDADES
+       ============================================ */
+    .text-right { text-align: right; }
+    .font-mono { font-family: 'SF Mono', monospace; }
+    
+    /* Prioridad urgente destacada */
+    .urgente-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+
+    .urgente-dot {
+      width: 8px;
+      height: 8px;
+      background: #dc2626;
+      border-radius: 50%;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== CABECERA ========== -->
+  <div class="header">
+    <div class="logo-area">
+      {% if logo_b64 %}
+        <img src="{{ logo_b64 }}" alt="Vitacore">
+      {% else %}
+        <div style="font-size: 18pt; font-weight: 800; color: #0d5c63;">VITACORE</div>
+      {% endif %}
+    </div>
+    <div class="cita-info">
+      <div class="cita-label">Cita No</div>
+      <div class="cita-numero">{{ cita_id }}</div>
+    </div>
+  </div>
+
+  <!-- ========== TÍTULO ========== -->
+  <div class="titulo-principal">Asignación de la Cita</div>
+
+  <!-- ========== DATOS PRINCIPALES ========== -->
+  <div class="datos-grid">
+
+    <!-- Paciente -->
+    <div class="dato-label">Paciente</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        <strong>{{ paciente_nombre }}</strong>
+        <span class="muted">{{ paciente_doc }}</span>
+        {% if paciente_edad %}
+        <span class="muted">Edad: <strong>{{ paciente_edad }} años</strong></span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Contacto -->
+    {% if paciente_celular or paciente_email %}
+    <div class="dato-label">Contacto</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        {% if paciente_celular %}
+        <span>Tel: <strong>{{ paciente_celular }}</strong></span>
+        {% endif %}
+        {% if paciente_email %}
+        <span class="muted">{{ paciente_email }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Fecha -->
+    <div class="dato-label">Fecha y hora</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        <span>{{ fecha_larga }}</span>
+        <span class="sep">|</span>
+        <span><span class="highlight">{{ hora_inicio }}</span> – <span class="highlight">{{ hora_fin }}</span></span>
+      </div>
+    </div>
+
+    <!-- Tipo -->
+    <div class="dato-label">Tipo de atención</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        <span class="badge">{{ tipo_atencion }}</span>
+        <span>{{ modalidad }}</span>
+        <span class="muted">{{ finalidad }}</span>
+      </div>
+    </div>
+
+    <!-- Procedimientos -->
+    {% if procedimientos %}
+    <div class="dato-label">Examen(es)</div>
+    <div class="dato-value">
+      <div class="procs-box">
+        <table class="procs-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th class="text-right">Duración</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in procedimientos %}
+            <tr>
+              <td class="proc-codigo">{{ p.codigo }}</td>
+              <td class="proc-desc">{{ p.descripcion }}</td>
+              <td class="proc-dur">{{ p.duracion_min }} min</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Profesional -->
+    <div class="dato-label">Profesional</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        <strong>{{ medico_nombre }}</strong>
+        {% if medico_esp %}
+        <span class="muted">{{ medico_esp }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Sede -->
+    <div class="dato-label">Lugar</div>
+    <div class="dato-value">
+      <div class="inline-group">
+        <strong>{{ sede_nombre }}</strong>
+        {% if sede_ciudad %}
+        <span class="muted">{{ sede_ciudad }}</span>
+        {% endif %}
+      </div>
+      {% if sede_direccion or sede_telefono %}
+      <div class="inline-group" style="margin-top: 3px;">
+        {% if sede_direccion %}
+        <span class="muted">{{ sede_direccion }}</span>
+        {% endif %}
+        {% if sede_telefono %}
+        <span class="muted">Tel: {{ sede_telefono }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Motivo -->
+    {% if motivo %}
+    <div class="dato-label">Motivo</div>
+    <div class="dato-value">{{ motivo }}</div>
+    {% endif %}
+
+    <!-- Prioridad -->
+    {% if prioridad and prioridad != 'NORMAL' %}
+    <div class="dato-label">Prioridad</div>
+    <div class="dato-value">
+      <div class="urgente-box">
+        <span class="urgente-dot"></span>
+        <strong style="color: #dc2626;">{{ prioridad }}</strong>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ========== INSTRUCCIONES ========== -->
+  <div class="section-box">
+    <div class="section-header">Instrucciones importantes</div>
+    <div class="section-body">
+      <ol class="instrucciones-list">
+        <li>Presentarse a su cita <span class="highlight">30 minutos antes</span> de la programación.</li>
+        <li>Traer autorización con fecha vigente, <strong>documento de identidad</strong> y orden médica.</li>
+        <li>Cumplir con la preparación que se le indique.</li>
+        <li>Traer estudios anteriores si los tiene, esto facilitará un mejor diagnóstico.</li>
+        <li>Si no puede asistir a su cita, por favor llamar y cancelarla. Gracias.</li>
+      </ol>
+      
+      <div class="notas-adicionales">
+        <strong>Adicional:</strong> Traer orden médica, historia clínica y estudios anteriores en físico.
+        Presentarse <span class="highlight">30 minutos antes</span> en <strong>{{ sede_nombre }}</strong>{% if sede_direccion %}, {{ sede_direccion }}{% endif %}.
+        No portar elementos metálicos. Usar ropa cómoda.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PIE (fallback) ========== -->
+  <div class="footer-fallback">
+    Documento generado por VITACORE · Sistema de Historia Clínica ·
+    {{ sede_nombre }}{% if sede_ciudad %}, {{ sede_ciudad }}{% endif %}
+  </div>
+
+</body>
+</html>

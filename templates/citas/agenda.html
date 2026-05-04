@@ -786,6 +786,74 @@
 
   <!-- PANEL IZQUIERDO -->
   <div class="agenda-left">
+
+
+    <div id="btn-borrador"
+        style="
+          display: none;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1px solid rgba(245,158,11,0.4);
+          background: rgba(245,158,11,0.08);
+          cursor: pointer;
+          position: relative;
+        "
+        title="Tienes un borrador pendiente">
+
+      <!-- Ícono campana + badge -->
+      <div style="position: relative; flex-shrink: 0;">
+        <i class="fa-solid fa-bell" style="font-size: 18px; color: #f59e0b;"></i>
+        <span id="borrador-badge" style="
+          display: flex;
+          position: absolute;
+          top: -6px;
+          right: -8px;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #ef4444;
+          color: white;
+          font-size: 9px;
+          font-weight: 700;
+          align-items: center;
+          justify-content: center;
+        ">1</span>
+      </div>
+
+      <!-- Texto -->
+      <div style="flex: 1; min-width: 0;" onclick="abrirBorrador()">
+        <div style="font-size: 12px; font-weight: 700; color: #132226;">
+          Borrador de cita
+        </div>
+        <div style="font-size: 11px; color: #5e7278;">
+          Toca para retomar
+        </div>
+      </div>
+
+      <!-- Botón descartar -->
+      <button
+        onclick="descartarBorrador()"
+        title="Descartar borrador"
+        style="
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #9ca3af;
+          font-size: 13px;
+          padding: 4px;
+          border-radius: 6px;
+          transition: color 0.15s;
+          flex-shrink: 0;
+        "
+        onmouseover="this.style.color='#ef4444'"
+        onmouseout="this.style.color='#9ca3af'"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+    </div>
     
     <button class="btn btn-primary" onclick="abrirModalCita()">
       <i class="fa fa-plus"></i> Nueva Cita
@@ -873,6 +941,7 @@ let procedimientosMedico       = [];
 let procedimientosSeleccionados = []; 
 let currentStep = 1;
 const totalSteps = 4;
+let _citaGuardadaExitosamente = false;
 
 let citaForm = {
   paciente_id: null,
@@ -1253,8 +1322,61 @@ function poblarModalDetalle(c) {
   document.getElementById('detalleLoading').style.display   = 'none';
   document.getElementById('detalleContenido').style.display = 'block';
   document.getElementById('detalleFooter').style.display    = 'flex';
+  // Guardar ID para la descarga
+  document.getElementById('btn-descargar-pdf').dataset.citaId = c.id;
+  // Botón "Ver" abre HTML en nueva pestaña
+  document.getElementById('btn-ver-html').href = `/citas/api/detalle/${c.id}/html`;
+
 }
- 
+
+// ============================================================
+// DESCARGAR PDF DE CITA
+// ============================================================
+async function descargarPDF() {
+  const citaId = document.getElementById('btn-descargar-pdf').dataset.citaId;
+  if (!citaId) {
+    mostrarToast('Error: No se encontró la cita', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-descargar-pdf');
+  const originalHTML = btn.innerHTML;
+
+  // Estado de carga
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Generando...`;
+
+  try {
+    const response = await fetch(`/citas/api/detalle/${citaId}/pdf`);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Error del servidor' }));
+      throw new Error(error.error || `Error ${response.status}`);
+    }
+
+    // Crear blob y forzar descarga
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cita_${citaId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    window.URL.revokeObjectURL(url);
+    mostrarToast('PDF descargado correctamente', 'success');
+
+  } catch (err) {
+    console.error('Error PDF:', err);
+    mostrarToast('Error: ' + err.message, 'error');
+  } finally {
+    // Restaurar botón
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
+} 
  
 // ---------------------------------------------------------------
 // CERRAR MODAL DETALLE
@@ -1754,7 +1876,6 @@ async function guardarCita() {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
  
   try {
-    // Leer la duración final que el usuario pudo haber ajustado manualmente
     const duracionFinal = Math.max(5, parseInt(document.getElementById('duracion').value) || 20);
  
     const payload = {
@@ -1786,8 +1907,12 @@ async function guardarCita() {
     const data = await res.json();
  
     if (data.ok) {
+      // Limpiar borrador ANTES de cerrar
+      limpiarBorrador();
+      _citaGuardadaExitosamente = true;
+ 
       mostrarToast('Cita creada correctamente', 'success');
-      cerrarModalCita();
+      document.getElementById('modalCita').classList.remove('active'); // cierre directo sin guardar borrador
       cargarAgenda();
     } else {
       mostrarToast(data.error || 'Error al crear cita', 'error');
@@ -1795,11 +1920,11 @@ async function guardarCita() {
   } catch {
     mostrarToast('Error de conexión', 'error');
   } finally {
+    _citaGuardadaExitosamente = false;
     btn.disabled = false;
     actualizarStepUI();
   }
 }
-
 // ===== TOAST =====
 function mostrarToast(mensaje, tipo = 'info') {
   const container = document.getElementById('toastContainer');
@@ -1905,6 +2030,221 @@ function sincronizarDuracion() {
 
   actualizarHoraFin();
 }
+
+
+// ================================================================
+// SISTEMA DE BORRADOR DE CITA
+// Agregar al final del <script> en citas.html
+// ================================================================
+
+// ---------------------------------------------------------------
+// GUARDAR BORRADOR
+// Se llama al cerrar el modal si hay progreso
+// ---------------------------------------------------------------
+function guardarBorrador() {
+  // Solo guardar si hay algo significativo
+  if (!citaForm.paciente_id && currentStep === 1) return false;
+
+  const borrador = {
+    currentStep,
+    citaForm: { ...citaForm },
+    procedimientosSeleccionados: [...procedimientosSeleccionados],
+    procedimientosMedico:        [...procedimientosMedico],
+    timestamp: Date.now(),
+  };
+
+  localStorage.setItem('cita_borrador', JSON.stringify(borrador));
+  actualizarCampana();
+  return true;
+}
+
+
+// ---------------------------------------------------------------
+// RESTAURAR BORRADOR
+// ---------------------------------------------------------------
+function restaurarBorrador() {
+  const raw = localStorage.getItem('cita_borrador');
+  if (!raw) return;
+
+  try {
+    const b = JSON.parse(raw);
+
+    // Restaurar estado global
+    currentStep                  = b.currentStep || 1;
+    citaForm                     = { ...b.citaForm };
+    procedimientosSeleccionados  = b.procedimientosSeleccionados || [];
+    procedimientosMedico         = b.procedimientosMedico        || [];
+
+    // Restaurar campos del DOM — paso 1
+    if (citaForm.paciente_id) {
+      document.getElementById('paciente_id').value     = citaForm.paciente_id;
+      document.getElementById('paciente_nombre').value = citaForm.paciente_nombre;
+
+      // Mostrar paciente seleccionado en la lista
+      document.getElementById('listaPacientes').innerHTML = `
+        <div class="select-list-item selected" data-id="${citaForm.paciente_id}">
+          <div class="avatar">${citaForm.paciente_nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div class="info">
+            <div class="name">${citaForm.paciente_nombre}</div>
+            <div class="detail">Paciente seleccionado</div>
+          </div>
+          <div class="check"><i class="fa-solid fa-check-circle"></i></div>
+        </div>
+      `;
+    }
+
+    // Restaurar campos del DOM — paso 2
+    if (citaForm.medico_id) {
+      const selectMedico = document.getElementById('medico_id_modal');
+      if (selectMedico) selectMedico.value = citaForm.medico_id;
+
+      // Mostrar sección procedimientos
+      const seccion = document.getElementById('seccionProcedimientos');
+      if (seccion) seccion.style.display = 'block';
+    }
+
+    if (citaForm.fecha) {
+      const inputFecha = document.getElementById('fecha_modal');
+      if (inputFecha) inputFecha.value = citaForm.fecha;
+    }
+
+    if (citaForm.duracion) {
+      const inputDur = document.getElementById('duracion');
+      if (inputDur) inputDur.value = citaForm.duracion;
+    }
+
+    // Restaurar procedimientos seleccionados
+    renderProcedimientosSeleccionados();
+
+    // Restaurar slots de hora (asíncrono)
+    if (citaForm.medico_id && citaForm.fecha) {
+      cargarHorariosMedico().then(() => {
+        const selectHora = document.getElementById('hora_inicio');
+        if (selectHora && citaForm.hora_inicio) {
+          selectHora.value = citaForm.hora_inicio;
+          actualizarHoraFin();
+        }
+      });
+    }
+
+    // Restaurar campos del DOM — paso 3
+    if (citaForm.tipo_atencion) {
+      const el = document.getElementById('tipo_atencion');
+      if (el) el.value = citaForm.tipo_atencion;
+    }
+    if (citaForm.modalidad) {
+      const el = document.getElementById('modalidad');
+      if (el) el.value = citaForm.modalidad;
+    }
+    if (citaForm.finalidad_consulta) {
+      const el = document.getElementById('finalidad_consulta');
+      if (el) el.value = citaForm.finalidad_consulta;
+    }
+    if (citaForm.sede_id) {
+      const el = document.getElementById('sede_id_modal');
+      if (el) el.value = citaForm.sede_id;
+    }
+    if (citaForm.motivo_consulta) {
+      const el = document.getElementById('motivo_consulta');
+      if (el) el.value = citaForm.motivo_consulta;
+    }
+    if (citaForm.prioridad) {
+      const radio = document.querySelector(`input[name="prioridad"][value="${citaForm.prioridad}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    actualizarStepUI();
+
+  } catch (e) {
+    console.error('Error restaurando borrador:', e);
+    limpiarBorrador();
+  }
+}
+
+
+// ---------------------------------------------------------------
+// LIMPIAR BORRADOR
+// Se llama al guardar la cita exitosamente o al descartar
+// ---------------------------------------------------------------
+function limpiarBorrador() {
+  localStorage.removeItem('cita_borrador');
+  actualizarCampana();
+}
+
+
+// ---------------------------------------------------------------
+// ACTUALIZAR CAMPANA EN EL DOM
+// ---------------------------------------------------------------
+function actualizarCampana() {
+  const raw     = localStorage.getItem('cita_borrador');
+  const campana = document.getElementById('btn-borrador');
+  const badge   = document.getElementById('borrador-badge');
+
+  if (!campana) return;
+
+  if (raw) {
+    try {
+      const b = JSON.parse(raw);
+      campana.style.display = 'flex';
+
+      // Texto del tooltip
+      const nombre = b.citaForm?.paciente_nombre || 'Paciente';
+      const paso   = b.currentStep || 1;
+      campana.title = `Borrador: ${nombre} (paso ${paso} de 4)`;
+
+      if (badge) badge.style.display = 'flex';
+    } catch {
+      campana.style.display = 'none';
+    }
+  } else {
+    campana.style.display = 'none';
+  }
+}
+
+
+// ---------------------------------------------------------------
+// ABRIR BORRADOR DESDE LA CAMPANA
+// ---------------------------------------------------------------
+function abrirBorrador() {
+  const raw = localStorage.getItem('cita_borrador');
+  if (!raw) return;
+
+  // Abrir modal en estado limpio primero, luego restaurar
+  document.getElementById('modalCita').classList.add('active');
+  restaurarBorrador();
+}
+
+
+// ---------------------------------------------------------------
+// DESCARTAR BORRADOR
+// ---------------------------------------------------------------
+function descartarBorrador() {
+  if (!confirm('¿Seguro que deseas descartar el borrador? Se perderán los datos.')) return;
+  limpiarBorrador();
+  mostrarToast('Borrador descartado', 'info');
+}
+
+
+// ---------------------------------------------------------------
+// MODIFICAR cerrarModalCita — reemplaza la existente
+// ---------------------------------------------------------------
+function cerrarModalCita() {
+  // Si hay progreso, guardar borrador
+  const hayProgreso = citaForm.paciente_id || currentStep > 1;
+  if (hayProgreso) {
+    guardarBorrador();
+    mostrarToast('Borrador guardado. Puedes retomarlo cuando quieras.', 'info');
+  }
+  document.getElementById('modalCita').classList.remove('active');
+}
+
+
+// ---------------------------------------------------------------
+// INICIALIZAR CAMPANA AL CARGAR LA PÁGINA
+// ---------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  actualizarCampana();
+});
 
 
 </script>

@@ -343,3 +343,46 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
         # Procedimientos
         "procedimientos":     procedimientos,
     }
+
+
+# Agregar al final de repositories/hc_citas_repo.py
+
+def obtener_datos_pdf(cita_id: int, empresa_id: int = None):
+    """
+    Devuelve todo lo necesario para generar el PDF de una cita:
+    detalle completo + edad del paciente + datos de sede.
+    """
+    from repositories import hc_pacientes_repo
+
+    # Detalle base (ya tiene paciente, médico, procedimientos)
+    detalle = obtener_detalle(cita_id, empresa_id)
+    if not detalle:
+        return None
+
+    sb = _supabase()
+
+    # Edad del paciente
+    pac_res = (
+        sb.table("hc_pacientes")
+        .select("fecha_nacimiento")
+        .eq("id", detalle["paciente_id"])
+        .limit(1)
+        .execute()
+    )
+    fecha_nac = (pac_res.data or [{}])[0].get("fecha_nacimiento")
+    detalle["paciente_edad"] = hc_pacientes_repo.calcular_edad(fecha_nac) if fecha_nac else None
+
+    # Datos completos de la sede
+    sede_res = (
+        sb.table("hc_sedes")
+        .select("nombre, direccion, telefono, ciudad")
+        .eq("id", detalle["sede_id"])
+        .limit(1)
+        .execute()
+    )
+    sede = (sede_res.data or [{}])[0]
+    detalle["sede_direccion"] = sede.get("direccion", "")
+    detalle["sede_telefono"]  = sede.get("telefono", "")
+    detalle["sede_ciudad"]    = sede.get("ciudad", "")
+
+    return detalle

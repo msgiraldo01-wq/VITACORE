@@ -1,7 +1,7 @@
 <div class="modal-overlay" id="modalDetalleCita">
   <div class="modal-full" style="max-width: 620px;">
 
-    <!-- HEADER -->
+    <!-- HEADER (sticky) -->
     <div class="modal-header">
       <h2 style="font-size: 16px; gap: 12px;">
         <i class="fa-solid fa-calendar-check" style="color: var(--color-confirmada);"></i>
@@ -11,7 +11,7 @@
       <button onclick="cerrarModalDetalle()" aria-label="Cerrar">✕</button>
     </div>
 
-    <!-- BODY -->
+    <!-- BODY (scrollable) -->
     <div class="modal-body" id="modalDetalleBody" style="padding: 0;">
 
       <!-- LOADING -->
@@ -121,19 +121,110 @@
       </div>
     </div>
 
-    <!-- FOOTER CON ACCIONES -->
+    <!-- FOOTER REORGANIZADO (sticky) -->
     <div class="modal-footer" id="detalleFooter" style="display: none;">
-      <button class="btn btn-outline" onclick="cerrarModalDetalle()">
-        <i class="fa-solid fa-xmark"></i> Cerrar
-      </button>
+      
+      <!-- Izquierda: acciones de estado (confirmar, iniciar, finalizar, cancelar) -->
       <div class="btn-group" id="detalle-acciones"></div>
+      
+      <!-- Derecha: utilidades (ver, pdf, cerrar) -->
+      <div class="btn-group btn-group-utilidades">
+        <a class="btn btn-outline btn-sm" 
+           id="btn-ver-html" 
+           href="#" 
+           target="_blank"
+           title="Ver en pantalla completa">
+          <i class="fa-solid fa-eye" style="color:#0d5c63;"></i>
+          <span class="btn-label">Ver</span>
+        </a>
+        
+        <button class="btn btn-primary btn-sm" 
+                id="btn-descargar-pdf"
+                onclick="descargarPDF()"
+                title="Descargar PDF">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span class="btn-label">PDF</span>
+        </button>
+        
+        <button class="btn btn-outline btn-sm" onclick="cerrarModalDetalle()">
+          <i class="fa-solid fa-xmark"></i>
+          <span class="btn-label">Cerrar</span>
+        </button>
+      </div>
+
     </div>
 
   </div>
 </div>
 
 <style>
-/* ===== MODAL DETALLE ===== */
+/* ===== MODAL DETALLE - COMPLETO ===== */
+
+/* Estructura del modal */
+.modal-full {
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header sticky */
+.modal-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+}
+
+/* Body scrollable */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Footer sticky */
+.modal-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  gap: 12px;
+}
+
+/* Grupos de botones */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-group-utilidades {
+  margin-left: auto;
+}
+
+/* Botones compactos */
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  min-height: 36px;
+}
+
+.btn-sm i {
+  font-size: 14px;
+}
+
+/* Secciones del contenido */
 .detalle-seccion {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
@@ -181,6 +272,7 @@
   font-weight: 500;
 }
 
+/* Badges de estado */
 .detalle-estado-badge {
   font-size: 11px;
   font-weight: 700;
@@ -201,6 +293,7 @@
   font-weight: 700;
 }
 
+/* CUPS */
 .cups-row {
   display: grid;
   grid-template-columns: 80px 1fr 60px;
@@ -237,7 +330,7 @@
   white-space: nowrap;
 }
 
-/* Botones de acción del detalle */
+/* Botones de acción de estado (confirmar, iniciar, etc.) */
 .btn-accion-confirmar  { background: var(--color-confirmada); color: white; }
 .btn-accion-iniciar    { background: var(--color-atencion);   color: white; }
 .btn-accion-finalizar  { background: var(--color-finalizada);  color: white; }
@@ -247,4 +340,40 @@
 .btn-accion-iniciar:hover    { background: #059669; }
 .btn-accion-finalizar:hover  { background: #4b5563; }
 .btn-accion-cancelar:hover   { background: #dc2626; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 540px) {
+  .modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .btn-group-utilidades {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  #detalle-acciones {
+    justify-content: center;
+  }
+  
+  .btn-label {
+    display: inline; /* mantener texto en tablet */
+  }
+}
+
+@media (max-width: 380px) {
+  .btn-label {
+    display: none; /* solo iconos en móvil muy pequeño */
+  }
+  
+  .btn-sm {
+    padding: 8px 10px;
+  }
+  
+  .detalle-grid {
+    grid-template-columns: 1fr; /* una columna en móvil */
+  }
+}
 </style>

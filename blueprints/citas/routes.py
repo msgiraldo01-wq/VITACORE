@@ -1,8 +1,11 @@
 # blueprints/citas/routes.py
 
-from flask import Blueprint, jsonify, request, render_template, session
+from flask import Blueprint, jsonify, request, render_template, session, send_file
 from repositories import hc_citas_repo as repo
 from datetime import datetime, timedelta
+from services.pdf_service import PDFService, AssetHelper
+import os
+import io   
 
 
 bp_citas = Blueprint("citas", __name__, url_prefix="/citas")
@@ -344,3 +347,104 @@ def api_detalle_cita(cita_id):
         import traceback
         print("ERROR /api/detalle:", traceback.format_exc())
         return jsonify({"ok": False, "error": str(e)}), 500
+    
+
+
+def fmt_fecha(f):
+    if not f:
+        return "—"
+    DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+    MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+             "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+    try:
+        d = datetime.strptime(f, "%Y-%m-%d")
+        return f"{DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]} de {d.year}"
+    except Exception:
+        return str(f)
+
+
+def fmt_hora(h):
+    if not h:
+        return "—"
+    try:
+        t = datetime.strptime(str(h)[:5], "%H:%M")
+        hora = t.hour % 12 or 12
+        ampm = "AM" if t.hour < 12 else "PM"
+        return f"{hora}:{t.strftime('%M')} {ampm}"
+    except Exception:
+        return str(h)[:5]
+
+
+def _obtener_datos_cita(cita_id: int) -> dict:
+    """Centraliza obtención de datos para cita (DRY)."""
+    datos = repo.obtener_datos_pdf(cita_id)
+    if not datos:
+        raise ValueError("Cita no encontrada")
+    
+    # Logo como base64 (elimina dependencia de filesystem en producción)
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    logo_path = os.path.join(base_dir, "static", "img", "vitacore", "logo_vitacore.png")
+    
+    return {
+        **datos,
+        "logo_b64": AssetHelper.img_to_base64(logo_path),
+        "fecha_larga": fmt_fecha(datos.get("fecha")),
+        "hora_inicio": fmt_hora(datos.get("hora_inicio")),
+        "hora_fin": fmt_hora(datos.get("hora_fin")),
+    }
+
+
+# ============================================
+# ENDPOINTS
+# ============================================
+
+@bp_citas.route("/api/detalle/<int:cita_id>/html", methods=["GET"])
+def api_html_cita(cita_id):
+    """
+    Devuelve HTML para previsualización en navegador.
+    El médico/admin ve esto y decide si imprimir o descargar PDF.
+    """
+    try:
+        ctx = _obtener_datos_cita(cita_id)
+        return render_template("citas/pdf_cita.html", **ctx)
+    
+    except ValueError:
+        return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+    except Exception as e:
+        import traceback
+        print("ERROR /html:", traceback.format_exc())
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp_citas.route("/api/detalle/<int:cita_id>/pdf", methods=["GET"])
+def api_pdf_cita(cita_id):
+    """
+    Genera PDF profesional vía Playwright (Chromium headless).
+    MISMO template que /html, pero renderizado a PDF.
+    """
+    try:
+        ctx = _obtener_datos_cita(cita_id)
+        
+        # Renderizar MISMO template
+        html_str = render_template("citas/pdf_cita.html", **ctx)
+        
+        # Generar PDF con Playwright
+        pdf_bytes = PDFService.sync_html_to_pdf(
+            html_content=html_str,
+            wait_for_network=False  # todo es inline/base64, no esperamos red
+        )
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=False,           # True si quieres forzar descarga
+            download_name=f"cita_{cita_id}_{ctx.get('paciente_doc', 'paciente')}.pdf"
+        )
+
+    except ValueError:
+        return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+    except Exception as e:
+        import traceback
+        print("ERROR /pdf:", traceback.format_exc())
+        return jsonify({"ok": False, "error": str(e)}), 500
+
