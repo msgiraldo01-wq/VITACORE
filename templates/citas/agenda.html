@@ -884,6 +884,31 @@
       <i class="fa fa-search"></i> Buscar
     </button>
 
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
+      <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+        Mostrar canceladas
+      </span>
+      <label style="position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer;">
+        <input type="checkbox" id="toggleCanceladas" onchange="toggleCitasCanceladas()" 
+              style="opacity: 0; width: 0; height: 0;">
+        <span id="toggleCanceladasSlider" style="
+          position: absolute; inset: 0;
+          background: var(--border);
+          border-radius: 20px;
+          transition: background 0.2s;
+        "></span>
+        <span id="toggleCanceladasThumb" style="
+          position: absolute;
+          top: 3px; left: 3px;
+          width: 14px; height: 14px;
+          background: white;
+          border-radius: 50%;
+          transition: transform 0.2s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        "></span>
+      </label>
+    </div>
+
     <!-- Resumen -->
     <div class="resumen-dia">
       <h3 style="margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; color: var(--text-muted);">Resumen del Día</h3>
@@ -942,6 +967,7 @@ let procedimientosSeleccionados = [];
 let currentStep = 1;
 const totalSteps = 4;
 let _citaGuardadaExitosamente = false;
+let mostrarCanceladas = false;
 
 let citaForm = {
   paciente_id: null,
@@ -984,6 +1010,19 @@ function actualizarTituloFecha(fecha) {
   const fechaObj = new Date(fecha + 'T00:00:00');
   document.getElementById('timelineDateTitle').textContent = 
     fechaObj.toLocaleDateString('es-ES', opciones);
+}
+
+function toggleCitasCanceladas() {
+  mostrarCanceladas = document.getElementById('toggleCanceladas').checked;
+
+  // Actualizar visual del toggle
+  const slider = document.getElementById('toggleCanceladasSlider');
+  const thumb  = document.getElementById('toggleCanceladasThumb');
+  slider.style.background = mostrarCanceladas ? 'var(--color-confirmada)' : 'var(--border)';
+  thumb.style.transform   = mostrarCanceladas ? 'translateX(16px)' : 'translateX(0)';
+
+  // Re-renderizar filtrando según estado
+  renderAgenda(citasData);
 }
 
 function iniciarReloj() {
@@ -1077,65 +1116,84 @@ async function cargarAgenda() {
 
 function renderAgenda(lista) {
   const container = document.getElementById("agendaList");
-  let html = '<div class="timeline">';
   const startHour = 6, endHour = 20;
 
+  // Columna de horas + columna de citas con position relative
+  let html = '<div class="timeline">';
   for (let h = startHour; h < endHour; h++) {
     for (let m = 0; m < 60; m += 5) {
-      const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      const hora        = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
       const mostrarHora = (m === 0);
       const esMediaHora = (m === 30);
-
       html += `
-        <div class="timeline-hour" style="${esMediaHora ? 'opacity: 0.6;' : ''}">
+        <div class="timeline-hour" style="${esMediaHora ? 'opacity:0.6;' : ''}">
           ${mostrarHora ? `${String(h).padStart(2,'0')}:00` : (esMediaHora ? ':30' : '')}
         </div>
         <div class="timeline-slot" id="slot-${hora}"></div>
       `;
     }
   }
-  html += "</div>";
+  // Contenedor de cards encima del grid, posicionado absoluto
+  html += '</div><div id="citas-layer" style="position:absolute; top:0; left:var(--hour-width); right:0;"></div>';
   container.innerHTML = html;
+  container.style.position = 'relative';
 
-  const citasPorSlot = {};
-  lista.forEach(c => {
-    if (c.hora_inicio === null || c.hora_inicio === undefined) return;
+  // ── Helper ──────────────────────────────────────────────────
+  function horaAMin(h) {
+    const p = String(h).trim().split(":");
+    return parseInt(p[0] || 0) * 60 + parseInt(p[1] || 0);
+  }
 
-    const clean  = String(c.hora_inicio).trim();
-    const partes = clean.split(":");
-    const h      = String(parseInt(partes[0] || 0)).padStart(2, '0');
-    const m      = String(parseInt(partes[1] || 0)).padStart(2, '0');
-    const horaKey = `${h}:${m}`;
+  // ── Agrupar citas con solapamiento real ─────────────────────
+  const validas = lista.filter(c => {
+    if (c.hora_inicio == null) return false;
+    if (c.estado === 'CANCELADA' && !mostrarCanceladas) return false;
+    return true;
+  });
+  const grupos  = [];
 
-    if (!citasPorSlot[horaKey]) citasPorSlot[horaKey] = [];
-    citasPorSlot[horaKey].push(c);
+  validas.forEach(c => {
+    const ini = horaAMin(c.hora_inicio);
+    const fin = ini + (c.duracion || 20);
+
+    let grupoEncontrado = null;
+    for (const g of grupos) {
+      const solapa = g.some(x => {
+        const xi = horaAMin(x.hora_inicio);
+        const xf = xi + (x.duracion || 20);
+        return ini < xf && fin > xi;
+      });
+      if (solapa) { grupoEncontrado = g; break; }
+    }
+
+    grupoEncontrado ? grupoEncontrado.push(c) : grupos.push([c]);
   });
 
-  Object.entries(citasPorSlot).forEach(([hora, citas]) => {
-    const slot = document.getElementById(`slot-${hora}`);
-    if (!slot) return;
+  // ── Renderizar ───────────────────────────────────────────────
+  const layer = document.getElementById('citas-layer');
 
-    citas.forEach((c, index) => {
-      const duracion = c.duracion || 20;
-      // Mínimo 48px para que siempre quepa el nombre aunque sea una cita corta
-      const altura   = Math.max(48, (duracion / 5) * 16 - 2);
+  grupos.forEach(grupoCitas => {
+    const totalCols = grupoCitas.length;
+
+    grupoCitas.forEach((c, colIndex) => {
+      const inicioMin    = horaAMin(c.hora_inicio);
+      const inicioDesde6 = inicioMin - (startHour * 60);
+      const duracion     = c.duracion || 20;
+      const topPx        = (inicioDesde6 / 5) * 16;
+      const altura       = Math.max(48, (duracion / 5) * 16 - 2);
+      const anchoPct     = 100 / totalCols;
+      const leftPct      = colIndex * anchoPct;
 
       const div = document.createElement("div");
-      div.className  = `cita-card estado-${c.estado}`;
-      div.style.height = `${altura}px`;
-      div.style.zIndex = 5 + index;
+      div.className        = `cita-card estado-${c.estado}`;
+      div.style.position   = 'absolute';
+      div.style.top        = `${topPx}px`;
+      div.style.height     = `${altura}px`;
+      div.style.width      = `calc(${anchoPct}% - 6px)`;
+      div.style.left       = `calc(${leftPct}% + 3px)`;
+      div.style.zIndex     = 5 + colIndex;
 
-      if (citas.length > 1) {
-        const width    = 100 / citas.length;
-        div.style.width = `${width - 1}%`;
-        div.style.left  = `${index * width}%`;
-      }
-
-      const urgenteBadge = c.prioridad === 'URGENTE'
-        ? '<span class="urgente-badge">Urgente</span>'
-        : '';
-
-      // Mostrar líneas extra solo si hay espacio suficiente
+      const urgenteBadge  = c.prioridad === 'URGENTE' ? '<span class="urgente-badge">Urgente</span>' : '';
       const mostrarMedico = duracion >= 20;
       const mostrarEstado = duracion >= 30;
 
@@ -1144,10 +1202,10 @@ function renderAgenda(lista) {
         ${mostrarMedico ? `<div class="cita-meta">${c.medico_nombre || "-"} · ${duracion}min</div>` : ''}
         ${mostrarEstado ? `<div class="cita-meta">${c.estado}</div>` : ''}
         <div class="cita-actions">
-          ${c.estado === 'PENDIENTE'   ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'CONFIRMADA', event)"  title="Confirmar"><i class="fa-solid fa-check"></i></button>`           : ''}
-          ${c.estado === 'CONFIRMADA'  ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'EN_ATENCION', event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>`             : ''}
-          ${c.estado === 'EN_ATENCION' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id}, 'FINALIZADA', event)"  title="Finalizar"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
-          <button class="cita-action-btn danger" onclick="cancelarCita(${c.id}, event)" title="Cancelar">
+          ${c.estado === 'PENDIENTE'   ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'CONFIRMADA',event)"  title="Confirmar"><i class="fa-solid fa-check"></i></button>`           : ''}
+          ${c.estado === 'CONFIRMADA'  ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'EN_ATENCION',event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>`             : ''}
+          ${c.estado === 'EN_ATENCION' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'FINALIZADA',event)"  title="Finalizar"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
+          <button class="cita-action-btn danger" onclick="cancelarCita(${c.id},event)" title="Cancelar">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -1157,11 +1215,10 @@ function renderAgenda(lista) {
         if (!e.target.closest('.cita-action-btn')) abrirDetalleCita(c);
       });
 
-      slot.appendChild(div);
+      layer.appendChild(div);
     });
   });
 }
-
 function actualizarResumen(citas) {
   document.getElementById('statTotal').textContent = citas.length;
   document.getElementById('statPendientes').textContent = citas.filter(c => c.estado === 'PENDIENTE').length;
@@ -1188,12 +1245,28 @@ async function cambiarEstado(id, nuevoEstado, event) {
 
 async function cancelarCita(id, event) {
   event.stopPropagation();
-  if (!confirm('¿Cancelar?')) return;
+
+  const result = await Swal.fire({
+    title: '¿Cancelar cita?',
+    text: 'Esta acción marcará la cita como cancelada.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cancelar cita',
+    cancelButtonText: 'No, mantener',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
     await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });
     mostrarToast('Cita cancelada', 'info');
     cargarAgenda();
-  } catch (e) { mostrarToast('Error', 'error'); }
+  } catch (e) {
+    mostrarToast('Error', 'error');
+  }
 }
 
 async function abrirDetalleCita(cita) {
@@ -1415,12 +1488,22 @@ async function cambiarEstadoDesdeDetalle(id, nuevoEstado) {
 // CANCELAR DESDE EL DETALLE
 // ---------------------------------------------------------------
 async function cancelarDesdeDetalle(id) {
-  if (!confirm('¿Seguro que deseas cancelar esta cita?')) return;
- 
+  const result = await Swal.fire({
+    title: '¿Cancelar cita?',
+    text: 'Esta acción marcará la cita como cancelada.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cancelar cita',
+    cancelButtonText: 'No, mantener',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
-    const res  = await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });
-    const data = await res.json();
- 
+    await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });
     mostrarToast('Cita cancelada', 'info');
     cerrarModalDetalle();
     cargarAgenda();
@@ -1439,6 +1522,21 @@ function abrirModalCita() {
 }
 
 function cerrarModalCita() {
+  const hayProgreso = citaForm.paciente_id || currentStep > 1;
+  if (hayProgreso) {
+    guardarBorrador();
+    // Toast discreto abajo a la derecha
+    Swal.fire({
+      toast: true,
+      position: 'bottom-end',
+      icon: 'info',
+      title: 'Borrador guardado',
+      text: 'Puedes retomarlo desde la campana',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  }
   document.getElementById('modalCita').classList.remove('active');
 }
 
@@ -2219,9 +2317,22 @@ function abrirBorrador() {
 // DESCARTAR BORRADOR
 // ---------------------------------------------------------------
 function descartarBorrador() {
-  if (!confirm('¿Seguro que deseas descartar el borrador? Se perderán los datos.')) return;
-  limpiarBorrador();
-  mostrarToast('Borrador descartado', 'info');
+  Swal.fire({
+    title: '¿Descartar borrador?',
+    text: 'Se perderán todos los datos ingresados.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, descartar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+  }).then((result) => {
+    if (result.isConfirmed) {
+      limpiarBorrador();
+      mostrarToast('Borrador descartado', 'info');
+    }
+  });
 }
 
 
