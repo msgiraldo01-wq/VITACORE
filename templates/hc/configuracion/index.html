@@ -177,6 +177,8 @@
   .cfg-icon.teal   { background: var(--brand-soft);   color: var(--brand); }
   .cfg-icon.warn   { background: var(--warn-soft);    color: var(--warn); }
   .cfg-icon.info   { background: var(--info-soft);    color: var(--info); }
+  .cfg-icon.purple { background: rgba(139,92,246,.12); color: #7c3aed; }
+  .cfg-icon.rose   { background: rgba(244,63,94,.12);  color: #be123c; }
 
   .cfg-title {
     font-size: .88rem;
@@ -268,9 +270,123 @@
     line-height: 1.5;
   }
 
+  /* ── Cards de facturación (estilo propio) ── */
+  .cfg-biz-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .cfg-biz-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 20px 18px;
+    transition: .18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cfg-biz-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg,
+      rgba(139,92,246,.04) 0%,
+      rgba(244,63,94,.04) 100%);
+    opacity: 0;
+    transition: .2s;
+  }
+
+  .cfg-biz-card:hover {
+    border-color: rgba(139,92,246,.35);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .cfg-biz-card:hover::before { opacity: 1; }
+
+  .cfg-biz-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .cfg-biz-icon {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .cfg-biz-icon.client {
+    background: linear-gradient(135deg, rgba(139,92,246,.15), rgba(139,92,246,.06));
+    color: #7c3aed;
+  }
+
+  .cfg-biz-icon.contract {
+    background: linear-gradient(135deg, rgba(244,63,94,.15), rgba(244,63,94,.06));
+    color: #be123c;
+  }
+
+  .cfg-biz-label {
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .cfg-biz-sub {
+    font-size: .78rem;
+    color: var(--text-soft);
+  }
+
+  .cfg-biz-desc {
+    font-size: .82rem;
+    color: var(--text-soft);
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+
+  .cfg-biz-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .cfg-biz-tag {
+    font-size: .73rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-3);
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+  }
+
+  .cfg-biz-arrow {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-size: 10px;
+    color: var(--text-faint);
+    transition: .18s;
+  }
+
+  .cfg-biz-card:hover .cfg-biz-arrow {
+    color: var(--text-soft);
+    transform: translate(2px, -2px);
+  }
+
   @media (max-width: 900px) {
     .cfg-info-row   { grid-template-columns: 1fr; }
     .cfg-sec-grid   { grid-template-columns: 1fr; }
+    .cfg-biz-grid   { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock %}
@@ -301,8 +417,69 @@
     <div class="cfg-badge-list" style="margin-top: 18px;">
       <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 1. Maestros clínicos y territoriales</div>
       <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 2. Catálogos médicos (CIE10, CUPS)</div>
-      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 3. Seguridad, usuarios y roles</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 3. Clientes y contratos</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 4. Seguridad, usuarios y roles</div>
     </div>
+  </div>
+</div>
+
+<!-- ── Clientes y Contratos ─────────────────────────── -->
+<div class="cfg-section">
+  <div class="cfg-section-head">
+    <h3 class="cfg-section-title">Clientes y contratos</h3>
+    <span class="cfg-section-count">2 módulos</span>
+  </div>
+  <p class="cfg-section-sub">Gestión de clientes institucionales y sus contratos de prestación de servicios.</p>
+  <div class="cfg-divider"></div>
+
+  <div class="cfg-biz-grid">
+
+    <a class="cfg-biz-card" href="/hc/configuracion/clientes">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-biz-arrow"></i>
+      <div class="cfg-biz-head">
+        <div class="cfg-biz-icon client">
+          <i class="fa-solid fa-building-user"></i>
+        </div>
+        <div>
+          <div class="cfg-biz-label">Clientes</div>
+          <div class="cfg-biz-sub">Entidades e instituciones</div>
+        </div>
+      </div>
+      <p class="cfg-biz-desc">
+        Registro de clientes institucionales con su información básica, NIT,
+        datos de contacto y códigos de facturación.
+      </p>
+      <div class="cfg-biz-tags">
+        <span class="cfg-biz-tag">NIT</span>
+        <span class="cfg-biz-tag">Contacto</span>
+        <span class="cfg-biz-tag">Cod. Prestador</span>
+        <span class="cfg-biz-tag">Estado</span>
+      </div>
+    </a>
+
+    <a class="cfg-biz-card" href="/hc/configuracion/clientes">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-biz-arrow"></i>
+      <div class="cfg-biz-head">
+        <div class="cfg-biz-icon contract">
+          <i class="fa-solid fa-file-contract"></i>
+        </div>
+        <div>
+          <div class="cfg-biz-label">Contratos</div>
+          <div class="cfg-biz-sub">Administración desde clientes</div>
+        </div>
+      </div>
+      <p class="cfg-biz-desc">
+        Los contratos se gestionan desde cada cliente. Define tipo, facturación,
+        vigencia, sede y valores financieros del contrato.
+      </p>
+      <div class="cfg-biz-tags">
+        <span class="cfg-biz-tag">Por Evento / Paquete</span>
+        <span class="cfg-biz-tag">Periodicidad</span>
+        <span class="cfg-biz-tag">Valores</span>
+        <span class="cfg-biz-tag">Vigencia</span>
+      </div>
+    </a>
+
   </div>
 </div>
 

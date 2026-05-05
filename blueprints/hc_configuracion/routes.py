@@ -19,7 +19,8 @@ import repositories.rec_procedimientos_repository  as rec_proc_repo
 import repositories.hc_medicos_remitentes_repo as repo_mr
 import io 
 import csv
-
+import repositories.hc_clientes_repo as repo_clientes
+import repositories.hc_contratos_repo as repo_contratos
 
 
 
@@ -1874,3 +1875,342 @@ def medico_remitente_buscar():
     q = request.args.get("q", "")
     items = repo_mr.buscar(q)
     return jsonify(items)
+
+# ══════════════════════════════════════════════════════════════════
+#  PEGA ESTE BLOQUE AL FINAL DE:
+#  blueprints/hc_configuracion/routes.py
+#
+#  Y agrega estos dos imports junto a los demás imports del archivo:
+#
+#  import repositories.hc_clientes_repo as repo_clientes
+#  import repositories.hc_contratos_repo as repo_contratos
+# ══════════════════════════════════════════════════════════════════
+
+MANUALES_TARIFARIOS = [
+    "ISS 2001",
+    "SOAT 2024",
+    "MANUAL INTERNO",
+    # Agrega aquí los que uses en tu operación
+]
+
+
+# ══════════════════════════════════════════════════════════════════
+#  CLIENTES
+# ══════════════════════════════════════════════════════════════════
+
+@bp_hc_configuracion.route("/clientes")
+def clientes():
+    data = repo_clientes.listar()
+    return render_template("hc/configuracion/clientes_lista.html", data=data)
+
+
+# ── Nuevo ──────────────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/clientes/nuevo", methods=["GET", "POST"])
+def cliente_nuevo():
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/cliente_form.html",
+            modo="crear",
+            cliente={}
+        )
+
+    form = request.form
+
+    data = {
+        "codigo":        (form.get("codigo") or "").strip().upper(),
+        "estado":         form.get("estado") or "ACTIVO",
+        "nit":           (form.get("nit") or "").strip() or None,
+        "nit_contab":    (form.get("nit_contab") or "").strip() or None,
+        "nit_tercero":   (form.get("nit_tercero") or "").strip() or None,
+        "nombre":        (form.get("nombre") or "").strip(),
+        "direccion":     (form.get("direccion") or "").strip() or None,
+        "telefonos":     (form.get("telefonos") or "").strip() or None,
+        "contacto":      (form.get("contacto") or "").strip() or None,
+        "email":         (form.get("email") or "").strip().lower() or None,
+        "cod_prestador": (form.get("cod_prestador") or "").strip() or None,
+        "cod_contable":  (form.get("cod_contable") or "").strip() or None,
+    }
+
+    if not data["codigo"]:
+        flash("El código es obligatorio.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="crear", cliente=form)
+
+    if not data["nombre"]:
+        flash("El nombre es obligatorio.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="crear", cliente=form)
+
+    if repo_clientes.existe_codigo(data["codigo"]):
+        flash("Ya existe un cliente con ese código.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="crear", cliente=form)
+
+    try:
+        repo_clientes.crear(data)
+        flash("Cliente creado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.clientes"))
+    except Exception as e:
+        flash(f"Error al guardar el cliente: {e}", "danger")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="crear", cliente=form)
+
+
+# ── Editar ─────────────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/clientes/editar/<int:cliente_id>", methods=["GET", "POST"])
+def cliente_editar(cliente_id):
+    cliente = repo_clientes.obtener(cliente_id)
+    if not cliente:
+        flash("El cliente no existe.", "error")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/cliente_form.html",
+            modo="editar",
+            cliente=cliente
+        )
+
+    form = request.form
+
+    data = {
+        "codigo":        (form.get("codigo") or "").strip().upper(),
+        "estado":         form.get("estado") or "ACTIVO",
+        "nit":           (form.get("nit") or "").strip() or None,
+        "nit_contab":    (form.get("nit_contab") or "").strip() or None,
+        "nit_tercero":   (form.get("nit_tercero") or "").strip() or None,
+        "nombre":        (form.get("nombre") or "").strip(),
+        "direccion":     (form.get("direccion") or "").strip() or None,
+        "telefonos":     (form.get("telefonos") or "").strip() or None,
+        "contacto":      (form.get("contacto") or "").strip() or None,
+        "email":         (form.get("email") or "").strip().lower() or None,
+        "cod_prestador": (form.get("cod_prestador") or "").strip() or None,
+        "cod_contable":  (form.get("cod_contable") or "").strip() or None,
+    }
+
+    if not data["codigo"]:
+        flash("El código es obligatorio.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="editar", cliente={**cliente, **form})
+
+    if not data["nombre"]:
+        flash("El nombre es obligatorio.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="editar", cliente={**cliente, **form})
+
+    if repo_clientes.existe_codigo(data["codigo"], exclude_id=cliente_id):
+        flash("Ya existe otro cliente con ese código.", "warning")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="editar", cliente={**cliente, **form})
+
+    try:
+        repo_clientes.actualizar(cliente_id, data)
+        flash("Cliente actualizado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.cliente_editar", cliente_id=cliente_id))
+    except Exception as e:
+        flash(f"Error al actualizar el cliente: {e}", "danger")
+        return render_template("hc/configuracion/cliente_form.html",
+                               modo="editar", cliente={**cliente, **form})
+
+
+# ── Toggle estado ──────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/clientes/toggle/<int:cliente_id>", methods=["POST"])
+def cliente_toggle(cliente_id):
+    cliente = repo_clientes.obtener(cliente_id)
+    if not cliente:
+        flash("El cliente no existe.", "error")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    nuevo = "INACTIVO" if cliente.get("estado") == "ACTIVO" else "ACTIVO"
+    repo_clientes.cambiar_estado(cliente_id, nuevo)
+    flash(f"Cliente {'inactivado' if nuevo == 'INACTIVO' else 'activado'} correctamente.", "success")
+    return redirect(url_for("hc_configuracion.clientes"))
+
+
+# ── Contratos del cliente (JSON para el tab) ───────────────────────
+
+@bp_hc_configuracion.route("/clientes/<int:cliente_id>/contratos")
+def cliente_contratos_json(cliente_id):
+    data = repo_contratos.listar_por_cliente(cliente_id)
+    return jsonify(data)
+
+
+# ══════════════════════════════════════════════════════════════════
+#  CONTRATOS
+# ══════════════════════════════════════════════════════════════════
+
+@bp_hc_configuracion.route("/contratos/nuevo", methods=["GET", "POST"])
+def contrato_nuevo():
+    # cliente_id llega por query string en GET, o por form en POST
+    cliente_id_raw = request.args.get("cliente_id") or request.form.get("cliente_id")
+
+    if not cliente_id_raw:
+        flash("Debes seleccionar un cliente.", "warning")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    cliente_id = int(cliente_id_raw)
+    cliente    = repo_clientes.obtener(cliente_id)
+
+    if not cliente:
+        flash("Cliente no encontrado.", "warning")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/contrato_form.html",
+            modo="crear",
+            contrato={},
+            cliente=cliente,
+            sedes=repo_sedes.listar(),
+            manuales_tarifarios=MANUALES_TARIFARIOS
+        )
+
+    form = request.form
+    data = _contrato_payload(form, cliente_id)
+
+    if not data["nro_contrato"]:
+        flash("El número de contrato es obligatorio.", "warning")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="crear", contrato=form, cliente=cliente,
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+    if repo_contratos.existe_nro(data["nro_contrato"]):
+        flash("Ya existe un contrato con ese número.", "warning")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="crear", contrato=form, cliente=cliente,
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+    try:
+        repo_contratos.crear(data)
+        flash("Contrato creado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.cliente_editar", cliente_id=cliente_id))
+    except Exception as e:
+        flash(f"Error al guardar el contrato: {e}", "danger")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="crear", contrato=form, cliente=cliente,
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+
+# ── Editar contrato ────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/contratos/editar/<int:contrato_id>", methods=["GET", "POST"])
+def contrato_editar(contrato_id):
+    contrato = repo_contratos.obtener(contrato_id)
+    if not contrato:
+        flash("El contrato no existe.", "error")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    cliente = repo_clientes.obtener(contrato["cliente_id"])
+
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/contrato_form.html",
+            modo="editar",
+            contrato=contrato,
+            cliente=cliente,
+            sedes=repo_sedes.listar(),
+            manuales_tarifarios=MANUALES_TARIFARIOS
+        )
+
+    form = request.form
+    data = _contrato_payload(form, contrato["cliente_id"])
+
+    if not data["nro_contrato"]:
+        flash("El número de contrato es obligatorio.", "warning")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="editar", contrato={**contrato, **form},
+                               cliente=cliente, sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+    if repo_contratos.existe_nro(data["nro_contrato"], exclude_id=contrato_id):
+        flash("Ya existe otro contrato con ese número.", "warning")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="editar", contrato={**contrato, **form},
+                               cliente=cliente, sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+    try:
+        repo_contratos.actualizar(contrato_id, data)
+        flash("Contrato actualizado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.contrato_editar", contrato_id=contrato_id))
+    except Exception as e:
+        flash(f"Error al actualizar el contrato: {e}", "danger")
+        return render_template("hc/configuracion/contrato_form.html",
+                               modo="editar", contrato={**contrato, **form},
+                               cliente=cliente, sedes=repo_sedes.listar(),
+                               manuales_tarifarios=MANUALES_TARIFARIOS)
+
+
+# ── Toggle contrato ────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/contratos/toggle/<int:contrato_id>", methods=["POST"])
+def contrato_toggle(contrato_id):
+    contrato = repo_contratos.obtener(contrato_id)
+    if not contrato:
+        flash("El contrato no existe.", "error")
+        return redirect(url_for("hc_configuracion.clientes"))
+
+    nuevo = "INACTIVO" if contrato.get("estado") == "ACTIVO" else "ACTIVO"
+    repo_contratos.cambiar_estado(contrato_id, nuevo)
+    flash(f"Contrato {'inactivado' if nuevo == 'INACTIVO' else 'activado'} correctamente.", "success")
+    return redirect(url_for("hc_configuracion.cliente_editar",
+                            cliente_id=contrato["cliente_id"]))
+
+
+# ══════════════════════════════════════════════════════════════════
+#  HELPER — form → payload hc_contratos
+# ══════════════════════════════════════════════════════════════════
+
+def _contrato_payload(form, cliente_id):
+
+    def num(key):
+        try:
+            v = (form.get(key) or "").strip()
+            return float(v) if v else 0.0
+        except ValueError:
+            return 0.0
+
+    def fecha(key):
+        v = (form.get(key) or "").strip()
+        return v if v else None
+
+    def txt(key):
+        v = (form.get(key) or "").strip()
+        return v if v else None
+
+    def entero(key):
+        v = (form.get(key) or "").strip()
+        try:
+            return int(v) if v else None
+        except ValueError:
+            return None
+
+    return {
+        "cliente_id":                  cliente_id,
+        "nro_contrato":                txt("nro_contrato"),
+        "estado":                      form.get("estado") or "ACTIVO",
+        "fecha_contrato":              fecha("fecha_contrato"),
+        "fec_desde":                   fecha("fec_desde"),
+        "fec_hasta":                   fecha("fec_hasta"),
+        "nro_referencia":              txt("nro_referencia"),
+        "descripcion":                 txt("descripcion"),
+        "tipo_contrato":               txt("tipo_contrato"),
+        "tipo_factura":                txt("tipo_factura"),
+        "prefijo_fact":                txt("prefijo_fact"),
+        "periodicidad_facturacion":    txt("periodicidad_facturacion"),
+        "sede_id":                     entero("sede_id"),
+        "manual_tarifario":            txt("manual_tarifario"),
+        "valor_contrato":              num("valor_contrato"),
+        "valor_actual":                num("valor_actual"),
+        "saldo":                       num("saldo"),
+        "pct_descto":                  num("pct_descto"),
+        "valor_ejecutado_calculado":   num("valor_ejecutado_calculado"),
+        "valor_ejecutado_facturado":   num("valor_ejecutado_facturado"),
+        "valor_ejecutado_calc_citas":  num("valor_ejecutado_calc_citas"),
+    }

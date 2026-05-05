@@ -1,0 +1,431 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · {{ 'Nuevo contrato' if modo=='crear' else 'Editar contrato' }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-contract"></i>{% endblock %}
+{% block header_title %}{{ 'Nuevo contrato' if modo=='crear' else 'Editar contrato' }}{% endblock %}
+{% block header_subtitle %}Administración de contratos de prestación de servicios{% endblock %}
+
+{% block header_actions %}
+{% if cliente %}
+<a class="btn-ax ghost" href="/hc/configuracion/clientes/editar/{{ cliente.id }}">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al cliente
+</a>
+{% else %}
+<a class="btn-ax ghost" href="/hc/configuracion/clientes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.card-form {
+  background: var(--surface-2);
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(226,232,240,.9);
+  margin-bottom: 16px;
+}
+
+.form-group-title {
+  font-size: .8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(226,232,240,.7);
+}
+
+/* ── grids ── */
+.fg-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.fg-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.fg-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full  { grid-column: 1 / -1; }
+.field.span2 { grid-column: span 2; }
+.field.span3 { grid-column: span 3; }
+
+.field label {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  outline: none;
+  font-size: .92rem;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(139,92,246,.6);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.1);
+}
+
+.field input[readonly] {
+  background: rgba(226,232,240,.4);
+  color: var(--text-soft);
+  cursor: not-allowed;
+}
+
+/* ── Panel valores ── */
+.valores-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.valor-box {
+  background: var(--surface);
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.valor-box.primary {
+  border-color: rgba(139,92,246,.3);
+  background: rgba(139,92,246,.05);
+}
+
+.valor-box-label {
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-faint);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.valor-box input {
+  width: 100%;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.valor-box input:focus {
+  border-color: rgba(139,92,246,.6);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.1);
+}
+
+.valor-box input[readonly] {
+  background: rgba(226,232,240,.4);
+  color: var(--text-soft);
+  cursor: not-allowed;
+  font-weight: 600;
+}
+
+/* ── Cliente seleccionado ── */
+.cliente-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(139,92,246,.07);
+  border: 1px solid rgba(139,92,246,.2);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.cliente-badge-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(139,92,246,.15);
+  display: grid;
+  place-items: center;
+  color: #7c3aed;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.cliente-badge-info { flex: 1; }
+.cliente-badge-name { font-weight: 800; font-size: .95rem; color: var(--text); }
+.cliente-badge-nit  { font-size: .8rem; color: var(--text-soft); margin-top: 2px; }
+
+.form-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .fg-3, .fg-4, .fg-2 { grid-template-columns: 1fr; }
+  .valores-grid { grid-template-columns: 1fr; }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Badge cliente -->
+{% if cliente %}
+<div class="cliente-badge">
+  <div class="cliente-badge-icon">
+    <i class="fa-solid fa-building-user"></i>
+  </div>
+  <div class="cliente-badge-info">
+    <div class="cliente-badge-name">{{ cliente.nombre }}</div>
+    <div class="cliente-badge-nit">NIT: {{ cliente.nit or '—' }} · Código: {{ cliente.codigo }}</div>
+  </div>
+</div>
+{% endif %}
+
+<form method="POST" id="formContrato">
+
+  <!-- Campo oculto cliente_id -->
+  <input type="hidden" name="cliente_id"
+         value="{{ contrato.cliente_id if contrato else cliente.id }}">
+
+  <!-- ── Identificación del contrato ── -->
+  <div class="card-form">
+    <p class="form-group-title">
+      <i class="fa-solid fa-hashtag" style="margin-right:6px;"></i>Identificación
+    </p>
+    <div class="fg-3">
+
+      <div class="field">
+        <label>Nro. Contrato *</label>
+        <input type="text" name="nro_contrato" required
+               value="{{ contrato.nro_contrato or '' }}"
+               placeholder="Ej: 015">
+      </div>
+
+      <div class="field">
+        <label>Estado</label>
+        <select name="estado">
+          <option value="ACTIVO"   {{ 'selected' if (contrato and contrato.estado == 'ACTIVO')   else '' }}>Activo</option>
+          <option value="INACTIVO" {{ 'selected' if (contrato and contrato.estado == 'INACTIVO') else '' }}>Inactivo</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Nro. Referencia</label>
+        <input type="text" name="nro_referencia"
+               value="{{ contrato.nro_referencia or '' }}"
+               placeholder="Referencia externa">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Fechas ── -->
+  <div class="card-form">
+    <p class="form-group-title">
+      <i class="fa-solid fa-calendar-days" style="margin-right:6px;"></i>Fechas
+    </p>
+    <div class="fg-3">
+
+      <div class="field">
+        <label>Fecha contrato</label>
+        <input type="date" name="fecha_contrato"
+               value="{{ contrato.fecha_contrato or '' }}">
+      </div>
+
+      <div class="field">
+        <label>Fecha desde</label>
+        <input type="date" name="fec_desde"
+               value="{{ contrato.fec_desde or '' }}">
+      </div>
+
+      <div class="field">
+        <label>Fecha hasta</label>
+        <input type="date" name="fec_hasta"
+               value="{{ contrato.fec_hasta or '' }}">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Clasificación ── -->
+  <div class="card-form">
+    <p class="form-group-title">
+      <i class="fa-solid fa-tags" style="margin-right:6px;"></i>Clasificación y facturación
+    </p>
+    <div class="fg-3">
+
+      <div class="field full">
+        <label>Descripción</label>
+        <input type="text" name="descripcion"
+               value="{{ contrato.descripcion or '' }}"
+               placeholder="Descripción del contrato">
+      </div>
+
+      <div class="field">
+        <label>Tipo contrato</label>
+        <select name="tipo_contrato">
+          <option value="">Seleccione</option>
+          <option value="EVENTO"  {{ 'selected' if (contrato and contrato.tipo_contrato == 'EVENTO')  else '' }}>Por Evento</option>
+          <option value="PAQUETE" {{ 'selected' if (contrato and contrato.tipo_contrato == 'PAQUETE') else '' }}>Paquete</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Tipo factura</label>
+        <select name="tipo_factura">
+          <option value="">Seleccione</option>
+          <option value="INDIVIDUAL"   {{ 'selected' if (contrato and contrato.tipo_factura == 'INDIVIDUAL')   else '' }}>Individual</option>
+          <option value="CONSOLIDADA"  {{ 'selected' if (contrato and contrato.tipo_factura == 'CONSOLIDADA')  else '' }}>Consolidada</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Prefijo Fact.</label>
+        <input type="text" name="prefijo_fact"
+               value="{{ contrato.prefijo_fact or '' }}"
+               placeholder="Ej: FC">
+      </div>
+
+      <div class="field">
+        <label>Periodicidad facturación</label>
+        <select name="periodicidad_facturacion">
+          <option value="">Seleccione</option>
+          <option value="MENSUAL"     {{ 'selected' if (contrato and contrato.periodicidad_facturacion == 'MENSUAL')     else '' }}>Mensual</option>
+          <option value="BIMESTRAL"   {{ 'selected' if (contrato and contrato.periodicidad_facturacion == 'BIMESTRAL')   else '' }}>Bimestral</option>
+          <option value="TRIMESTRAL"  {{ 'selected' if (contrato and contrato.periodicidad_facturacion == 'TRIMESTRAL')  else '' }}>Trimestral</option>
+          <option value="SEMESTRAL"   {{ 'selected' if (contrato and contrato.periodicidad_facturacion == 'SEMESTRAL')   else '' }}>Semestral</option>
+          <option value="ANUAL"       {{ 'selected' if (contrato and contrato.periodicidad_facturacion == 'ANUAL')       else '' }}>Anual</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Sede</label>
+        <select name="sede_id">
+          <option value="">Seleccione</option>
+          {% for s in sedes %}
+          <option value="{{ s.id }}"
+            {{ 'selected' if (contrato and contrato.sede_id == s.id) else '' }}>
+            {{ s.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field span2">
+        <label>Manual tarifario</label>
+        <select name="manual_tarifario">
+          <option value="">Seleccione</option>
+          {% for m in manuales_tarifarios %}
+          <option value="{{ m }}"
+            {{ 'selected' if (contrato and contrato.manual_tarifario == m) else '' }}>
+            {{ m }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Valores financieros ── -->
+  <div class="card-form">
+    <p class="form-group-title">
+      <i class="fa-solid fa-dollar-sign" style="margin-right:6px;"></i>Valores financieros
+    </p>
+    <div class="valores-grid">
+
+      <div class="valor-box primary">
+        <div class="valor-box-label">Valor contrato</div>
+        <input type="number" name="valor_contrato" min="0" step="0.01"
+               value="{{ contrato.valor_contrato or 0 }}">
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">Valor actual</div>
+        <input type="number" name="valor_actual" min="0" step="0.01"
+               value="{{ contrato.valor_actual or 0 }}" readonly>
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">Saldo</div>
+        <input type="number" name="saldo" min="0" step="0.01"
+               value="{{ contrato.saldo or 0 }}" readonly>
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">% Descuento</div>
+        <input type="number" name="pct_descto" min="0" max="100" step="0.01"
+               value="{{ contrato.pct_descto or 0 }}">
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">Valor ejecutado calculado</div>
+        <input type="number" name="valor_ejecutado_calculado" min="0" step="0.01"
+               value="{{ contrato.valor_ejecutado_calculado or 0 }}" readonly>
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">Valor ejecutado facturado</div>
+        <input type="number" name="valor_ejecutado_facturado" min="0" step="0.01"
+               value="{{ contrato.valor_ejecutado_facturado or 0 }}" readonly>
+      </div>
+
+      <div class="valor-box">
+        <div class="valor-box-label">Valor ejecutado calc. citas</div>
+        <input type="number" name="valor_ejecutado_calc_citas" min="0" step="0.01"
+               value="{{ contrato.valor_ejecutado_calc_citas or 0 }}" readonly>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn-ax primary" type="submit">
+      <i class="fa-solid fa-save"></i>
+      Guardar contrato
+    </button>
+    {% if cliente %}
+    <a class="btn-ax ghost"
+       href="/hc/configuracion/clientes/editar/{{ cliente.id }}">
+      Cancelar
+    </a>
+    {% else %}
+    <a class="btn-ax ghost" href="/hc/configuracion/clientes">Cancelar</a>
+    {% endif %}
+  </div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+const form = document.getElementById("formContrato")
+form?.addEventListener("submit", function (e) {
+  e.preventDefault()
+  Swal.fire({
+    title: "¿Guardar contrato?",
+    text: "Se guardará la información del contrato.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#7c3aed"
+  }).then(r => { if (r.isConfirmed) form.submit() })
+})
+
+</script>
+{% endblock %}

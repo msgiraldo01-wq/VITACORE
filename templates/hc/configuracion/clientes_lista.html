@@ -1,0 +1,289 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Clientes{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-building-user"></i>{% endblock %}
+{% block header_title %}Configuración · Clientes{% endblock %}
+{% block header_subtitle %}Gestión de clientes institucionales{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax primary" href="/hc/configuracion/clientes/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo cliente
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.search { flex: 1; }
+
+.search input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(203,213,225,.95);
+  background: var(--surface);
+  font-size: .93rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.search input:focus {
+  border-color: rgba(14,165,255,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,255,.1);
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.search-wrap .ico {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: .88rem;
+}
+
+.table-wrap {
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(226,232,240,.95);
+  background: var(--surface-2);
+  max-height: 62vh;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+th, td {
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(226,232,240,.9);
+  font-size: .91rem;
+  text-align: left;
+}
+
+th {
+  background: rgba(139,92,246,.07);
+  text-transform: uppercase;
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--text-soft);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+tbody tr:hover { background: rgba(139,92,246,.03); }
+tbody tr:last-child td { border-bottom: none; }
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge.ok  { background: rgba(34,197,94,.12);  color: #166534; }
+.badge.off { background: rgba(239,68,68,.12);  color: #991b1b; }
+
+.actions { display: flex; gap: 7px; }
+
+.btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .15s;
+}
+
+.btn-mini.edit {
+  background: rgba(139,92,246,.12);
+  color: #5b21b6;
+}
+
+.btn-mini.edit:hover { background: rgba(139,92,246,.22); }
+
+.btn-mini.toggle {
+  background: rgba(15,23,42,.07);
+  color: var(--text-soft);
+}
+
+.btn-mini.toggle:hover { background: rgba(15,23,42,.13); }
+
+.nit-cell {
+  font-family: monospace;
+  font-size: .87rem;
+  color: var(--text-soft);
+}
+
+.empty-box {
+  border: 1px dashed rgba(148,163,184,.5);
+  border-radius: 18px;
+  padding: 40px;
+  text-align: center;
+  color: var(--text-soft);
+}
+
+.empty-box h3 { margin: 0 0 8px; color: var(--text); }
+.empty-box p  { margin: 0 0 18px; font-size: .9rem; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <i class="fa-solid fa-magnifying-glass ico"></i>
+    <input id="searchInput" type="text" placeholder="Buscar por nombre, código o NIT...">
+  </div>
+</div>
+
+{% if data %}
+
+<div class="table-wrap" id="scrollContainer">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Código</th>
+        <th>NIT</th>
+        <th>Nombre</th>
+        <th>Contacto</th>
+        <th>Teléfonos</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in data %}
+      <tr class="rowItem">
+        <td>{{ c.id }}</td>
+        <td class="codigo"><strong>{{ c.codigo }}</strong></td>
+        <td class="nit-cell nit">{{ c.nit or '—' }}</td>
+        <td class="nombre">{{ c.nombre }}</td>
+        <td>{{ c.contacto or '—' }}</td>
+        <td>{{ c.telefonos or '—' }}</td>
+        <td>
+          {% if c.estado == 'ACTIVO' %}
+            <span class="badge ok"><i class="fa-solid fa-circle" style="font-size:.5rem;"></i> Activo</span>
+          {% else %}
+            <span class="badge off"><i class="fa-solid fa-circle" style="font-size:.5rem;"></i> Inactivo</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a class="btn-mini edit" href="/hc/configuracion/clientes/editar/{{ c.id }}">
+              <i class="fa-solid fa-pen"></i> Editar
+            </a>
+            <form method="POST" action="/hc/configuracion/clientes/toggle/{{ c.id }}" class="toggleForm">
+              <button class="btn-mini toggle" type="button">
+                <i class="fa-solid fa-power-off"></i>
+                {{ 'Inactivar' if c.estado == 'ACTIVO' else 'Activar' }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+
+<div class="empty-box">
+  <h3>No hay clientes registrados</h3>
+  <p>Crea el primer cliente para comenzar.</p>
+  <a class="btn-ax primary" href="/hc/configuracion/clientes/nuevo">
+    <i class="fa-solid fa-plus"></i>
+    Crear cliente
+  </a>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+/* ── Toggle estado ── */
+document.querySelectorAll(".toggleForm button").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const form = this.closest("form")
+    Swal.fire({
+      title: "¿Confirmar cambio?",
+      text: "Se modificará el estado del cliente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#7c3aed"
+    }).then(r => { if (r.isConfirmed) form.submit() })
+  })
+})
+
+/* ── Buscador ── */
+const searchInput = document.getElementById("searchInput")
+const rows = document.querySelectorAll(".rowItem")
+
+searchInput.addEventListener("keyup", () => {
+  const val = searchInput.value.toLowerCase()
+  rows.forEach(row => {
+    const nombre = row.querySelector(".nombre")?.innerText.toLowerCase() || ""
+    const codigo = row.querySelector(".codigo")?.innerText.toLowerCase() || ""
+    const nit    = row.querySelector(".nit")?.innerText.toLowerCase()    || ""
+    row.style.display = (nombre.includes(val) || codigo.includes(val) || nit.includes(val)) ? "" : "none"
+  })
+})
+
+/* ── Scroll infinito ── */
+const container = document.getElementById("scrollContainer")
+let visible = 30
+
+function applyLimit() {
+  const allRows = document.querySelectorAll(".rowItem")
+  allRows.forEach((row, i) => { row.style.display = i < visible ? "" : "none" })
+}
+
+applyLimit()
+
+container?.addEventListener("scroll", () => {
+  if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
+    visible += 30
+    applyLimit()
+  }
+})
+
+</script>
+{% endblock %}

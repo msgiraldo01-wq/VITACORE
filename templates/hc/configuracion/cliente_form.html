@@ -1,0 +1,590 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · {{ 'Nuevo cliente' if modo=='crear' else 'Editar cliente' }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-building-user"></i>{% endblock %}
+{% block header_title %}{{ 'Nuevo cliente' if modo=='crear' else 'Editar cliente' }}{% endblock %}
+{% block header_subtitle %}Registro de clientes institucionales{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/clientes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ── Tabs ─────────────────────────────────────── */
+.tabs-wrap {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(226,232,240,.9);
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color .15s, border-color .15s;
+}
+
+.tab-btn:hover { color: #7c3aed; }
+.tab-btn.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Form ─────────────────────────────────────── */
+.card-form {
+  background: var(--surface-2);
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(226,232,240,.9);
+  margin-bottom: 16px;
+}
+
+.form-group-title {
+  font-size: .8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(226,232,240,.7);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.field.span2 { grid-column: span 2; }
+
+.field label {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  outline: none;
+  font-size: .92rem;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(139,92,246,.6);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.1);
+}
+
+textarea { min-height: 80px; resize: none; }
+
+.form-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+/* ── Sección contratos ───────────────────────── */
+.contratos-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contratos-toolbar h4 {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.contratos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.contrato-card {
+  background: var(--surface-2);
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
+  transition: .18s;
+}
+
+.contrato-card:hover {
+  border-color: rgba(139,92,246,.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.contrato-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.contrato-nro {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.contrato-estado {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .73rem;
+  font-weight: 800;
+}
+
+.contrato-estado.ok  { background: rgba(34,197,94,.12);  color: #166534; }
+.contrato-estado.off { background: rgba(239,68,68,.12);  color: #991b1b; }
+
+.contrato-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin-bottom: 14px;
+}
+
+.ci-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ci-label {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+
+.ci-val {
+  font-size: .84rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.contrato-valor {
+  background: rgba(139,92,246,.07);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cv-label { font-size: .75rem; color: var(--text-soft); font-weight: 700; }
+.cv-num   { font-size: .95rem; font-weight: 800; color: #5b21b6; }
+
+.contrato-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  padding: 7px 11px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .15s;
+}
+
+.btn-mini.edit {
+  background: rgba(139,92,246,.12);
+  color: #5b21b6;
+}
+
+.btn-mini.edit:hover { background: rgba(139,92,246,.22); }
+
+.btn-mini.toggle {
+  background: rgba(15,23,42,.07);
+  color: var(--text-soft);
+}
+
+.btn-mini.toggle:hover { background: rgba(15,23,42,.13); }
+
+.empty-contratos {
+  grid-column: 1 / -1;
+  text-align: center;
+  border: 1px dashed rgba(148,163,184,.5);
+  border-radius: 16px;
+  padding: 36px;
+  color: var(--text-soft);
+}
+
+.empty-contratos h4 { margin: 0 0 8px; color: var(--text); }
+.empty-contratos p  { margin: 0 0 16px; font-size: .88rem; }
+
+.info-crear-primero {
+  background: rgba(139,92,246,.07);
+  border: 1px solid rgba(139,92,246,.25);
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-size: .9rem;
+  color: var(--text-soft);
+}
+
+.info-crear-primero i { color: #7c3aed; margin-right: 8px; }
+
+@media (max-width: 860px) {
+  .form-grid   { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Tabs -->
+<div class="tabs-wrap">
+  <button class="tab-btn active" data-tab="datos">
+    <i class="fa-solid fa-building-user"></i> Datos del cliente
+  </button>
+  <button class="tab-btn" data-tab="contratos">
+    <i class="fa-solid fa-file-contract"></i> Contratos
+  </button>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — DATOS DEL CLIENTE
+══════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-datos">
+
+  <form method="POST" id="formCliente">
+
+    <!-- Identificación -->
+    <div class="card-form">
+      <p class="form-group-title"><i class="fa-solid fa-fingerprint" style="margin-right:6px;"></i>Identificación</p>
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Código *</label>
+          <input type="text" name="codigo" required
+                 value="{{ cliente.codigo or '' }}"
+                 placeholder="Ej: CLI-001">
+        </div>
+
+        <div class="field">
+          <label>NIT</label>
+          <input type="text" name="nit"
+                 value="{{ cliente.nit or '' }}"
+                 placeholder="Ej: 900123456-1">
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+          <select name="estado">
+            <option value="ACTIVO"   {{ 'selected' if cliente.estado == 'ACTIVO'   else '' }}>Activo</option>
+            <option value="INACTIVO" {{ 'selected' if cliente.estado == 'INACTIVO' else '' }}>Inactivo</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>NIT Contab</label>
+          <input type="text" name="nit_contab"
+                 value="{{ cliente.nit_contab or '' }}">
+        </div>
+
+        <div class="field">
+          <label>NIT Tercero</label>
+          <input type="text" name="nit_tercero"
+                 value="{{ cliente.nit_tercero or '' }}">
+        </div>
+
+        <div class="field">
+          <label>Cod. Prestador</label>
+          <input type="text" name="cod_prestador"
+                 value="{{ cliente.cod_prestador or '' }}"
+                 placeholder="Ej: 52000000">
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Datos generales -->
+    <div class="card-form">
+      <p class="form-group-title"><i class="fa-solid fa-address-card" style="margin-right:6px;"></i>Datos generales</p>
+      <div class="form-grid">
+
+        <div class="field full">
+          <label>Nombre *</label>
+          <input type="text" name="nombre" required
+                 value="{{ cliente.nombre or '' }}"
+                 placeholder="Razón social o nombre comercial">
+        </div>
+
+        <div class="field span2">
+          <label>Dirección</label>
+          <input type="text" name="direccion"
+                 value="{{ cliente.direccion or '' }}"
+                 placeholder="Dirección de la sede principal">
+        </div>
+
+        <div class="field">
+          <label>Teléfonos</label>
+          <input type="text" name="telefonos"
+                 value="{{ cliente.telefonos or '' }}"
+                 placeholder="Ej: 6012345678, 3001234567">
+        </div>
+
+        <div class="field span2">
+          <label>Contacto</label>
+          <input type="text" name="contacto"
+                 value="{{ cliente.contacto or '' }}"
+                 placeholder="Nombre del contacto principal">
+        </div>
+
+        <div class="field">
+          <label>e-Mail</label>
+          <input type="email" name="email"
+                 value="{{ cliente.email or '' }}"
+                 placeholder="correo@cliente.com">
+        </div>
+
+        <div class="field">
+          <label>Cod. Contable</label>
+          <input type="text" name="cod_contable"
+                 value="{{ cliente.cod_contable or '' }}">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-ax primary" type="submit">
+        <i class="fa-solid fa-save"></i>
+        Guardar cliente
+      </button>
+      <a class="btn-ax ghost" href="/hc/configuracion/clientes">Cancelar</a>
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — CONTRATOS
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-contratos">
+
+  {% if modo == 'crear' %}
+
+    <div class="info-crear-primero">
+      <i class="fa-solid fa-circle-info"></i>
+      Guarda primero los datos del cliente para poder registrar contratos.
+    </div>
+
+  {% else %}
+
+    <div class="contratos-toolbar">
+      <h4>Contratos del cliente</h4>
+      <a class="btn-ax primary"
+         href="/hc/configuracion/contratos/nuevo?cliente_id={{ cliente.id }}">
+        <i class="fa-solid fa-plus"></i>
+        Nuevo contrato
+      </a>
+    </div>
+
+    <div class="contratos-grid" id="contratosGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-faint);">
+        <i class="fa-solid fa-spinner fa-spin"></i> Cargando contratos...
+      </div>
+    </div>
+
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+const MODO       = {{ modo | tojson }}
+const CLIENTE_ID = {{ (cliente.id if cliente and cliente.id else None) | tojson }}
+
+/* ── Tabs ── */
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"))
+    btn.classList.add("active")
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active")
+    if (btn.dataset.tab === "contratos" && MODO === "editar") cargarContratos()
+  })
+})
+
+/* ── Form submit ── */
+const form = document.getElementById("formCliente")
+form?.addEventListener("submit", function (e) {
+  e.preventDefault()
+  Swal.fire({
+    title: "¿Guardar cliente?",
+    text: "Se guardará la información del cliente.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#7c3aed"
+  }).then(r => { if (r.isConfirmed) form.submit() })
+})
+
+/* ── Cargar contratos ── */
+async function cargarContratos() {
+  const grid = document.getElementById("contratosGrid")
+  if (!grid) return
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-faint);">
+    <i class="fa-solid fa-spinner fa-spin"></i> Cargando contratos...</div>`
+
+  const res  = await fetch(`/hc/configuracion/clientes/${CLIENTE_ID}/contratos`)
+  const data = await res.json()
+  renderContratos(data)
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '—'
+  return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', minimumFractionDigits:0 }).format(n)
+}
+
+function renderContratos(data) {
+  const grid = document.getElementById("contratosGrid")
+
+  if (!data.length) {
+    grid.innerHTML = `
+      <div class="empty-contratos">
+        <h4>Sin contratos registrados</h4>
+        <p>Este cliente aún no tiene contratos asociados.</p>
+        <a class="btn-ax primary"
+           href="/hc/configuracion/contratos/nuevo?cliente_id=${CLIENTE_ID}">
+          <i class="fa-solid fa-plus"></i> Crear primer contrato
+        </a>
+      </div>`
+    return
+  }
+
+  grid.innerHTML = data.map(c => `
+    <div class="contrato-card">
+      <div class="contrato-card-head">
+        <div class="contrato-nro">
+          <i class="fa-solid fa-file-contract" style="color:#7c3aed;margin-right:6px;font-size:.85rem;"></i>
+          Contrato ${c.nro_contrato}
+        </div>
+        <span class="contrato-estado ${c.estado === 'ACTIVO' ? 'ok' : 'off'}">
+          ${c.estado}
+        </span>
+      </div>
+
+      <div class="contrato-info">
+        <div class="ci-item">
+          <span class="ci-label">Tipo contrato</span>
+          <span class="ci-val">${c.tipo_contrato || '—'}</span>
+        </div>
+        <div class="ci-item">
+          <span class="ci-label">Tipo factura</span>
+          <span class="ci-val">${c.tipo_factura || '—'}</span>
+        </div>
+        <div class="ci-item">
+          <span class="ci-label">Fec. desde</span>
+          <span class="ci-val">${c.fec_desde || '—'}</span>
+        </div>
+        <div class="ci-item">
+          <span class="ci-label">Fec. hasta</span>
+          <span class="ci-val">${c.fec_hasta || '—'}</span>
+        </div>
+        <div class="ci-item">
+          <span class="ci-label">Periodicidad</span>
+          <span class="ci-val">${c.periodicidad_facturacion || '—'}</span>
+        </div>
+        <div class="ci-item">
+          <span class="ci-label">Sede</span>
+          <span class="ci-val">${c.sede_nombre || '—'}</span>
+        </div>
+      </div>
+
+      <div class="contrato-valor">
+        <span class="cv-label">Valor contrato</span>
+        <span class="cv-num">${fmt(c.valor_contrato)}</span>
+      </div>
+
+      <div class="contrato-actions">
+        <a class="btn-mini edit"
+           href="/hc/configuracion/contratos/editar/${c.id}">
+          <i class="fa-solid fa-pen"></i> Editar
+        </a>
+        <form method="POST"
+              action="/hc/configuracion/contratos/toggle/${c.id}"
+              class="toggleContratoForm">
+          <button class="btn-mini toggle" type="button">
+            <i class="fa-solid fa-power-off"></i>
+            ${c.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
+          </button>
+        </form>
+      </div>
+    </div>`).join("")
+
+  /* Toggle contratos dinámicos */
+  document.querySelectorAll(".toggleContratoForm button").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const form = this.closest("form")
+      Swal.fire({
+        title: "¿Cambiar estado del contrato?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, continuar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#7c3aed"
+      }).then(r => { if (r.isConfirmed) form.submit() })
+    })
+  })
+}
+
+</script>
+{% endblock %}
