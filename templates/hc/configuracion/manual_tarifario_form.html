@@ -1,0 +1,931 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · {{ 'Nuevo manual' if modo=='crear' else 'Editar manual' }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice-dollar"></i>{% endblock %}
+{% block header_title %}{{ 'Nuevo manual tarifario' if modo=='crear' else 'Editar manual tarifario' }}{% endblock %}
+{% block header_subtitle %}Tarifas de procedimientos e insumos{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/manuales-tarifarios">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ── Tabs ── */
+.tabs-wrap {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(226,232,240,.9);
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color .15s, border-color .15s;
+}
+
+.tab-btn:hover { color: #0ea5e9; }
+.tab-btn.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Form ── */
+.card-form {
+  background: var(--surface-2);
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(226,232,240,.9);
+  margin-bottom: 16px;
+}
+
+.form-group-title {
+  font-size: .8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(226,232,240,.7);
+}
+
+.fg-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.fg-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+.fg-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full  { grid-column: 1/-1; }
+.field.span2 { grid-column: span 2; }
+
+.field label {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.field input,
+.field select {
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  outline: none;
+  font-size: .92rem;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+.form-actions { margin-top: 20px; display: flex; gap: 10px; }
+
+/* ── Info crear primero ── */
+.info-panel {
+  background: rgba(14,165,233,.07);
+  border: 1px solid rgba(14,165,233,.25);
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-size: .9rem;
+  color: var(--text-soft);
+}
+
+.info-panel i { color: #0ea5e9; margin-right: 8px; }
+
+/* ── Toolbar pestaña ── */
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tab-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+/* ── Buscador CUPS / MED inline ── */
+.inline-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.inline-search-wrap .ico-s {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: .85rem;
+}
+
+.inline-search-wrap input {
+  width: 100%;
+  padding: 10px 13px 10px 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  font-size: .9rem;
+  outline: none;
+  box-sizing: border-box;
+  color: var(--text);
+}
+
+.inline-search-wrap input:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+.inline-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--surface);
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.inline-dropdown.open { display: block; }
+
+.inline-opt {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .87rem;
+  border-bottom: 1px solid rgba(226,232,240,.6);
+  transition: background .12s;
+  color: var(--text);
+}
+
+.inline-opt:hover { background: rgba(14,165,233,.07); }
+.inline-opt:last-child { border-bottom: none; }
+.inline-opt .cod { font-weight: 700; color: #0369a1; margin-right: 6px; }
+
+/* ── Tabla procedimientos / items ── */
+.data-table-wrap {
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 16px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 11px 12px;
+  text-align: left;
+  font-size: .87rem;
+  border-bottom: 1px solid rgba(226,232,240,.8);
+}
+
+.data-table th {
+  background: rgba(14,165,233,.07);
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 800;
+  color: var(--text-soft);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: rgba(14,165,233,.03); }
+
+.val-input {
+  width: 100px;
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: .87rem;
+  text-align: right;
+  outline: none;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.val-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14,165,233,.15);
+}
+
+.sel-input {
+  border: 1px solid rgba(203,213,225,.9);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: .82rem;
+  outline: none;
+  color: var(--text);
+  background: var(--surface);
+  min-width: 110px;
+}
+
+.sel-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14,165,233,.15);
+}
+
+.btn-del {
+  background: rgba(239,68,68,.1);
+  color: #991b1b;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 700;
+  transition: .15s;
+}
+
+.btn-del:hover { background: rgba(239,68,68,.2); }
+
+.empty-tab {
+  text-align: center;
+  padding: 36px;
+  color: var(--text-faint);
+  font-size: .9rem;
+}
+
+/* ── Import btn ── */
+.btn-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(99,102,241,.1);
+  color: #4338ca;
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-size: .83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .15s;
+  text-decoration: none;
+}
+
+.btn-import:hover {
+  background: rgba(99,102,241,.18);
+  border-color: rgba(99,102,241,.4);
+}
+
+/* ── CSV tips ── */
+.csv-hint {
+  font-size: .78rem;
+  color: var(--text-faint);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media (max-width: 860px) {
+  .fg-3, .fg-4 { grid-template-columns: 1fr; }
+  .fg-2 { grid-template-columns: 1fr; }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Tabs -->
+<div class="tabs-wrap">
+  <button class="tab-btn active" data-tab="datos">
+    <i class="fa-solid fa-file-invoice-dollar"></i> Datos generales
+  </button>
+  <button class="tab-btn" data-tab="procedimientos">
+    <i class="fa-solid fa-syringe"></i> Procedimientos
+  </button>
+  <button class="tab-btn" data-tab="items">
+    <i class="fa-solid fa-pills"></i> Ítems
+  </button>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — DATOS GENERALES
+══════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-datos">
+
+  <form method="POST" id="formManual">
+
+    <!-- Identificación -->
+    <div class="card-form">
+      <p class="form-group-title">
+        <i class="fa-solid fa-fingerprint" style="margin-right:6px;"></i>Identificación
+      </p>
+      <div class="fg-3">
+
+        <div class="field">
+          <label>Código *</label>
+          <input type="text" name="codigo" required
+                 value="{{ manual.codigo or '' }}"
+                 placeholder="Ej: ISS-2001">
+        </div>
+
+        <div class="field span2">
+          <label>Nombre *</label>
+          <input type="text" name="nombre" required
+                 value="{{ manual.nombre or '' }}"
+                 placeholder="Nombre del manual tarifario">
+        </div>
+
+        <div class="field">
+          <label>Estado</label>
+          <select name="estado">
+            <option value="ACTIVO"   {{ 'selected' if manual.get('estado','ACTIVO') == 'ACTIVO' }}>Activo</option>
+            <option value="INACTIVO" {{ 'selected' if manual.get('estado') == 'INACTIVO' }}>Inactivo</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tipo moneda</label>
+          <select name="tipo_moneda">
+            <option value="COP" {{ 'selected' if manual.get('tipo_moneda','COP') == 'COP' }}>COP — Peso colombiano</option>
+            <option value="USD" {{ 'selected' if manual.get('tipo_moneda') == 'USD' }}>USD — Dólar</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Manual base -->
+    <div class="card-form">
+      <p class="form-group-title">
+        <i class="fa-solid fa-link" style="margin-right:6px;"></i>Manual base y ajuste de precios
+      </p>
+      <div class="fg-3">
+
+        <div class="field span2">
+          <label>Manual base</label>
+          <select name="manual_base_id">
+            <option value="">— Ninguno (manual propio) —</option>
+            {% for mb in manuales_base %}
+            <option value="{{ mb.id }}"
+              {{ 'selected' if manual.get('manual_base_id') == mb.id }}>
+              {{ mb.codigo }} — {{ mb.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>% Base</label>
+          <input type="number" name="pct_base" min="0" max="9999" step="0.01"
+                 value="{{ manual.get('pct_base', 100) }}"
+                 placeholder="100">
+        </div>
+
+      </div>
+
+      <p style="font-size:.82rem;color:var(--text-faint);margin:10px 0 0;">
+        <i class="fa-solid fa-circle-info" style="margin-right:5px;"></i>
+        Si seleccionas un manual base, los valores de los procedimientos se heredan
+        y se ajustan por el % indicado (100 = sin cambio, 110 = +10%, 90 = -10%).
+      </p>
+    </div>
+
+    <!-- Vigencia -->
+    <div class="card-form">
+      <p class="form-group-title">
+        <i class="fa-solid fa-calendar-days" style="margin-right:6px;"></i>Vigencia
+      </p>
+      <div class="fg-2">
+        <div class="field">
+          <label>Vigencia desde</label>
+          <input type="date" name="vigencia_desde"
+                 value="{{ manual.get('vigencia_desde', '') or '' }}">
+        </div>
+        <div class="field">
+          <label>Vigencia hasta</label>
+          <input type="date" name="vigencia_hasta"
+                 value="{{ manual.get('vigencia_hasta', '') or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-ax primary" type="submit">
+        <i class="fa-solid fa-save"></i>
+        Guardar manual
+      </button>
+      <a class="btn-ax ghost" href="/hc/configuracion/manuales-tarifarios">Cancelar</a>
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — PROCEDIMIENTOS
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-procedimientos">
+
+  {% if modo == 'crear' %}
+  <div class="info-panel">
+    <i class="fa-solid fa-circle-info"></i>
+    Guarda primero los datos generales para poder agregar procedimientos.
+  </div>
+
+  {% else %}
+
+  <div class="tab-toolbar">
+    <div class="tab-toolbar-left">
+      <!-- Buscador CUPS -->
+      <div class="inline-search-wrap">
+        <i class="fa-solid fa-magnifying-glass ico-s"></i>
+        <input type="text" id="cupsSearch"
+               placeholder="Buscar CUPS por código o nombre...">
+        <div class="inline-dropdown" id="cupsDropdown"></div>
+      </div>
+    </div>
+
+    <!-- Importar CSV -->
+    <label class="btn-import">
+      <i class="fa-solid fa-file-arrow-up"></i>
+      Importar CSV / Excel
+      <input type="file" id="csvProcs" accept=".csv,.xlsx,.xls" style="display:none">
+    </label>
+  </div>
+
+  <div class="csv-hint">
+    <i class="fa-solid fa-circle-info"></i>
+    Columnas esperadas: <strong>cod_proc, nombre_procedimiento, valor_paquete, valor_procedimiento, valor_suministro, cod_factura, cod_cups, grupo, via_ingreso, ambito_atencion, finalidad</strong>
+  </div>
+
+  <br>
+
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Cod Proc</th>
+          <th>Nombre procedimiento</th>
+          <th>Valor paquete</th>
+          <th>Valor proced.</th>
+          <th>Vlr. sumin.</th>
+          <th>Cod factura</th>
+          <th>CUPS</th>
+          <th>Grupo</th>
+          <th>Vía ingreso</th>
+          <th>Ámbito</th>
+          <th>Finalidad</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="procsBody">
+        <tr>
+          <td colspan="12" class="empty-tab">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% endif %}
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — ÍTEMS
+══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-items">
+
+  {% if modo == 'crear' %}
+  <div class="info-panel">
+    <i class="fa-solid fa-circle-info"></i>
+    Guarda primero los datos generales para poder agregar ítems.
+  </div>
+
+  {% else %}
+
+  <div class="tab-toolbar">
+    <div class="tab-toolbar-left">
+      <!-- Buscador Medicamentos -->
+      <div class="inline-search-wrap">
+        <i class="fa-solid fa-magnifying-glass ico-s"></i>
+        <input type="text" id="medSearch"
+               placeholder="Buscar medicamento por código o nombre...">
+        <div class="inline-dropdown" id="medDropdown"></div>
+      </div>
+    </div>
+
+    <label class="btn-import">
+      <i class="fa-solid fa-file-arrow-up"></i>
+      Importar CSV / Excel
+      <input type="file" id="csvItems" accept=".csv,.xlsx,.xls" style="display:none">
+    </label>
+  </div>
+
+  <div class="csv-hint">
+    <i class="fa-solid fa-circle-info"></i>
+    Columnas esperadas: <strong>cod_item, nombre, valor_unitario</strong>
+  </div>
+
+  <br>
+
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Cod Ítem</th>
+          <th>Nombre</th>
+          <th>Valor unitario</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody">
+        <tr>
+          <td colspan="4" class="empty-tab">
+            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+const MODO      = {{ modo | tojson }}
+const MANUAL_ID = {{ (manual.id if manual and manual.get('id') else None) | tojson }}
+const BASE_PROC = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/procedimientos`
+const BASE_ITEM = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/items`
+const BASE_CUPS = `/hc/configuracion/cups/buscar`
+const BASE_MED  = `/hc/configuracion/medicamentos/buscar-ajax`
+
+/* ── Tabs ── */
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"))
+    btn.classList.add("active")
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active")
+    if (MODO === "editar") {
+      if (btn.dataset.tab === "procedimientos") cargarProcs()
+      if (btn.dataset.tab === "items") cargarItems()
+    }
+  })
+})
+
+/* ── Form submit ── */
+document.getElementById("formManual")?.addEventListener("submit", function (e) {
+  e.preventDefault()
+  Swal.fire({
+    title: "¿Guardar manual?",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#0ea5e9"
+  }).then(r => { if (r.isConfirmed) this.submit() })
+})
+
+/* ══════════════════════════════════════════
+   PROCEDIMIENTOS
+══════════════════════════════════════════ */
+
+async function cargarProcs() {
+  const tbody = document.getElementById("procsBody")
+  if (!tbody) return
+  tbody.innerHTML = `<tr><td colspan="12" class="empty-tab">
+    <i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>`
+  const res  = await fetch(BASE_PROC)
+  const data = await res.json()
+  renderProcs(data)
+}
+
+function renderProcs(data) {
+  const tbody = document.getElementById("procsBody")
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-tab">
+      <i class="fa-solid fa-syringe" style="font-size:1.4rem;opacity:.3;"></i><br><br>
+      Sin procedimientos. Usa el buscador o importa un CSV.</td></tr>`
+    return
+  }
+
+  const viaOpts = ["", "AMBULATORIO", "HOSPITALARIO", "URGENCIAS"]
+  const ambitoOpts = ["", "CONSULTA_EXTERNA", "HOSPITALIZACION", "URGENCIAS", "CIRUGIA_AMBULATORIA"]
+  const finalOpts  = ["", "DIAGNOSTICO", "TERAPEUTICO", "PROTECCION_ESPECIFICA",
+                      "REHABILITACION", "DETECCION_ALTERACION"]
+
+  function selOpts(opts, val) {
+    return opts.map(o => `<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join("")
+  }
+
+  tbody.innerHTML = data.map(p => `
+    <tr data-id="${p.id}">
+      <td><strong>${p.cod_proc || '—'}</strong></td>
+      <td style="max-width:200px;font-size:.82rem;">${p.nombre_procedimiento || p.cups_descripcion || '—'}</td>
+      <td><input class="val-input" type="number" min="0" step="0.01"
+                 value="${p.valor_paquete || 0}"
+                 onchange="actualizarProc(${p.id}, 'valor_paquete', this.value)"></td>
+      <td><input class="val-input" type="number" min="0" step="0.01"
+                 value="${p.valor_procedimiento || 0}"
+                 onchange="actualizarProc(${p.id}, 'valor_procedimiento', this.value)"></td>
+      <td><input class="val-input" type="number" min="0" step="0.01"
+                 value="${p.valor_suministro || 0}"
+                 onchange="actualizarProc(${p.id}, 'valor_suministro', this.value)"></td>
+      <td style="font-size:.82rem;">${p.cod_factura || '—'}</td>
+      <td style="font-size:.82rem;font-weight:700;">${p.cod_cups || p.cups_codigo || '—'}</td>
+      <td><input class="val-input" type="text" style="width:90px;text-align:left;"
+                 value="${p.grupo || ''}"
+                 placeholder="grupo"
+                 onchange="actualizarProc(${p.id}, 'grupo', this.value)"></td>
+      <td><select class="sel-input"
+                  onchange="actualizarProc(${p.id}, 'via_ingreso', this.value)">
+            ${selOpts(viaOpts, p.via_ingreso)}
+          </select></td>
+      <td><select class="sel-input"
+                  onchange="actualizarProc(${p.id}, 'ambito_atencion', this.value)">
+            ${selOpts(ambitoOpts, p.ambito_atencion)}
+          </select></td>
+      <td><select class="sel-input"
+                  onchange="actualizarProc(${p.id}, 'finalidad', this.value)">
+            ${selOpts(finalOpts, p.finalidad)}
+          </select></td>
+      <td>
+        <button class="btn-del" onclick="eliminarProc(${p.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join("")
+}
+
+async function actualizarProc(id, campo, valor) {
+  const body = {}
+  body[campo] = ["valor_paquete","valor_procedimiento","valor_suministro"].includes(campo)
+    ? parseFloat(valor) || 0
+    : (valor || null)
+  await fetch(`/hc/configuracion/manuales-tarifarios/procedimientos/${id}/actualizar`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  })
+}
+
+async function eliminarProc(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar procedimiento?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/manuales-tarifarios/procedimientos/${id}/eliminar`,
+              { method: "POST" })
+  cargarProcs()
+}
+
+/* Buscador CUPS */
+const cupsSearch   = document.getElementById("cupsSearch")
+const cupsDropdown = document.getElementById("cupsDropdown")
+let cupsTimeout = null
+
+cupsSearch?.addEventListener("input", function () {
+  clearTimeout(cupsTimeout)
+  const q = this.value.trim()
+  if (q.length < 2) { cupsDropdown.classList.remove("open"); return }
+  cupsTimeout = setTimeout(async () => {
+    const res  = await fetch(`${BASE_CUPS}?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    cupsDropdown.innerHTML = data.length
+      ? data.map(c => `<div class="inline-opt"
+           data-id="${c.id}" data-codigo="${c.codigo}"
+           data-desc="${c.descripcion}">
+           <span class="cod">${c.codigo}</span>${c.descripcion}
+         </div>`).join("")
+      : `<div class="inline-opt" style="color:var(--text-faint);">Sin resultados</div>`
+    cupsDropdown.classList.add("open")
+  }, 280)
+})
+
+cupsDropdown?.addEventListener("click", async function (e) {
+  const opt = e.target.closest(".inline-opt")
+  if (!opt || !opt.dataset.id) return
+  cupsDropdown.classList.remove("open")
+  cupsSearch.value = ""
+  const res  = await fetch(BASE_PROC + "/agregar", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      cups_id:             parseInt(opt.dataset.id),
+      cod_proc:            opt.dataset.codigo,
+      nombre_procedimiento: opt.dataset.desc,
+      cod_cups:            opt.dataset.codigo,
+    })
+  })
+  const data = await res.json()
+  if (data.ok) {
+    cargarProcs()
+  } else {
+    Swal.fire({ title: "No se pudo agregar", text: data.msg, icon: "warning",
+                confirmButtonColor: "#0ea5e9" })
+  }
+})
+
+/* Importar CSV procedimientos */
+document.getElementById("csvProcs")?.addEventListener("change", async function () {
+  if (!this.files[0]) return
+  const fd = new FormData()
+  fd.append("archivo", this.files[0])
+  this.value = ""
+
+  const res  = await fetch(`${BASE_PROC}/importar`, { method: "POST", body: fd })
+  const data = await res.json()
+
+  if (data.ok) {
+    Swal.fire({
+      title: `${data.importados} procedimientos importados`,
+      icon: "success",
+      confirmButtonColor: "#0ea5e9"
+    }).then(() => cargarProcs())
+  } else {
+    Swal.fire({ title: "Error al importar", text: data.msg, icon: "error",
+                confirmButtonColor: "#0ea5e9" })
+  }
+})
+
+
+/* ══════════════════════════════════════════
+   ÍTEMS
+══════════════════════════════════════════ */
+
+async function cargarItems() {
+  const tbody = document.getElementById("itemsBody")
+  if (!tbody) return
+  tbody.innerHTML = `<tr><td colspan="4" class="empty-tab">
+    <i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>`
+  const res  = await fetch(BASE_ITEM)
+  const data = await res.json()
+  renderItems(data)
+}
+
+function renderItems(data) {
+  const tbody = document.getElementById("itemsBody")
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-tab">
+      <i class="fa-solid fa-pills" style="font-size:1.4rem;opacity:.3;"></i><br><br>
+      Sin ítems. Usa el buscador o importa un CSV.</td></tr>`
+    return
+  }
+  tbody.innerHTML = data.map(i => `
+    <tr data-id="${i.id}">
+      <td><strong>${i.cod_item || i.med_codigo || '—'}</strong></td>
+      <td>${i.nombre || i.med_nombre || '—'}</td>
+      <td><input class="val-input" type="number" min="0" step="0.01"
+                 value="${i.valor_unitario || 0}"
+                 onchange="actualizarItem(${i.id}, this.value)"></td>
+      <td>
+        <button class="btn-del" onclick="eliminarItem(${i.id})">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join("")
+}
+
+async function actualizarItem(id, valor) {
+  await fetch(`/hc/configuracion/manuales-tarifarios/items/${id}/actualizar`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ valor_unitario: parseFloat(valor) || 0 })
+  })
+}
+
+async function eliminarItem(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar ítem?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/manuales-tarifarios/items/${id}/eliminar`,
+              { method: "POST" })
+  cargarItems()
+}
+
+/* Buscador medicamentos */
+const medSearch   = document.getElementById("medSearch")
+const medDropdown = document.getElementById("medDropdown")
+let medTimeout = null
+
+medSearch?.addEventListener("input", function () {
+  clearTimeout(medTimeout)
+  const q = this.value.trim()
+  if (q.length < 2) { medDropdown.classList.remove("open"); return }
+  medTimeout = setTimeout(async () => {
+    const res  = await fetch(`${BASE_MED}?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+    medDropdown.innerHTML = data.length
+      ? data.map(m => `<div class="inline-opt"
+           data-id="${m.id}" data-codigo="${m.codigo}"
+           data-nombre="${m.nombre}">
+           <span class="cod">${m.codigo}</span>${m.nombre}
+         </div>`).join("")
+      : `<div class="inline-opt" style="color:var(--text-faint);">Sin resultados</div>`
+    medDropdown.classList.add("open")
+  }, 280)
+})
+
+medDropdown?.addEventListener("click", async function (e) {
+  const opt = e.target.closest(".inline-opt")
+  if (!opt || !opt.dataset.id) return
+  medDropdown.classList.remove("open")
+  medSearch.value = ""
+  const res  = await fetch(BASE_ITEM + "/agregar", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      medicamento_id: parseInt(opt.dataset.id),
+      cod_item:       opt.dataset.codigo,
+      nombre:         opt.dataset.nombre,
+      valor_unitario: 0,
+    })
+  })
+  const data = await res.json()
+  if (data.ok) {
+    cargarItems()
+  } else {
+    Swal.fire({ title: "No se pudo agregar", text: data.msg, icon: "warning",
+                confirmButtonColor: "#0ea5e9" })
+  }
+})
+
+/* Importar CSV ítems */
+document.getElementById("csvItems")?.addEventListener("change", async function () {
+  if (!this.files[0]) return
+  const fd = new FormData()
+  fd.append("archivo", this.files[0])
+  this.value = ""
+
+  const res  = await fetch(`${BASE_ITEM}/importar`, { method: "POST", body: fd })
+  const data = await res.json()
+
+  if (data.ok) {
+    Swal.fire({
+      title: `${data.importados} ítems importados`,
+      icon: "success",
+      confirmButtonColor: "#0ea5e9"
+    }).then(() => cargarItems())
+  } else {
+    Swal.fire({ title: "Error al importar", text: data.msg, icon: "error",
+                confirmButtonColor: "#0ea5e9" })
+  }
+})
+
+/* Cerrar dropdowns al click fuera */
+document.addEventListener("click", e => {
+  if (!e.target.closest(".inline-search-wrap")) {
+    cupsDropdown?.classList.remove("open")
+    medDropdown?.classList.remove("open")
+  }
+})
+
+</script>
+{% endblock %}

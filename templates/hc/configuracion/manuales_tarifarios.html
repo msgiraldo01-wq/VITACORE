@@ -1,0 +1,340 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Manuales Tarifarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice-dollar"></i>{% endblock %}
+{% block header_title %}Manuales Tarifarios{% endblock %}
+{% block header_subtitle %}Catálogo de tarifas de procedimientos e insumos{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax primary" href="/hc/configuracion/manuales-tarifarios/nuevo">
+  <i class="fa-solid fa-plus"></i>
+  Nuevo manual
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-wrap .ico {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: .88rem;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 11px 14px 11px 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(203,213,225,.95);
+  background: var(--surface);
+  font-size: .92rem;
+  outline: none;
+  box-sizing: border-box;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.search-wrap input:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+/* ── Cards grid ── */
+.mt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.mt-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: .18s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mt-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0ea5e9, #6366f1);
+  opacity: 0;
+  transition: .2s;
+}
+
+.mt-card:hover {
+  border-color: rgba(99,102,241,.3);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.mt-card:hover::before { opacity: 1; }
+
+.mt-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mt-card-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(14,165,233,.15), rgba(99,102,241,.1));
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: #0ea5e9;
+  flex-shrink: 0;
+}
+
+.mt-card-title {
+  flex: 1;
+}
+
+.mt-card-nombre {
+  font-size: .93rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 3px;
+}
+
+.mt-card-codigo {
+  font-size: .76rem;
+  font-family: monospace;
+  color: var(--text-faint);
+  background: var(--surface-3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .74rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.badge.ok  { background: rgba(34,197,94,.12);  color: #166534; }
+.badge.off { background: rgba(239,68,68,.12);  color: #991b1b; }
+
+.mt-card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+
+.meta-val {
+  font-size: .83rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mt-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  padding: 7px 11px;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .15s;
+}
+
+.btn-mini.edit {
+  background: rgba(14,165,233,.12);
+  color: #0c4a6e;
+}
+
+.btn-mini.edit:hover { background: rgba(14,165,233,.22); }
+
+.btn-mini.toggle {
+  background: rgba(15,23,42,.07);
+  color: var(--text-soft);
+}
+
+.btn-mini.toggle:hover { background: rgba(15,23,42,.13); }
+
+.empty-box {
+  border: 1px dashed rgba(148,163,184,.5);
+  border-radius: 18px;
+  padding: 40px;
+  text-align: center;
+  color: var(--text-soft);
+}
+
+.empty-box h3 { margin: 0 0 8px; color: var(--text); }
+.empty-box p  { margin: 0 0 18px; font-size: .9rem; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <i class="fa-solid fa-magnifying-glass ico"></i>
+    <input type="text" id="searchInput"
+           placeholder="Buscar por código o nombre...">
+  </div>
+</div>
+
+{% if data %}
+
+<div class="mt-grid" id="mtGrid">
+  {% for m in data %}
+  <div class="mt-card rowItem"
+       data-nombre="{{ m.nombre | lower }}"
+       data-codigo="{{ m.codigo | lower }}">
+
+    <div class="mt-card-head">
+      <div class="mt-card-icon">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+      </div>
+      <div class="mt-card-title">
+        <div class="mt-card-nombre">{{ m.nombre }}</div>
+        <span class="mt-card-codigo">{{ m.codigo }}</span>
+      </div>
+      <span class="badge {{ 'ok' if m.estado == 'ACTIVO' else 'off' }}">
+        {{ m.estado }}
+      </span>
+    </div>
+
+    <div class="mt-card-meta">
+      <div class="meta-item">
+        <span class="meta-label">Manual base</span>
+        <span class="meta-val">{{ m.manual_base_nombre or '— (propio)' }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">% Base</span>
+        <span class="meta-val">{{ m.pct_base }}%</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Vigencia desde</span>
+        <span class="meta-val">{{ m.vigencia_desde or '—' }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Vigencia hasta</span>
+        <span class="meta-val">{{ m.vigencia_hasta or '—' }}</span>
+      </div>
+    </div>
+
+    <div class="mt-card-actions">
+      <a class="btn-mini edit"
+         href="/hc/configuracion/manuales-tarifarios/editar/{{ m.id }}">
+        <i class="fa-solid fa-pen"></i> Editar / Ver detalle
+      </a>
+      <form method="POST"
+            action="/hc/configuracion/manuales-tarifarios/toggle/{{ m.id }}"
+            class="toggleForm">
+        <button class="btn-mini toggle" type="button">
+          <i class="fa-solid fa-power-off"></i>
+          {{ 'Inactivar' if m.estado == 'ACTIVO' else 'Activar' }}
+        </button>
+      </form>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+
+<div class="empty-box">
+  <h3>No hay manuales tarifarios</h3>
+  <p>Crea el primer manual para comenzar.</p>
+  <a class="btn-ax primary" href="/hc/configuracion/manuales-tarifarios/nuevo">
+    <i class="fa-solid fa-plus"></i> Crear manual
+  </a>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+/* Toggle */
+document.querySelectorAll(".toggleForm button").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const form = this.closest("form")
+    Swal.fire({
+      title: "¿Cambiar estado?",
+      text: "Se modificará el estado del manual tarifario.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#0ea5e9"
+    }).then(r => { if (r.isConfirmed) form.submit() })
+  })
+})
+
+/* Buscador */
+document.getElementById("searchInput").addEventListener("keyup", function () {
+  const val = this.value.toLowerCase()
+  document.querySelectorAll(".rowItem").forEach(card => {
+    const nombre = card.dataset.nombre || ""
+    const codigo = card.dataset.codigo || ""
+    card.style.display = (nombre.includes(val) || codigo.includes(val)) ? "" : "none"
+  })
+})
+
+</script>
+{% endblock %}

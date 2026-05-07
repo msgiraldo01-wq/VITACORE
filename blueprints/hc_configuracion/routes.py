@@ -21,6 +21,7 @@ import io
 import csv
 import repositories.hc_clientes_repo as repo_clientes
 import repositories.hc_contratos_repo as repo_contratos
+import repositories.hc_manuales_repo as repo_manuales
 
 
 
@@ -2213,4 +2214,524 @@ def _contrato_payload(form, cliente_id):
         "valor_ejecutado_calculado":   num("valor_ejecutado_calculado"),
         "valor_ejecutado_facturado":   num("valor_ejecutado_facturado"),
         "valor_ejecutado_calc_citas":  num("valor_ejecutado_calc_citas"),
+    }
+
+# ══════════════════════════════════════════════════════════════════
+#  MANUALES TARIFARIOS
+#  Pegar al final de blueprints/hc_configuracion/routes.py
+#
+#  Agregar este import junto a los demás al inicio del archivo:
+#  import repositories.hc_manuales_repo as repo_manuales
+#  import io, csv   ← ya los tienes, solo verifica
+# ══════════════════════════════════════════════════════════════════
+
+
+# ── Lista ──────────────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/manuales-tarifarios")
+def manuales_tarifarios():
+    data = repo_manuales.listar()
+    return render_template(
+        "hc/configuracion/manuales_tarifarios.html",
+        data=data
+    )
+
+
+# ── Nuevo ──────────────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/manuales-tarifarios/nuevo", methods=["GET", "POST"])
+def manual_tarifario_nuevo():
+    manuales_base = repo_manuales.listar_activos()
+
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/manual_tarifario_form.html",
+            modo="crear",
+            manual={},
+            manuales_base=manuales_base
+        )
+
+    form = request.form
+    data = _manual_payload(form)
+
+    if not data["codigo"]:
+        flash("El código es obligatorio.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="crear", manual=form,
+                               manuales_base=manuales_base)
+
+    if not data["nombre"]:
+        flash("El nombre es obligatorio.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="crear", manual=form,
+                               manuales_base=manuales_base)
+
+    if repo_manuales.existe_codigo(data["codigo"]):
+        flash("Ya existe un manual con ese código.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="crear", manual=form,
+                               manuales_base=manuales_base)
+
+    try:
+        repo_manuales.crear(data)
+        flash("Manual tarifario creado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.manuales_tarifarios"))
+    except Exception as e:
+        flash(f"Error al guardar: {e}", "danger")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="crear", manual=form,
+                               manuales_base=manuales_base)
+
+
+# ── Editar ─────────────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/manuales-tarifarios/editar/<int:manual_id>",
+                           methods=["GET", "POST"])
+def manual_tarifario_editar(manual_id):
+    manual = repo_manuales.obtener(manual_id)
+    if not manual:
+        flash("Manual no encontrado.", "error")
+        return redirect(url_for("hc_configuracion.manuales_tarifarios"))
+
+    # Excluir el propio manual del select de base (evitar referencia circular)
+    manuales_base = [m for m in repo_manuales.listar_activos()
+                     if m["id"] != manual_id]
+
+    if request.method == "GET":
+        return render_template(
+            "hc/configuracion/manual_tarifario_form.html",
+            modo="editar",
+            manual=manual,
+            manuales_base=manuales_base
+        )
+
+    form = request.form
+    data = _manual_payload(form)
+
+    if not data["codigo"]:
+        flash("El código es obligatorio.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="editar", manual={**manual, **form},
+                               manuales_base=manuales_base)
+
+    if not data["nombre"]:
+        flash("El nombre es obligatorio.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="editar", manual={**manual, **form},
+                               manuales_base=manuales_base)
+
+    if repo_manuales.existe_codigo(data["codigo"], exclude_id=manual_id):
+        flash("Ya existe otro manual con ese código.", "warning")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="editar", manual={**manual, **form},
+                               manuales_base=manuales_base)
+
+    try:
+        repo_manuales.actualizar(manual_id, data)
+        flash("Manual actualizado correctamente.", "success")
+        return redirect(url_for("hc_configuracion.manual_tarifario_editar",
+                                manual_id=manual_id))
+    except Exception as e:
+        flash(f"Error al actualizar: {e}", "danger")
+        return render_template("hc/configuracion/manual_tarifario_form.html",
+                               modo="editar", manual={**manual, **form},
+                               manuales_base=manuales_base)
+
+
+# ── Toggle estado ──────────────────────────────────────────────────
+
+@bp_hc_configuracion.route("/manuales-tarifarios/toggle/<int:manual_id>",
+                           methods=["POST"])
+def manual_tarifario_toggle(manual_id):
+    manual = repo_manuales.obtener(manual_id)
+    if not manual:
+        flash("Manual no encontrado.", "error")
+        return redirect(url_for("hc_configuracion.manuales_tarifarios"))
+
+    nuevo = "INACTIVO" if manual.get("estado") == "ACTIVO" else "ACTIVO"
+    repo_manuales.cambiar_estado(manual_id, nuevo)
+    flash(f"Manual {'inactivado' if nuevo == 'INACTIVO' else 'activado'} correctamente.",
+          "success")
+    return redirect(url_for("hc_configuracion.manuales_tarifarios"))
+
+
+# ══════════════════════════════════════════════════════════════════
+#  PROCEDIMIENTOS (AJAX)
+# ══════════════════════════════════════════════════════════════════
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos")
+def mt_procedimientos_listar(manual_id):
+    return jsonify(repo_manuales.listar_procedimientos(manual_id))
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos/agregar",
+                           methods=["POST"])
+def mt_procedimientos_agregar(manual_id):
+    body = request.get_json()
+    try:
+        data = {
+            "manual_id":             manual_id,
+            "cups_id":               body.get("cups_id"),
+            "cod_proc":              (body.get("cod_proc") or "").strip(),
+            "nombre_procedimiento":  (body.get("nombre_procedimiento") or "").strip(),
+            "valor_paquete":         float(body.get("valor_paquete") or 0),
+            "valor_procedimiento":   float(body.get("valor_procedimiento") or 0),
+            "valor_suministro":      float(body.get("valor_suministro") or 0),
+            "cod_factura":           (body.get("cod_factura") or "").strip() or None,
+            "cod_cups":              (body.get("cod_cups") or "").strip() or None,
+            "grupo":                 (body.get("grupo") or "").strip() or None,
+            "via_ingreso":           body.get("via_ingreso") or None,
+            "ambito_atencion":       body.get("ambito_atencion") or None,
+            "finalidad":             body.get("finalidad") or None,
+        }
+        repo_manuales.agregar_procedimiento(data)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/procedimientos/<int:proc_id>/actualizar",
+                           methods=["POST"])
+def mt_procedimientos_actualizar(proc_id):
+    body = request.get_json()
+    try:
+        data = {
+            "valor_paquete":       float(body.get("valor_paquete") or 0),
+            "valor_procedimiento": float(body.get("valor_procedimiento") or 0),
+            "valor_suministro":    float(body.get("valor_suministro") or 0),
+            "grupo":               (body.get("grupo") or "").strip() or None,
+            "via_ingreso":         body.get("via_ingreso") or None,
+            "ambito_atencion":     body.get("ambito_atencion") or None,
+            "finalidad":           body.get("finalidad") or None,
+        }
+        repo_manuales.actualizar_procedimiento(proc_id, data)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/procedimientos/<int:proc_id>/eliminar",
+                           methods=["POST"])
+def mt_procedimientos_eliminar(proc_id):
+    repo_manuales.eliminar_procedimiento(proc_id)
+    return jsonify({"ok": True})
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos/importar",
+                           methods=["POST"])
+def mt_procedimientos_importar(manual_id):
+    archivo = request.files.get("archivo")
+    if not archivo:
+        return jsonify({"ok": False, "msg": "No se recibió archivo"}), 400
+
+    nombre = archivo.filename.lower()
+    registros = []
+
+    def _num_co(v):
+        """Convierte número con coma decimal colombiana a float."""
+        try:
+            if v is None:
+                return 0.0
+            s = str(v).strip().replace(" ", "")
+            # Si tiene coma y punto: 1.261.578,5 → quitar puntos, coma→punto
+            if "," in s and "." in s:
+                s = s.replace(".", "").replace(",", ".")
+            elif "," in s:
+                # Solo coma: puede ser decimal colombiano (1261578,5)
+                # o miles europeo (1.261.578) — si hay una sola coma y
+                # la parte decimal tiene ≤2 dígitos, es decimal
+                partes = s.split(",")
+                if len(partes) == 2 and len(partes[1]) <= 2:
+                    s = s.replace(",", ".")
+                else:
+                    s = s.replace(",", "")
+            return float(s) if s else 0.0
+        except (ValueError, AttributeError):
+            return 0.0
+
+    def _enum_safe(v):
+        """Devuelve None si el valor es NA, vacío o no aplica."""
+        if not v:
+            return None
+        s = str(v).strip().upper()
+        return None if s in ("NA", "N/A", "NO APLICA", "-", "") else s
+
+    def _fila_a_registro(fila: dict) -> dict:
+        """Normaliza claves con espacios (ej: ' nombre_procedimiento') y valores None."""
+        f = {}
+        for k, v in fila.items():
+            if k is None:
+                continue
+            clave = str(k).strip().lower().replace(" ", "_")
+            if not clave:
+                continue
+            val = str(v).strip() if (v is not None and str(v).strip() != "None") else ""
+            f[clave] = val
+
+        def _s(key):
+            return f.get(key, "") or ""
+
+        return {
+            "cod_proc":             _s("cod_proc"),
+            "nombre_procedimiento": _s("nombre_procedimiento"),
+            "valor_paquete":        _num_co(_s("valor_paquete")),
+            "valor_procedimiento":  _num_co(_s("valor_procedimiento")),
+            "valor_suministro":     _num_co(_s("valor_suministro")),
+            "cod_factura":          _s("cod_factura") or None,
+            "cod_cups":             _s("cod_cups") or None,
+            "grupo":                _s("grupo") or None,
+            "via_ingreso":          _enum_safe(_s("via_ingreso")),
+            "ambito_atencion":      _enum_safe(_s("ambito_atencion")),
+            "finalidad":            _enum_safe(_s("finalidad")),
+        }
+
+    if nombre.endswith(".csv"):
+        try:
+            raw = archivo.stream.read()
+            try:
+                texto = raw.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                texto = raw.decode("latin-1")
+
+            lineas = texto.split("\n")
+
+            # Detectar separador en líneas de datos (no en header que mezcla , y ;)
+            # Usar línea 2 que es segura
+            linea_datos = lineas[1] if len(lineas) > 1 else lineas[0]
+            separador = ";" if linea_datos.count(";") > linea_datos.count(",") else ","
+
+            # Reemplazar header por uno limpio con el separador correcto
+            header_limpio = separador.join([
+                "cod_proc","nombre_procedimiento","valor_paquete",
+                "valor_procedimiento","valor_suministro","cod_factura",
+                "cod_cups","grupo","via_ingreso","ambito_atencion","finalidad"
+            ])
+            nuevo_texto = header_limpio + "\n" + "\n".join(lineas[1:])
+
+            stream = io.StringIO(nuevo_texto)
+            # Usar csv.reader con quotechar para manejar campos con saltos de línea
+            reader = csv.reader(stream, delimiter=separador, quotechar='"')
+            next(reader)  # saltar header
+
+            for fila in reader:
+                if not fila or not any(fila):
+                    continue
+                # Limpiar cada valor y eliminar saltos de línea internos
+                f = [str(v).strip().replace("\n", " ").replace("\r", "") if v is not None else ""
+                     for v in fila]
+                while len(f) < 11:
+                    f.append("")
+
+                cod  = f[0]
+                nom  = f[1]
+                if not cod and not nom:
+                    continue
+
+                registros.append({
+                    "cod_proc":             cod,
+                    "nombre_procedimiento": nom,
+                    "valor_paquete":        _num_co(f[2]),
+                    "valor_procedimiento":  _num_co(f[3]),
+                    "valor_suministro":     _num_co(f[4]),
+                    "cod_factura":          f[5] or None,
+                    "cod_cups":             f[6] or None,
+                    "grupo":                f[7] or None,
+                    "via_ingreso":          _enum_safe(f[8]),
+                    "ambito_atencion":      _enum_safe(f[9]),
+                    "finalidad":            _enum_safe(f[10]) if len(f) > 10 else None,
+                })
+
+        except Exception as exc:
+            return jsonify({"ok": False, "msg": f"Error leyendo CSV: {exc}"}), 400
+    elif nombre.endswith(".xlsx") or nombre.endswith(".xls"):
+        try:
+            import openpyxl
+            wb   = openpyxl.load_workbook(archivo.stream, read_only=True, data_only=True)
+            ws   = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+        except Exception as exc:
+            return jsonify({"ok": False, "msg": f"No se pudo leer el Excel: {exc}"}), 400
+
+        if not rows:
+            return jsonify({"ok": False, "msg": "Archivo vacío"}), 400
+
+        headers = [str(h).strip() if h else "" for h in rows[0]]
+        for fila in rows[1:]:
+            row_dict = dict(zip(headers, fila))
+            r = _fila_a_registro(row_dict)
+            if not r["cod_proc"] and not r["nombre_procedimiento"]:
+                continue
+            registros.append(r)
+    else:
+        return jsonify({"ok": False, "msg": "Formato no soportado. Use .csv o .xlsx"}), 400
+
+    if not registros:
+        return jsonify({"ok": False, "msg": "No se encontraron registros válidos en el archivo"}), 400
+
+    try:
+        total = repo_manuales.importar_procedimientos(manual_id, registros)
+        return jsonify({"ok": True, "importados": total})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════
+#  ÍTEMS (AJAX)
+# ══════════════════════════════════════════════════════════════════
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items")
+def mt_items_listar(manual_id):
+    return jsonify(repo_manuales.listar_items(manual_id))
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items/agregar",
+                           methods=["POST"])
+def mt_items_agregar(manual_id):
+    body = request.get_json()
+    try:
+        data = {
+            "manual_id":     manual_id,
+            "medicamento_id": body.get("medicamento_id"),
+            "cod_item":      (body.get("cod_item") or "").strip(),
+            "nombre":        (body.get("nombre") or "").strip(),
+            "valor_unitario": float(body.get("valor_unitario") or 0),
+        }
+        repo_manuales.agregar_item(data)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/actualizar",
+                           methods=["POST"])
+def mt_items_actualizar(item_id):
+    body = request.get_json()
+    try:
+        repo_manuales.actualizar_item(item_id, {
+            "valor_unitario": float(body.get("valor_unitario") or 0),
+        })
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/eliminar",
+                           methods=["POST"])
+def mt_items_eliminar(item_id):
+    repo_manuales.eliminar_item(item_id)
+    return jsonify({"ok": True})
+
+
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items/importar",
+                           methods=["POST"])
+def mt_items_importar(manual_id):
+    archivo = request.files.get("archivo")
+    if not archivo:
+        return jsonify({"ok": False, "msg": "No se recibió archivo"}), 400
+
+    nombre = archivo.filename.lower()
+    registros = []
+
+    if nombre.endswith(".csv"):
+        stream = io.StringIO(archivo.stream.read().decode("utf-8-sig"))
+        reader = csv.DictReader(stream)
+        for fila in reader:
+            cod = (fila.get("cod_item") or fila.get("coditem") or "").strip()
+            nom = (fila.get("nombre") or fila.get("Nombre") or "").strip()
+            if not cod and not nom:
+                continue
+            registros.append({
+                "cod_item":      cod,
+                "nombre":        nom,
+                "valor_unitario": fila.get("valor_unitario") or fila.get("vlrunit") or 0,
+            })
+
+    elif nombre.endswith(".xlsx") or nombre.endswith(".xls"):
+        try:
+            import openpyxl
+            wb  = openpyxl.load_workbook(archivo.stream, read_only=True, data_only=True)
+            ws  = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+        except Exception as exc:
+            return jsonify({"ok": False, "msg": f"No se pudo leer: {exc}"}), 400
+        if not rows:
+            return jsonify({"ok": False, "msg": "Archivo vacío"}), 400
+        headers = [str(h).strip().lower().replace(" ", "_") if h else "" for h in rows[0]]
+        for fila in rows[1:]:
+            row = dict(zip(headers, fila))
+            cod = str(row.get("cod_item") or "").strip()
+            nom = str(row.get("nombre") or "").strip()
+            if not cod and not nom:
+                continue
+            registros.append({
+                "cod_item":       cod,
+                "nombre":         nom,
+                "valor_unitario": row.get("valor_unitario") or 0,
+            })
+    else:
+        return jsonify({"ok": False, "msg": "Formato no soportado"}), 400
+
+    if not registros:
+        return jsonify({"ok": False, "msg": "No se encontraron registros válidos"}), 400
+
+    try:
+        total = repo_manuales.importar_items(manual_id, registros)
+        return jsonify({"ok": True, "importados": total})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 500
+
+
+# ── Búsqueda de medicamentos para selector AJAX ────────────────────
+@bp_hc_configuracion.route("/medicamentos/buscar-ajax")
+def medicamentos_buscar_ajax():
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    try:
+        res = (
+            get_supabase_public()
+            .table("hc_medicamentos")
+            .select("id, codigo, nombre")
+            .or_(f"codigo.ilike.%{q}%,nombre.ilike.%{q}%")
+            .eq("estado", "ACTIVO")
+            .limit(20)
+            .execute()
+        )
+        return jsonify(res.data or [])
+    except Exception:
+        return jsonify([])
+
+
+# ══════════════════════════════════════════════════════════════════
+#  HELPER — form → payload hc_manuales_tarifarios
+# ══════════════════════════════════════════════════════════════════
+
+def _manual_payload(form):
+    def txt(k):
+        v = (form.get(k) or "").strip()
+        return v if v else None
+
+    def num(k, default=100.0):
+        try:
+            v = (form.get(k) or "").strip()
+            return float(v) if v else default
+        except ValueError:
+            return default
+
+    def entero(k):
+        v = (form.get(k) or "").strip()
+        try:
+            return int(v) if v else None
+        except ValueError:
+            return None
+
+    return {
+        "codigo":         (form.get("codigo") or "").strip().upper(),
+        "nombre":         (form.get("nombre") or "").strip(),
+        "estado":          form.get("estado") or "ACTIVO",
+        "manual_base_id":  entero("manual_base_id"),
+        "pct_base":        num("pct_base", 100.0),
+        "vigencia_desde":  txt("vigencia_desde"),
+        "vigencia_hasta":  txt("vigencia_hasta"),
+        "tipo_moneda":    (form.get("tipo_moneda") or "COP").strip(),
     }
