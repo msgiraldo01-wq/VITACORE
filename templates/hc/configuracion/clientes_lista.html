@@ -25,29 +25,13 @@
   gap: 12px;
   margin-bottom: 14px;
   flex-wrap: wrap;
-}
-
-.search { flex: 1; }
-
-.search input {
-  width: 100%;
-  padding: 12px 14px 12px 40px;
-  border-radius: 14px;
-  border: 1px solid rgba(203,213,225,.95);
-  background: var(--surface);
-  font-size: .93rem;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.search input:focus {
-  border-color: rgba(14,165,255,.6);
-  box-shadow: 0 0 0 3px rgba(14,165,255,.1);
+  align-items: center;
 }
 
 .search-wrap {
   position: relative;
   flex: 1;
+  min-width: 220px;
 }
 
 .search-wrap .ico {
@@ -59,6 +43,77 @@
   font-size: .88rem;
 }
 
+.search-wrap input {
+  width: 100%;
+  padding: 11px 14px 11px 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(203,213,225,.95);
+  background: var(--surface);
+  font-size: .92rem;
+  outline: none;
+  box-sizing: border-box;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.search-wrap input:focus {
+  border-color: rgba(139,92,246,.6);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.1);
+}
+
+/* ── Filtro estado ── */
+.filter-select {
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  font-size: .88rem;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+
+.filter-select:focus {
+  border-color: rgba(139,92,246,.6);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.1);
+}
+
+/* ── Stats row ── */
+.stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: .83rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.stat-pill .num {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.stat-pill.purple { border-color: rgba(139,92,246,.25); }
+.stat-pill.purple .num { color: #7c3aed; }
+.stat-pill.green  { border-color: rgba(34,197,94,.25); }
+.stat-pill.green  .num { color: #166534; }
+.stat-pill.red    { border-color: rgba(239,68,68,.25); }
+.stat-pill.red    .num { color: #991b1b; }
+
+/* ── Tabla ── */
 .table-wrap {
   overflow: auto;
   border-radius: 18px;
@@ -70,7 +125,7 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 980px;
 }
 
 th, td {
@@ -83,7 +138,7 @@ th, td {
 th {
   background: rgba(139,92,246,.07);
   text-transform: uppercase;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 800;
   letter-spacing: .04em;
   color: var(--text-soft);
@@ -95,20 +150,32 @@ th {
 tbody tr:hover { background: rgba(139,92,246,.03); }
 tbody tr:last-child td { border-bottom: none; }
 
+/* ── Badges ── */
 .badge {
-  padding: 5px 10px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: .76rem;
+  font-size: .74rem;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
-.badge.ok  { background: rgba(34,197,94,.12);  color: #166534; }
-.badge.off { background: rgba(239,68,68,.12);  color: #991b1b; }
+.badge.ok    { background: rgba(34,197,94,.12);   color: #166534; }
+.badge.off   { background: rgba(239,68,68,.12);   color: #991b1b; }
+.badge.count {
+  background: rgba(139,92,246,.1);
+  color: #5b21b6;
+  font-size: .72rem;
+  padding: 3px 8px;
+}
+.badge.count.zero {
+  background: rgba(148,163,184,.12);
+  color: var(--text-faint);
+}
 
-.actions { display: flex; gap: 7px; }
+/* ── Acciones ── */
+.actions { display: flex; gap: 6px; align-items: center; }
 
 .btn-mini {
   display: inline-flex;
@@ -118,32 +185,44 @@ tbody tr:last-child td { border-bottom: none; }
   cursor: pointer;
   padding: 7px 10px;
   border-radius: 10px;
-  font-size: .8rem;
+  font-size: .79rem;
   font-weight: 700;
   text-decoration: none;
   transition: .15s;
+  white-space: nowrap;
 }
+
+.btn-mini.view {
+  background: rgba(14,165,233,.1);
+  color: #0c4a6e;
+}
+.btn-mini.view:hover { background: rgba(14,165,233,.2); }
 
 .btn-mini.edit {
   background: rgba(139,92,246,.12);
   color: #5b21b6;
 }
-
 .btn-mini.edit:hover { background: rgba(139,92,246,.22); }
 
 .btn-mini.toggle {
   background: rgba(15,23,42,.07);
   color: var(--text-soft);
 }
-
 .btn-mini.toggle:hover { background: rgba(15,23,42,.13); }
 
 .nit-cell {
   font-family: monospace;
-  font-size: .87rem;
+  font-size: .85rem;
   color: var(--text-soft);
 }
 
+.prestador-cell {
+  font-family: monospace;
+  font-size: .83rem;
+  color: var(--text-faint);
+}
+
+/* ── Empty ── */
 .empty-box {
   border: 1px dashed rgba(148,163,184,.5);
   border-radius: 18px;
@@ -151,7 +230,6 @@ tbody tr:last-child td { border-bottom: none; }
   text-align: center;
   color: var(--text-soft);
 }
-
 .empty-box h3 { margin: 0 0 8px; color: var(--text); }
 .empty-box p  { margin: 0 0 18px; font-size: .9rem; }
 
@@ -160,11 +238,37 @@ tbody tr:last-child td { border-bottom: none; }
 
 {% block content %}
 
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-pill purple">
+    <i class="fa-solid fa-building-user"></i>
+    <span>Total</span>
+    <span class="num">{{ data | length }}</span>
+  </div>
+  <div class="stat-pill green">
+    <i class="fa-solid fa-circle-check"></i>
+    <span>Activos</span>
+    <span class="num">{{ data | selectattr('estado','eq','ACTIVO') | list | length }}</span>
+  </div>
+  <div class="stat-pill red">
+    <i class="fa-solid fa-circle-xmark"></i>
+    <span>Inactivos</span>
+    <span class="num">{{ data | selectattr('estado','eq','INACTIVO') | list | length }}</span>
+  </div>
+</div>
+
+<!-- Toolbar -->
 <div class="toolbar">
   <div class="search-wrap">
     <i class="fa-solid fa-magnifying-glass ico"></i>
-    <input id="searchInput" type="text" placeholder="Buscar por nombre, código o NIT...">
+    <input type="text" id="searchInput"
+           placeholder="Buscar por nombre, código, NIT o cod. prestador...">
   </div>
+  <select class="filter-select" id="filterEstado">
+    <option value="">Todos los estados</option>
+    <option value="ACTIVO">Solo activos</option>
+    <option value="INACTIVO">Solo inactivos</option>
+  </select>
 </div>
 
 {% if data %}
@@ -173,39 +277,70 @@ tbody tr:last-child td { border-bottom: none; }
   <table>
     <thead>
       <tr>
-        <th>ID</th>
         <th>Código</th>
         <th>NIT</th>
         <th>Nombre</th>
+        <th>Cod. Prestador</th>
         <th>Contacto</th>
         <th>Teléfonos</th>
+        <th>Contratos</th>
         <th>Estado</th>
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="tbodyClientes">
       {% for c in data %}
-      <tr class="rowItem">
-        <td>{{ c.id }}</td>
-        <td class="codigo"><strong>{{ c.codigo }}</strong></td>
+      <tr class="rowItem"
+          data-nombre="{{ c.nombre | lower }}"
+          data-codigo="{{ c.codigo | lower }}"
+          data-nit="{{ c.nit | lower if c.nit else '' }}"
+          data-prestador="{{ c.cod_prestador | lower if c.cod_prestador else '' }}"
+          data-estado="{{ c.estado }}">
+
+        <td><strong class="codigo">{{ c.codigo }}</strong></td>
         <td class="nit-cell nit">{{ c.nit or '—' }}</td>
-        <td class="nombre">{{ c.nombre }}</td>
+        <td class="nombre" style="font-weight:600;">{{ c.nombre }}</td>
+        <td class="prestador-cell">{{ c.cod_prestador or '—' }}</td>
         <td>{{ c.contacto or '—' }}</td>
         <td>{{ c.telefonos or '—' }}</td>
         <td>
+          <span class="badge count {{ 'zero' if not c.total_contratos else '' }}"
+                id="cnt-{{ c.id }}">
+            <i class="fa-solid fa-file-contract" style="font-size:.6rem;"></i>
+            {{ c.total_contratos or 0 }}
+          </span>
+        </td>
+        <td>
           {% if c.estado == 'ACTIVO' %}
-            <span class="badge ok"><i class="fa-solid fa-circle" style="font-size:.5rem;"></i> Activo</span>
+            <span class="badge ok">
+              <i class="fa-solid fa-circle" style="font-size:.45rem;"></i> Activo
+            </span>
           {% else %}
-            <span class="badge off"><i class="fa-solid fa-circle" style="font-size:.5rem;"></i> Inactivo</span>
+            <span class="badge off">
+              <i class="fa-solid fa-circle" style="font-size:.45rem;"></i> Inactivo
+            </span>
           {% endif %}
         </td>
         <td>
           <div class="actions">
-            <a class="btn-mini edit" href="/hc/configuracion/clientes/editar/{{ c.id }}">
+            <!-- Ver -->
+            <a class="btn-mini view"
+               href="/hc/configuracion/clientes/ver/{{ c.id }}"
+               title="Ver detalle">
+              <i class="fa-solid fa-eye"></i> Ver
+            </a>
+            <!-- Editar -->
+            <a class="btn-mini edit"
+               href="/hc/configuracion/clientes/editar/{{ c.id }}"
+               title="Editar cliente">
               <i class="fa-solid fa-pen"></i> Editar
             </a>
-            <form method="POST" action="/hc/configuracion/clientes/toggle/{{ c.id }}" class="toggleForm">
-              <button class="btn-mini toggle" type="button">
+            <!-- Toggle estado -->
+            <form method="POST"
+                  action="/hc/configuracion/clientes/toggle/{{ c.id }}"
+                  class="toggleForm">
+              <button class="btn-mini toggle" type="button"
+                      data-estado="{{ c.estado }}">
                 <i class="fa-solid fa-power-off"></i>
                 {{ 'Inactivar' if c.estado == 'ACTIVO' else 'Activar' }}
               </button>
@@ -240,10 +375,12 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Toggle estado ── */
 document.querySelectorAll(".toggleForm button").forEach(btn => {
   btn.addEventListener("click", function () {
-    const form = this.closest("form")
+    const form    = this.closest("form")
+    const estado  = this.dataset.estado
+    const accion  = estado === "ACTIVO" ? "inactivar" : "activar"
     Swal.fire({
-      title: "¿Confirmar cambio?",
-      text: "Se modificará el estado del cliente.",
+      title: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} cliente?`,
+      text: `Se ${accion}á este cliente en el sistema.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, continuar",
@@ -253,19 +390,32 @@ document.querySelectorAll(".toggleForm button").forEach(btn => {
   })
 })
 
-/* ── Buscador ── */
-const searchInput = document.getElementById("searchInput")
-const rows = document.querySelectorAll(".rowItem")
+/* ── Buscador + filtro estado ── */
+const searchInput   = document.getElementById("searchInput")
+const filterEstado  = document.getElementById("filterEstado")
+const rows          = document.querySelectorAll(".rowItem")
 
-searchInput.addEventListener("keyup", () => {
-  const val = searchInput.value.toLowerCase()
+function filtrar() {
+  const val    = (searchInput.value || "").toLowerCase()
+  const estado = filterEstado.value
+
   rows.forEach(row => {
-    const nombre = row.querySelector(".nombre")?.innerText.toLowerCase() || ""
-    const codigo = row.querySelector(".codigo")?.innerText.toLowerCase() || ""
-    const nit    = row.querySelector(".nit")?.innerText.toLowerCase()    || ""
-    row.style.display = (nombre.includes(val) || codigo.includes(val) || nit.includes(val)) ? "" : "none"
+    const nombre    = row.dataset.nombre    || ""
+    const codigo    = row.dataset.codigo    || ""
+    const nit       = row.dataset.nit       || ""
+    const prestador = row.dataset.prestador || ""
+    const rowEstado = row.dataset.estado    || ""
+
+    const matchText  = !val || nombre.includes(val) || codigo.includes(val)
+                       || nit.includes(val) || prestador.includes(val)
+    const matchState = !estado || rowEstado === estado
+
+    row.style.display = (matchText && matchState) ? "" : "none"
   })
-})
+}
+
+searchInput.addEventListener("keyup", filtrar)
+filterEstado.addEventListener("change", filtrar)
 
 /* ── Scroll infinito ── */
 const container = document.getElementById("scrollContainer")
@@ -273,7 +423,17 @@ let visible = 30
 
 function applyLimit() {
   const allRows = document.querySelectorAll(".rowItem")
-  allRows.forEach((row, i) => { row.style.display = i < visible ? "" : "none" })
+  allRows.forEach((row, i) => {
+    if (row.style.display === "none") return   // respetar filtro
+    // Contar solo visibles
+  })
+  // Aplicar scroll sobre todas, respetando filtros
+  let shown = 0
+  allRows.forEach(row => {
+    if (row.style.display === "none") return
+    shown++
+    if (shown > visible) row.style.display = "none"
+  })
 }
 
 applyLimit()
@@ -281,9 +441,38 @@ applyLimit()
 container?.addEventListener("scroll", () => {
   if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
     visible += 30
-    applyLimit()
+    filtrar()
   }
 })
+
+/* ── Cargar conteo de contratos por cliente (AJAX) ── */
+async function cargarConteos() {
+  const ids = [...document.querySelectorAll(".rowItem")]
+    .map(r => {
+      const href = r.querySelector("a.view")?.href || ""
+      const m = href.match(/\/ver\/(\d+)/)
+      return m ? m[1] : null
+    })
+    .filter(Boolean)
+
+  if (!ids.length) return
+
+  try {
+    const res  = await fetch(`/hc/configuracion/clientes/conteos?ids=${ids.join(",")}`)
+    const data = await res.json()
+    data.forEach(item => {
+      const badge = document.getElementById(`cnt-${item.cliente_id}`)
+      if (badge) {
+        badge.innerHTML = `<i class="fa-solid fa-file-contract" style="font-size:.6rem;"></i> ${item.total}`
+        badge.classList.toggle("zero", item.total === 0)
+      }
+    })
+  } catch (e) {
+    // silencioso — los badges ya muestran 0
+  }
+}
+
+cargarConteos()
 
 </script>
 {% endblock %}

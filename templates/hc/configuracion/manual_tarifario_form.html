@@ -272,6 +272,143 @@
 
 .btn-del:hover { background: rgba(239,68,68,.2); }
 
+/* ── Botón editar proc ── */
+.btn-edit-proc {
+  background: rgba(14,165,233,.1);
+  color: #0c4a6e;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 700;
+  transition: .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-edit-proc:hover { background: rgba(14,165,233,.2); }
+
+/* ── Modal de edición ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.5);
+  z-index: 9000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: modalIn .18s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-10px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.modal-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(14,165,233,.12);
+  color: #0ea5e9;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.modal-close {
+  width: 32px; height: 32px;
+  border: none;
+  background: rgba(15,23,42,.07);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: .9rem;
+  color: var(--text-soft);
+  transition: .15s;
+}
+.modal-close:hover { background: rgba(239,68,68,.12); color: #991b1b; }
+
+.modal-section-title {
+  font-size: .75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.modal-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+.modal-field { display: flex; flex-direction: column; gap: 5px; }
+.modal-field.full { grid-column: 1/-1; }
+
+.modal-field label {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.modal-field input,
+.modal-field select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  font-size: .9rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.modal-field input:focus,
+.modal-field select:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
 .empty-tab {
   text-align: center;
   padding: 36px;
@@ -582,6 +719,114 @@
   {% endif %}
 </div>
 
+<!-- ── Modal editar procedimiento ── -->
+<div class="modal-overlay" id="modalEditProc">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon"><i class="fa-solid fa-syringe"></i></div>
+        Editar procedimiento
+      </div>
+      <button class="modal-close" onclick="cerrarModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Identificación -->
+    <p class="modal-section-title">
+      <i class="fa-solid fa-fingerprint" style="margin-right:5px;"></i>Identificación
+    </p>
+    <div class="modal-grid-2">
+      <div class="modal-field">
+        <label>Código procedimiento</label>
+        <input type="text" id="m_cod_proc" placeholder="Ej: 870001">
+      </div>
+      <div class="modal-field">
+        <label>Código CUPS</label>
+        <input type="text" id="m_cod_cups" placeholder="Ej: 870001">
+      </div>
+      <div class="modal-field full">
+        <label>Nombre del procedimiento</label>
+        <input type="text" id="m_nombre" placeholder="Nombre completo">
+      </div>
+      <div class="modal-field">
+        <label>Código factura</label>
+        <input type="text" id="m_cod_factura">
+      </div>
+      <div class="modal-field">
+        <label>Grupo</label>
+        <input type="text" id="m_grupo" placeholder="Ej: RADIOLOGIA">
+      </div>
+    </div>
+
+    <!-- Valores -->
+    <p class="modal-section-title">
+      <i class="fa-solid fa-dollar-sign" style="margin-right:5px;"></i>Valores
+    </p>
+    <div class="modal-grid-3">
+      <div class="modal-field">
+        <label>Valor paquete</label>
+        <input type="number" id="m_valor_paquete" min="0" step="0.01">
+      </div>
+      <div class="modal-field">
+        <label>Valor procedimiento</label>
+        <input type="number" id="m_valor_procedimiento" min="0" step="0.01">
+      </div>
+      <div class="modal-field">
+        <label>Valor suministro</label>
+        <input type="number" id="m_valor_suministro" min="0" step="0.01">
+      </div>
+    </div>
+
+    <!-- Normativa RIPS -->
+    <p class="modal-section-title">
+      <i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Clasificación normativa (RIPS)
+    </p>
+    <div class="modal-grid-3">
+      <div class="modal-field">
+        <label>Vía de ingreso</label>
+        <select id="m_via_ingreso">
+          <option value="">— N/A —</option>
+          <option value="AMBULATORIO">Ambulatorio</option>
+          <option value="HOSPITALARIO">Hospitalario</option>
+          <option value="URGENCIAS">Urgencias</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Ámbito de atención</label>
+        <select id="m_ambito_atencion">
+          <option value="">— N/A —</option>
+          <option value="CONSULTA_EXTERNA">Consulta externa</option>
+          <option value="HOSPITALIZACION">Hospitalización</option>
+          <option value="URGENCIAS">Urgencias</option>
+          <option value="CIRUGIA_AMBULATORIA">Cirugía ambulatoria</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Finalidad</label>
+        <select id="m_finalidad">
+          <option value="">— N/A —</option>
+          <option value="DIAGNOSTICO">Diagnóstico</option>
+          <option value="TERAPEUTICO">Terapéutico</option>
+          <option value="PROTECCION_ESPECIFICA">Protección específica</option>
+          <option value="REHABILITACION">Rehabilitación</option>
+          <option value="DETECCION_ALTERACION">Detección alteración</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ax ghost" type="button" onclick="cerrarModal()">
+        Cancelar
+      </button>
+      <button class="btn-ax primary" type="button" id="btnGuardarProc"
+              onclick="guardarModalProc()">
+        <i class="fa-solid fa-save"></i> Guardar cambios
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -637,6 +882,7 @@ async function cargarProcs() {
 }
 
 function renderProcs(data) {
+  _procsData = data  // guardar para acceder desde el modal
   const tbody = document.getElementById("procsBody")
   if (!data.length) {
     tbody.innerHTML = `<tr><td colspan="12" class="empty-tab">
@@ -685,7 +931,10 @@ function renderProcs(data) {
                   onchange="actualizarProc(${p.id}, 'finalidad', this.value)">
             ${selOpts(finalOpts, p.finalidad)}
           </select></td>
-      <td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-edit-proc" onclick="abrirModalProc(${p.id})">
+          <i class="fa-solid fa-pen"></i>
+        </button>
         <button class="btn-del" onclick="eliminarProc(${p.id})">
           <i class="fa-solid fa-trash"></i>
         </button>
@@ -919,6 +1168,83 @@ document.getElementById("csvItems")?.addEventListener("change", async function (
   }
 })
 
+/* ── Modal editar procedimiento ── */
+let _procActualId = null
+let _procsData    = []
+
+function abrirModalProc(id) {
+  const p = _procsData.find(x => x.id === id)
+  if (!p) return
+  _procActualId = id
+
+  document.getElementById("m_cod_proc").value            = p.cod_proc            || ""
+  document.getElementById("m_cod_cups").value            = p.cod_cups            || p.cups_codigo || ""
+  document.getElementById("m_nombre").value              = p.nombre_procedimiento|| p.cups_descripcion || ""
+  document.getElementById("m_cod_factura").value         = p.cod_factura         || ""
+  document.getElementById("m_grupo").value               = p.grupo               || ""
+  document.getElementById("m_valor_paquete").value       = p.valor_paquete       || 0
+  document.getElementById("m_valor_procedimiento").value = p.valor_procedimiento || 0
+  document.getElementById("m_valor_suministro").value   = p.valor_suministro    || 0
+  document.getElementById("m_via_ingreso").value         = p.via_ingreso         || ""
+  document.getElementById("m_ambito_atencion").value     = p.ambito_atencion     || ""
+  document.getElementById("m_finalidad").value           = p.finalidad           || ""
+
+  document.getElementById("modalEditProc").classList.add("open")
+}
+
+function cerrarModal() {
+  document.getElementById("modalEditProc").classList.remove("open")
+  _procActualId = null
+}
+
+async function guardarModalProc() {
+  if (!_procActualId) return
+
+  const payload = {
+    cod_proc:             document.getElementById("m_cod_proc").value.trim() || null,
+    cod_cups:             document.getElementById("m_cod_cups").value.trim() || null,
+    nombre_procedimiento: document.getElementById("m_nombre").value.trim()   || null,
+    cod_factura:          document.getElementById("m_cod_factura").value.trim() || null,
+    grupo:                document.getElementById("m_grupo").value.trim()    || null,
+    valor_paquete:        parseFloat(document.getElementById("m_valor_paquete").value)       || 0,
+    valor_procedimiento:  parseFloat(document.getElementById("m_valor_procedimiento").value) || 0,
+    valor_suministro:     parseFloat(document.getElementById("m_valor_suministro").value)    || 0,
+    via_ingreso:          document.getElementById("m_via_ingreso").value     || null,
+    ambito_atencion:      document.getElementById("m_ambito_atencion").value || null,
+    finalidad:            document.getElementById("m_finalidad").value       || null,
+  }
+
+  const btn = document.getElementById("btnGuardarProc")
+  btn.disabled = true
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`
+
+  try {
+    const res  = await fetch(
+      `/hc/configuracion/manuales-tarifarios/procedimientos/${_procActualId}/actualizar`,
+      { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) }
+    )
+    const data = await res.json()
+
+    if (data.ok) {
+      cerrarModal()
+      cargarProcs()
+    } else {
+      Swal.fire({ title: "Error al guardar", text: data.msg, icon: "error",
+                  confirmButtonColor: "#0ea5e9" })
+    }
+  } catch(e) {
+    Swal.fire({ title: "Error de conexión", icon: "error", confirmButtonColor: "#0ea5e9" })
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = `<i class="fa-solid fa-save"></i> Guardar cambios`
+  }
+}
+
+// Cerrar modal al click fuera del box
+document.getElementById("modalEditProc")?.addEventListener("click", function(e) {
+  if (e.target === this) cerrarModal()
+})
+
 /* Cerrar dropdowns al click fuera */
 document.addEventListener("click", e => {
   if (!e.target.closest(".inline-search-wrap")) {
@@ -926,6 +1252,24 @@ document.addEventListener("click", e => {
     medDropdown?.classList.remove("open")
   }
 })
+
+/* ── Activar pestaña por hash en URL (#procedimientos o #items) ── */
+function activarTabPorHash() {
+  const hash = window.location.hash.replace("#", "")
+  if (!hash || MODO !== "editar") return
+  const btn = document.querySelector(`.tab-btn[data-tab="${hash}"]`)
+  if (!btn) return
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"))
+  btn.classList.add("active")
+  document.getElementById(`tab-${hash}`)?.classList.add("active")
+  if (hash === "procedimientos") cargarProcs()
+  if (hash === "items") cargarItems()
+}
+
+// Ejecutar al cargar y cuando cambie el hash
+activarTabPorHash()
+window.addEventListener("hashchange", activarTabPorHash)
 
 </script>
 {% endblock %}

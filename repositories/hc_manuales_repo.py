@@ -27,7 +27,6 @@ def listar():
 
 
 def listar_activos():
-    """Para el select de manual base."""
     res = (
         _sb()
         .table(TABLE)
@@ -77,6 +76,98 @@ def existe_codigo(codigo: str, exclude_id=None):
     return bool(res.data)
 
 
+# ── HERENCIA DE PROCEDIMIENTOS ─────────────────────────────────────
+
+def heredar_procedimientos_de_base(manual_id: int, manual_base_id: int, pct_base: float):
+    """
+    Copia los procedimientos del manual base al manual actual
+    aplicando el porcentaje indicado sobre los valores financieros.
+
+    Ejemplos:
+      pct_base = 100  → misma tarifa (factor 1.0, sin cambio)
+      pct_base = 110  → +10% sobre tarifa base (factor 1.1)
+      pct_base =  90  → -10% sobre tarifa base (factor 0.9)
+
+    Regla de duplicados (por cod_proc):
+      - Si el manual actual YA tiene un procedimiento con ese cod_proc
+        → se respeta el propio, NO se sobreescribe.
+      - Si NO lo tiene → se inserta desde el base con valores ajustados.
+
+    Retorna el número de procedimientos insertados.
+    """
+    if not manual_base_id or pct_base is None:
+        return 0
+
+    factor = float(pct_base) / 100.0
+
+    # 1. Traer todos los procedimientos del manual base
+    res_base = (
+        _sb()
+        .table(TABLE_PROC)
+        .select("*")
+        .eq("manual_id", manual_base_id)
+        .execute()
+    )
+    procs_base = res_base.data or []
+
+    if not procs_base:
+        return 0
+
+    # 2. Traer cod_proc ya existentes en el manual actual
+    res_propios = (
+        _sb()
+        .table(TABLE_PROC)
+        .select("cod_proc")
+        .eq("manual_id", manual_id)
+        .execute()
+    )
+    codigos_propios = {
+        r["cod_proc"]
+        for r in (res_propios.data or [])
+        if r.get("cod_proc")
+    }
+
+    # 3. Construir lista a insertar (solo los que no existen)
+    def _ajustar(v):
+        try:
+            return round(float(v or 0) * factor, 2)
+        except (TypeError, ValueError):
+            return 0.0
+
+    a_insertar = []
+    for p in procs_base:
+        cod = (p.get("cod_proc") or "").strip()
+        if cod in codigos_propios:
+            continue  # el propio gana
+
+        a_insertar.append({
+            "manual_id":             manual_id,
+            "cod_proc":              cod,
+            "nombre_procedimiento":  p.get("nombre_procedimiento"),
+            "cod_cups":              p.get("cod_cups"),
+            "cod_factura":           p.get("cod_factura"),
+            "grupo":                 p.get("grupo"),
+            "via_ingreso":           p.get("via_ingreso"),
+            "ambito_atencion":       p.get("ambito_atencion"),
+            "finalidad":             p.get("finalidad"),
+            "valor_paquete":         _ajustar(p.get("valor_paquete")),
+            "valor_procedimiento":   _ajustar(p.get("valor_procedimiento")),
+            "valor_suministro":      _ajustar(p.get("valor_suministro")),
+        })
+
+    if not a_insertar:
+        return 0
+
+    # 4. Insertar en lotes de 500
+    LOTE  = 500
+    total = 0
+    for i in range(0, len(a_insertar), LOTE):
+        _sb().table(TABLE_PROC).insert(a_insertar[i:i + LOTE]).execute()
+        total += len(a_insertar[i:i + LOTE])
+
+    return total
+
+
 # ── PROCEDIMIENTOS ─────────────────────────────────────────────────
 
 def listar_procedimientos(manual_id):
@@ -114,8 +205,8 @@ def importar_procedimientos(manual_id, registros: list):
     """Inserta en lote. Ignora duplicados por cod_proc."""
     if not registros:
         return 0
+
     def _safe(v):
-        """Convierte None o cualquier valor a string limpio."""
         return str(v).strip() if v is not None else ""
 
     payload = []
@@ -131,17 +222,22 @@ def importar_procedimientos(manual_id, registros: list):
             "cod_cups":              _safe(r.get("cod_cups")) or None,
             "grupo":                 _safe(r.get("grupo")) or None,
             "via_ingreso":           _enum(r.get("via_ingreso"),
-                                          ["AMBULATORIO","HOSPITALARIO","URGENCIAS"]),
+                                          ["AMBULATORIO", "HOSPITALARIO", "URGENCIAS"]),
             "ambito_atencion":       _enum(r.get("ambito_atencion"),
-                                          ["CONSULTA_EXTERNA","HOSPITALIZACION",
-                                           "URGENCIAS","CIRUGIA_AMBULATORIA"]),
+                                          ["CONSULTA_EXTERNA", "HOSPITALIZACION",
+                                           "URGENCIAS", "CIRUGIA_AMBULATORIA"]),
             "finalidad":             _enum(r.get("finalidad"),
-                                          ["DIAGNOSTICO","TERAPEUTICO",
-                                           "PROTECCION_ESPECIFICA","REHABILITACION",
+                                          ["DIAGNOSTICO", "TERAPEUTICO",
+                                           "PROTECCION_ESPECIFICA", "REHABILITACION",
                                            "DETECCION_ALTERACION"]),
         })
-    _sb().table(TABLE_PROC).insert(payload).execute()
-    return len(payload)
+
+    LOTE  = 500
+    total = 0
+    for i in range(0, len(payload), LOTE):
+        _sb().table(TABLE_PROC).insert(payload[i:i + LOTE]).execute()
+        total += len(payload[i:i + LOTE])
+    return total
 
 
 # ── ÍTEMS ──────────────────────────────────────────────────────────
@@ -180,6 +276,7 @@ def eliminar_item(item_id):
 def importar_items(manual_id, registros: list):
     if not registros:
         return 0
+
     def _safe(v):
         return str(v).strip() if v is not None else ""
 
@@ -191,8 +288,13 @@ def importar_items(manual_id, registros: list):
             "nombre":         _safe(r.get("nombre")),
             "valor_unitario": _num(r.get("valor_unitario")),
         })
-    _sb().table(TABLE_ITEM).insert(payload).execute()
-    return len(payload)
+
+    LOTE  = 500
+    total = 0
+    for i in range(0, len(payload), LOTE):
+        _sb().table(TABLE_ITEM).insert(payload[i:i + LOTE]).execute()
+        total += len(payload[i:i + LOTE])
+    return total
 
 
 # ── HELPERS ────────────────────────────────────────────────────────

@@ -60,10 +60,57 @@
   box-shadow: 0 0 0 3px rgba(14,165,233,.1);
 }
 
-/* ── Cards grid ── */
+.filter-select {
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  font-size: .88rem;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+/* ── Stats ── */
+.stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: .83rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.stat-pill .num { font-size: 1rem; font-weight: 800; color: var(--text); }
+.stat-pill.blue  { border-color: rgba(14,165,233,.25); }
+.stat-pill.blue  .num { color: #0369a1; }
+.stat-pill.green { border-color: rgba(34,197,94,.25); }
+.stat-pill.green .num { color: #166534; }
+.stat-pill.red   { border-color: rgba(239,68,68,.25); }
+.stat-pill.red   .num { color: #991b1b; }
+.stat-pill.amber { border-color: rgba(245,158,11,.25); }
+.stat-pill.amber .num { color: #92400e; }
+
+/* ── Grid ── */
 .mt-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: 14px;
 }
 
@@ -88,6 +135,11 @@
   background: linear-gradient(90deg, #0ea5e9, #6366f1);
   opacity: 0;
   transition: .2s;
+}
+
+.mt-card.vencido::before {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  opacity: 1;
 }
 
 .mt-card:hover {
@@ -116,20 +168,26 @@
   flex-shrink: 0;
 }
 
-.mt-card-title {
-  flex: 1;
+.mt-card-icon.vencido {
+  background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(239,68,68,.1));
+  color: #f59e0b;
 }
+
+.mt-card-title { flex: 1; min-width: 0; }
 
 .mt-card-nombre {
   font-size: .93rem;
   font-weight: 800;
   color: var(--text);
   line-height: 1.3;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mt-card-codigo {
-  font-size: .76rem;
+  font-size: .75rem;
   font-family: monospace;
   color: var(--text-faint);
   background: var(--surface-3);
@@ -138,16 +196,28 @@
   display: inline-block;
 }
 
-.badge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: .74rem;
-  font-weight: 800;
-  flex-shrink: 0;
+.badges-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.badge.ok  { background: rgba(34,197,94,.12);  color: #166534; }
-.badge.off { background: rgba(239,68,68,.12);  color: #991b1b; }
+.badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: .73rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge.ok          { background: rgba(34,197,94,.12);  color: #166534; }
+.badge.off         { background: rgba(239,68,68,.12);  color: #991b1b; }
+.badge.vencido-b   { background: rgba(245,158,11,.12); color: #92400e; }
+.badge.count       { background: rgba(14,165,233,.1);  color: #0369a1; }
+.badge.count-items { background: rgba(99,102,241,.1);  color: #4338ca; }
+.badge.zero        { background: rgba(148,163,184,.1); color: var(--text-faint); }
 
 .mt-card-meta {
   display: grid;
@@ -155,14 +225,10 @@
   gap: 8px;
 }
 
-.meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.meta-item { display: flex; flex-direction: column; gap: 2px; }
 
 .meta-label {
-  font-size: .68rem;
+  font-size: .67rem;
   text-transform: uppercase;
   letter-spacing: .05em;
   color: var(--text-faint);
@@ -170,14 +236,18 @@
 }
 
 .meta-val {
-  font-size: .83rem;
+  font-size: .82rem;
   color: var(--text);
   font-weight: 600;
 }
 
+.meta-val.warn { color: #92400e; }
+
+/* ── Acciones ── */
 .mt-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 7px;
+  flex-wrap: wrap;
   margin-top: 2px;
 }
 
@@ -189,24 +259,29 @@
   cursor: pointer;
   padding: 7px 11px;
   border-radius: 10px;
-  font-size: .8rem;
+  font-size: .79rem;
   font-weight: 700;
   text-decoration: none;
   transition: .15s;
+  white-space: nowrap;
 }
 
-.btn-mini.edit {
-  background: rgba(14,165,233,.12);
+.btn-mini.view {
+  background: rgba(14,165,233,.1);
   color: #0c4a6e;
 }
+.btn-mini.view:hover { background: rgba(14,165,233,.2); }
 
-.btn-mini.edit:hover { background: rgba(14,165,233,.22); }
+.btn-mini.edit {
+  background: rgba(99,102,241,.12);
+  color: #3730a3;
+}
+.btn-mini.edit:hover { background: rgba(99,102,241,.22); }
 
 .btn-mini.toggle {
   background: rgba(15,23,42,.07);
   color: var(--text-soft);
 }
-
 .btn-mini.toggle:hover { background: rgba(15,23,42,.13); }
 
 .empty-box {
@@ -216,7 +291,6 @@
   text-align: center;
   color: var(--text-soft);
 }
-
 .empty-box h3 { margin: 0 0 8px; color: var(--text); }
 .empty-box p  { margin: 0 0 18px; font-size: .9rem; }
 
@@ -225,32 +299,81 @@
 
 {% block content %}
 
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-pill blue">
+    <i class="fa-solid fa-file-invoice-dollar"></i>
+    <span>Total</span>
+    <span class="num">{{ data | length }}</span>
+  </div>
+  <div class="stat-pill green">
+    <i class="fa-solid fa-circle-check"></i>
+    <span>Activos</span>
+    <span class="num">{{ data | selectattr('estado','eq','ACTIVO') | list | length }}</span>
+  </div>
+  <div class="stat-pill red">
+    <i class="fa-solid fa-circle-xmark"></i>
+    <span>Inactivos</span>
+    <span class="num">{{ data | selectattr('estado','eq','INACTIVO') | list | length }}</span>
+  </div>
+  <div class="stat-pill amber" id="statVencidos" style="display:none;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span>Vencidos</span>
+    <span class="num" id="numVencidos">0</span>
+  </div>
+</div>
+
+<!-- Toolbar -->
 <div class="toolbar">
   <div class="search-wrap">
     <i class="fa-solid fa-magnifying-glass ico"></i>
     <input type="text" id="searchInput"
            placeholder="Buscar por código o nombre...">
   </div>
+  <select class="filter-select" id="filterEstado">
+    <option value="">Todos los estados</option>
+    <option value="ACTIVO">Solo activos</option>
+    <option value="INACTIVO">Solo inactivos</option>
+  </select>
+  <select class="filter-select" id="filterVigencia">
+    <option value="">Todas las vigencias</option>
+    <option value="vigente">Solo vigentes</option>
+    <option value="vencido">Solo vencidos</option>
+  </select>
 </div>
 
 {% if data %}
 
-<div class="mt-grid" id="mtGrid">
+<div class="mt-grid">
   {% for m in data %}
   <div class="mt-card rowItem"
        data-nombre="{{ m.nombre | lower }}"
-       data-codigo="{{ m.codigo | lower }}">
+       data-codigo="{{ m.codigo | lower }}"
+       data-estado="{{ m.estado }}"
+       data-vigencia-hasta="{{ m.vigencia_hasta or '' }}"
+       data-id="{{ m.id }}">
 
     <div class="mt-card-head">
-      <div class="mt-card-icon">
+      <div class="mt-card-icon" id="icon-{{ m.id }}">
         <i class="fa-solid fa-file-invoice-dollar"></i>
       </div>
       <div class="mt-card-title">
-        <div class="mt-card-nombre">{{ m.nombre }}</div>
+        <div class="mt-card-nombre" title="{{ m.nombre }}">{{ m.nombre }}</div>
         <span class="mt-card-codigo">{{ m.codigo }}</span>
       </div>
+    </div>
+
+    <div class="badges-row">
       <span class="badge {{ 'ok' if m.estado == 'ACTIVO' else 'off' }}">
+        <i class="fa-solid fa-circle" style="font-size:.4rem;"></i>
         {{ m.estado }}
+      </span>
+      <span id="bvig-{{ m.id }}"></span>
+      <span class="badge count zero" id="cnt-procs-{{ m.id }}">
+        <i class="fa-solid fa-syringe" style="font-size:.6rem;"></i> —
+      </span>
+      <span class="badge count-items zero" id="cnt-items-{{ m.id }}">
+        <i class="fa-solid fa-pills" style="font-size:.6rem;"></i> —
       </span>
     </div>
 
@@ -269,19 +392,26 @@
       </div>
       <div class="meta-item">
         <span class="meta-label">Vigencia hasta</span>
-        <span class="meta-val">{{ m.vigencia_hasta or '—' }}</span>
+        <span class="meta-val" id="meta-hasta-{{ m.id }}">
+          {{ m.vigencia_hasta or '—' }}
+        </span>
       </div>
     </div>
 
     <div class="mt-card-actions">
+      <a class="btn-mini view"
+         href="/hc/configuracion/manuales-tarifarios/ver/{{ m.id }}">
+        <i class="fa-solid fa-eye"></i> Ver
+      </a>
       <a class="btn-mini edit"
          href="/hc/configuracion/manuales-tarifarios/editar/{{ m.id }}">
-        <i class="fa-solid fa-pen"></i> Editar / Ver detalle
+        <i class="fa-solid fa-pen"></i> Editar
       </a>
       <form method="POST"
             action="/hc/configuracion/manuales-tarifarios/toggle/{{ m.id }}"
-            class="toggleForm">
-        <button class="btn-mini toggle" type="button">
+            class="toggleForm" style="margin:0;">
+        <button class="btn-mini toggle" type="button"
+                data-estado="{{ m.estado }}">
           <i class="fa-solid fa-power-off"></i>
           {{ 'Inactivar' if m.estado == 'ACTIVO' else 'Activar' }}
         </button>
@@ -310,13 +440,14 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 
-/* Toggle */
+/* ── Toggle ── */
 document.querySelectorAll(".toggleForm button").forEach(btn => {
   btn.addEventListener("click", function () {
-    const form = this.closest("form")
+    const form   = this.closest("form")
+    const estado = this.dataset.estado
+    const accion = estado === "ACTIVO" ? "inactivar" : "activar"
     Swal.fire({
-      title: "¿Cambiar estado?",
-      text: "Se modificará el estado del manual tarifario.",
+      title: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} manual?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, continuar",
@@ -326,15 +457,96 @@ document.querySelectorAll(".toggleForm button").forEach(btn => {
   })
 })
 
-/* Buscador */
-document.getElementById("searchInput").addEventListener("keyup", function () {
-  const val = this.value.toLowerCase()
-  document.querySelectorAll(".rowItem").forEach(card => {
-    const nombre = card.dataset.nombre || ""
-    const codigo = card.dataset.codigo || ""
-    card.style.display = (nombre.includes(val) || codigo.includes(val)) ? "" : "none"
-  })
+/* ── Vigencia ── */
+const hoy = new Date()
+hoy.setHours(0, 0, 0, 0)
+let totalVencidos = 0
+
+document.querySelectorAll(".rowItem").forEach(card => {
+  const hasta   = card.dataset.vigenciaHasta
+  const id      = card.dataset.id
+  const bvig    = document.getElementById(`bvig-${id}`)
+  const icon    = document.getElementById(`icon-${id}`)
+  const metaVal = document.getElementById(`meta-hasta-${id}`)
+
+  if (hasta) {
+    const fh = new Date(hasta)
+    fh.setHours(0, 0, 0, 0)
+
+    if (fh < hoy) {
+      card.classList.add("vencido")
+      card.dataset.vigenciaCalc = "vencido"
+      icon?.classList.add("vencido")
+      if (bvig) {
+        bvig.className = "badge vencido-b"
+        bvig.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="font-size:.6rem;"></i> Vencido`
+      }
+      if (metaVal) metaVal.classList.add("warn")
+      totalVencidos++
+    } else {
+      card.dataset.vigenciaCalc = "vigente"
+      if (bvig) {
+        bvig.className = "badge ok"
+        bvig.innerHTML = `<i class="fa-solid fa-check" style="font-size:.6rem;"></i> Vigente`
+      }
+    }
+  } else {
+    card.dataset.vigenciaCalc = ""
+    if (bvig) bvig.innerHTML = ""
+  }
 })
+
+if (totalVencidos > 0) {
+  document.getElementById("statVencidos").style.display = ""
+  document.getElementById("numVencidos").textContent = totalVencidos
+}
+
+/* ── Filtros ── */
+const searchInput    = document.getElementById("searchInput")
+const filterEstado   = document.getElementById("filterEstado")
+const filterVigencia = document.getElementById("filterVigencia")
+
+function filtrar() {
+  const val      = (searchInput.value || "").toLowerCase()
+  const estado   = filterEstado.value
+  const vigencia = filterVigencia.value
+
+  document.querySelectorAll(".rowItem").forEach(card => {
+    const matchText  = !val      || (card.dataset.nombre||"").includes(val) || (card.dataset.codigo||"").includes(val)
+    const matchState = !estado   || card.dataset.estado === estado
+    const matchVig   = !vigencia || card.dataset.vigenciaCalc === vigencia
+    card.style.display = (matchText && matchState && matchVig) ? "" : "none"
+  })
+}
+
+searchInput.addEventListener("keyup", filtrar)
+filterEstado.addEventListener("change", filtrar)
+filterVigencia.addEventListener("change", filtrar)
+
+/* ── Conteos AJAX ── */
+async function cargarConteos() {
+  const ids = [...document.querySelectorAll(".rowItem")]
+    .map(c => c.dataset.id).filter(Boolean)
+  if (!ids.length) return
+  try {
+    const res  = await fetch(`/hc/configuracion/manuales-tarifarios/conteos?ids=${ids.join(",")}`)
+    const data = await res.json()
+    data.forEach(item => {
+      const bp = document.getElementById(`cnt-procs-${item.manual_id}`)
+      const bi = document.getElementById(`cnt-items-${item.manual_id}`)
+      if (bp) {
+        bp.innerHTML = `<i class="fa-solid fa-syringe" style="font-size:.6rem;"></i> ${item.procs}`
+        bp.classList.toggle("zero", item.procs === 0)
+      }
+      if (bi) {
+        bi.innerHTML = `<i class="fa-solid fa-pills" style="font-size:.6rem;"></i> ${item.items}`
+        bi.classList.toggle("zero", item.items === 0)
+      }
+    })
+  } catch(e) { /* silencioso */ }
+}
+
+cargarConteos()
 
 </script>
 {% endblock %}
