@@ -327,9 +327,9 @@
         <select name="manual_tarifario">
           <option value="">Seleccione</option>
           {% for m in manuales_tarifarios %}
-          <option value="{{ m }}"
-            {{ 'selected' if (contrato and contrato.manual_tarifario == m) else '' }}>
-            {{ m }}
+          <option value="{{ m.nombre }}"
+            {{ 'selected' if (contrato and contrato.manual_tarifario == m.nombre) else '' }}>
+            {{ m.nombre }} ({{ m.codigo }})
           </option>
           {% endfor %}
         </select>

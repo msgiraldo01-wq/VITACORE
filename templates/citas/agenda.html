@@ -965,9 +965,12 @@ let sedesData = [];
 let procedimientosMedico       = [];  
 let procedimientosSeleccionados = []; 
 let currentStep = 1;
-const totalSteps = 4;
+const totalSteps = 5;
 let _citaGuardadaExitosamente = false;
 let mostrarCanceladas = false;
+let clientesData  = [];
+let contratosData = [];
+let tarifasProcedimientos = {};
 
 let citaForm = {
   paciente_id: null,
@@ -983,7 +986,19 @@ let citaForm = {
   sede_id: null,
   sede_nombre: '',
   motivo_consulta: '',
-  prioridad: 'NORMAL'
+  prioridad: 'NORMAL',
+  cliente_id: null,
+  cliente_nombre: '',
+  contrato_id: null,
+  contrato_nro: '',
+  manual_nombre: '',
+  valor_tarifa: 0,
+  causa_externa: '',
+  via_ingreso: 'AMBULATORIO',
+  ambito_atencion: 'CONSULTA_EXTERNA',
+  numero_autorizacion: '',
+  es_adicional: false
+ 
 };
 
 // ===== INICIALIZACIÓN =====
@@ -1085,10 +1100,71 @@ async function cargarSelects() {
       if (selectSedeModal) selectSedeModal.innerHTML += option;
     });
 
+    const resClientes = await fetch('/citas/api/clientes');
+    const dataClientes = await resClientes.json();
+    clientesData = dataClientes.data || [];
+
+    const selectCliente = document.getElementById('cliente_id_modal');
+    if (selectCliente) {
+      clientesData.forEach(c => {
+        selectCliente.innerHTML += `<option value="${c.id}">${c.nombre} (${c.nit || c.codigo})</option>`;
+      });
+    }
+
   } catch (error) {
     console.error('Error cargando selects:', error);
   }
 }
+
+async function onClienteChange() {
+  const clienteId = document.getElementById('cliente_id_modal').value;
+  const selectContrato = document.getElementById('contrato_id_modal');
+ 
+  // Reset contrato y tarifas
+  citaForm.cliente_id     = clienteId || null;
+  citaForm.cliente_nombre = clientesData.find(c => c.id == clienteId)?.nombre || '';
+  citaForm.contrato_id    = null;
+  citaForm.contrato_nro   = '';
+  citaForm.manual_nombre  = '';
+  citaForm.valor_tarifa   = 0;
+  contratosData           = [];
+  tarifasProcedimientos   = {};
+ 
+  // Reset UI
+  document.getElementById('infoContratoSeleccionado').style.display = 'none';
+  document.getElementById('seccionTarifas').style.display           = 'none';
+  document.getElementById('msgSinTarifas').style.display            = 'none';
+ 
+  if (!clienteId) {
+    selectContrato.innerHTML = '<option value="">Primero seleccione un cliente...</option>';
+    return;
+  }
+ 
+  selectContrato.innerHTML = '<option value="">Cargando contratos...</option>';
+ 
+  try {
+    const res  = await fetch(`/citas/api/cliente/${clienteId}/contratos`);
+    const data = await res.json();
+ 
+    contratosData = data.ok ? data.data : [];
+ 
+    if (!contratosData.length) {
+      selectContrato.innerHTML = '<option value="">Sin contratos activos</option>';
+      return;
+    }
+ 
+    selectContrato.innerHTML = '<option value="">Seleccionar contrato...</option>';
+    contratosData.forEach(c => {
+      const label = `${c.nro_contrato} — ${c.manual_tarifario || 'Sin manual'}`;
+      selectContrato.innerHTML += `<option value="${c.id}">${label}</option>`;
+    });
+ 
+  } catch (e) {
+    console.error('Error cargando contratos:', e);
+    selectContrato.innerHTML = '<option value="">Error al cargar</option>';
+  }
+}
+
 
 // ===== CARGAR AGENDA =====
 async function cargarAgenda() {
@@ -1194,11 +1270,12 @@ function renderAgenda(lista) {
       div.style.zIndex     = 5 + colIndex;
 
       const urgenteBadge  = c.prioridad === 'URGENTE' ? '<span class="urgente-badge">Urgente</span>' : '';
+      const adicionalBadge = c.es_adicional ? '<span class="urgente-badge" style="background:var(--color-pendiente);">Adicional</span>' : '';
       const mostrarMedico = duracion >= 20;
       const mostrarEstado = duracion >= 30;
 
       div.innerHTML = `
-        <div class="cita-paciente">${urgenteBadge}${c.paciente_nombre || "Paciente"}</div>
+        <div class="cita-paciente">${urgenteBadge}${adicionalBadge}${c.paciente_nombre || "Paciente"}</div>
         ${mostrarMedico ? `<div class="cita-meta">${c.medico_nombre || "-"} · ${duracion}min</div>` : ''}
         ${mostrarEstado ? `<div class="cita-meta">${c.estado}</div>` : ''}
         <div class="cita-actions">
@@ -1225,6 +1302,159 @@ function actualizarResumen(citas) {
   document.getElementById('statConfirmadas').textContent = citas.filter(c => c.estado === 'CONFIRMADA').length;
   document.getElementById('statAtencion').textContent = citas.filter(c => c.estado === 'EN_ATENCION').length;
 }
+
+
+
+async function onContratoChange() {
+  const contratoId = document.getElementById('contrato_id_modal').value;
+  const infoBox    = document.getElementById('infoContratoSeleccionado');
+ 
+  citaForm.contrato_id   = contratoId || null;
+  citaForm.valor_tarifa  = 0;
+  tarifasProcedimientos  = {};
+ 
+  if (!contratoId) {
+    infoBox.style.display = 'none';
+    document.getElementById('seccionTarifas').style.display = 'none';
+    document.getElementById('msgSinTarifas').style.display  = 'none';
+    return;
+  }
+ 
+  // Buscar datos del contrato seleccionado
+  const contrato = contratosData.find(c => c.id == contratoId);
+  if (!contrato) return;
+ 
+  citaForm.contrato_nro  = contrato.nro_contrato || '';
+  citaForm.manual_nombre = contrato.manual_tarifario || '';
+ 
+  // Mostrar info del contrato
+  document.getElementById('info-contrato-nro').textContent     = contrato.nro_contrato || '—';
+  document.getElementById('info-contrato-manual').textContent  = contrato.manual_tarifario || '—';
+  document.getElementById('info-contrato-tipo').textContent    = contrato.tipo_contrato || '—';
+ 
+  const vigencia = [];
+  if (contrato.fec_desde) vigencia.push(contrato.fec_desde);
+  if (contrato.fec_hasta) vigencia.push(contrato.fec_hasta);
+  document.getElementById('info-contrato-vigencia').textContent =
+    vigencia.length ? vigencia.join(' → ') : '—';
+ 
+  infoBox.style.display = 'block';
+ 
+  // Cargar tarifas si hay procedimientos seleccionados
+  await cargarTarifasProcedimientos(contratoId);
+}
+ 
+async function cargarTarifasProcedimientos(contratoId) {
+  const seccion   = document.getElementById('seccionTarifas');
+  const lista     = document.getElementById('listaTarifasProcedimientos');
+  const totalEl   = document.getElementById('totalTarifaCita');
+  const msgVacio  = document.getElementById('msgSinTarifas');
+ 
+  if (!procedimientosSeleccionados.length) {
+    seccion.style.display  = 'none';
+    msgVacio.style.display = 'block';
+    msgVacio.innerHTML     = `
+      <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+      No hay procedimientos seleccionados. Vuelva al paso 2 para agregar.
+    `;
+    return;
+  }
+ 
+  if (!contratoId) {
+    seccion.style.display  = 'none';
+    msgVacio.style.display = 'block';
+    return;
+  }
+ 
+  msgVacio.style.display = 'none';
+  seccion.style.display  = 'block';
+  lista.innerHTML        = '<div style="padding:16px; text-align:center; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Consultando tarifas...</div>';
+ 
+  let totalGeneral = 0;
+  const filas = [];
+ 
+  for (const proc of procedimientosSeleccionados) {
+    try {
+      const res  = await fetch(`/citas/api/contrato/${contratoId}/tarifa-cups/${proc.cups_id}`);
+      const data = await res.json();
+ 
+      if (data.ok && data.data) {
+        const t = data.data;
+        tarifasProcedimientos[proc.cups_id] = t;
+        totalGeneral += t.valor_total;
+ 
+        filas.push(`
+          <div style="
+            display: grid;
+            grid-template-columns: 90px 1fr 100px 100px 100px 110px;
+            align-items: center;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+          ">
+            <span style="font-weight:600;">${proc.codigo}</span>
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px;"
+                  title="${proc.descripcion}">${proc.descripcion}</span>
+            <span style="text-align:right;">$${formatMoney(t.valor_paquete)}</span>
+            <span style="text-align:right;">$${formatMoney(t.valor_procedimiento)}</span>
+            <span style="text-align:right;">$${formatMoney(t.valor_suministro)}</span>
+            <span style="text-align:right; font-weight:700; color:var(--color-confirmada);">
+              $${formatMoney(t.valor_total)}
+            </span>
+          </div>
+        `);
+      } else {
+        // Procedimiento no encontrado en el manual
+        tarifasProcedimientos[proc.cups_id] = null;
+        filas.push(`
+          <div style="
+            display: grid;
+            grid-template-columns: 90px 1fr 1fr;
+            align-items: center;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+          ">
+            <span style="font-weight:600;">${proc.codigo}</span>
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${proc.descripcion}</span>
+            <span style="text-align:right; color:var(--color-pendiente); font-size:12px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              No encontrado en el manual
+            </span>
+          </div>
+        `);
+      }
+    } catch (e) {
+      console.error(`Error buscando tarifa CUPS ${proc.cups_id}:`, e);
+      filas.push(`
+        <div style="padding:9px 12px; border-bottom:1px solid var(--border); font-size:13px; color:var(--color-cancelada);">
+          ${proc.codigo} — Error al consultar tarifa
+        </div>
+      `);
+    }
+  }
+ 
+  lista.innerHTML    = filas.join('');
+  totalEl.textContent = `$${formatMoney(totalGeneral)}`;
+  citaForm.valor_tarifa = totalGeneral;
+}
+ 
+ 
+// ---------------------------------------------------------------
+// FORMATO DE DINERO
+// ---------------------------------------------------------------
+function formatMoney(value) {
+  const num = parseFloat(value) || 0;
+  return num.toLocaleString('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
+
+
+
+
 
 // ===== ACCIONES =====
 async function cambiarEstado(id, nuevoEstado, event) {
@@ -1314,6 +1544,37 @@ function poblarModalDetalle(c) {
   // Médico y horario
   document.getElementById('d-medico-nombre').textContent = c.medico_nombre      || '—';
   document.getElementById('d-medico-esp').textContent    = c.medico_especialidad || '—';
+
+  const adicionalBadge = document.getElementById('detalle-adicional-badge');
+  if (adicionalBadge) {
+    adicionalBadge.style.display = c.es_adicional ? 'inline' : 'none';
+  }
+ 
+  // Cliente y Contrato
+  const seccionContrato = document.getElementById('detalle-seccion-contrato');
+  if (c.cliente_id || c.contrato_id) {
+    seccionContrato.style.display = 'block';
+    document.getElementById('d-cliente-nombre').textContent  = c.cliente_nombre  || '—';
+    document.getElementById('d-contrato-nro').textContent    = c.contrato_nro    || '—';
+    document.getElementById('d-contrato-manual').textContent = c.manual_nombre   || '—';
+    document.getElementById('d-valor-tarifa').textContent    = c.valor_tarifa
+      ? '$' + parseFloat(c.valor_tarifa).toLocaleString('es-CO', { minimumFractionDigits: 0 })
+      : '$0';
+  } else {
+    seccionContrato.style.display = 'none';
+  }
+ 
+  // Datos normativos RIPS
+  const seccionRips = document.getElementById('detalle-seccion-rips');
+  if (c.causa_externa || c.via_ingreso || c.ambito_atencion || c.numero_autorizacion) {
+    seccionRips.style.display = 'block';
+    document.getElementById('d-causa-externa').textContent    = (c.causa_externa || '—').replace(/_/g, ' ');
+    document.getElementById('d-via-ingreso').textContent      = (c.via_ingreso || '—').replace(/_/g, ' ');
+    document.getElementById('d-ambito-atencion').textContent  = (c.ambito_atencion || '—').replace(/_/g, ' ');
+    document.getElementById('d-nro-autorizacion').textContent = c.numero_autorizacion || '—';
+  } else {
+    seccionRips.style.display = 'none';
+  }
  
   // Fecha formateada
   if (c.fecha) {
@@ -1519,6 +1780,11 @@ function abrirModalCita() {
   cargarPacientes();
   actualizarStepUI();
   document.getElementById('modalCita').classList.add('active');
+
+  // No permitir fechas pasadas
+  const hoy = new Date().toISOString().split("T")[0];
+  const inputFecha = document.getElementById('fecha_modal');
+  if (inputFecha) inputFecha.min = hoy;
 }
 
 function cerrarModalCita() {
@@ -1547,11 +1813,19 @@ function resetForm() {
     fecha: '', hora_inicio: '', duracion: 20,
     tipo_atencion: 'CONSULTA', modalidad: 'PRESENCIAL',
     finalidad_consulta: 'DIAGNOSTICO', sede_id: null, sede_nombre: '',
-    motivo_consulta: '', prioridad: 'NORMAL'
+    motivo_consulta: '', prioridad: 'NORMAL',
+    // ── NUEVOS ──
+    cliente_id: null, cliente_nombre: '',
+    contrato_id: null, contrato_nro: '',
+    manual_nombre: '', valor_tarifa: 0,
+    causa_externa: '', via_ingreso: 'AMBULATORIO',
+    ambito_atencion: 'CONSULTA_EXTERNA', numero_autorizacion: '',
   };
  
   procedimientosSeleccionados = [];
   procedimientosMedico        = [];
+  contratosData               = [];
+  tarifasProcedimientos       = {};
  
   document.getElementById('buscarPaciente').value = '';
   document.getElementById('listaPacientes').innerHTML =
@@ -1561,12 +1835,39 @@ function resetForm() {
   document.getElementById('motivo_consulta').value  = '';
   document.querySelector('input[name="prioridad"][value="NORMAL"]').checked = true;
  
+  // Reset cliente/contrato
+  const selCliente  = document.getElementById('cliente_id_modal');
+  const selContrato = document.getElementById('contrato_id_modal');
+  if (selCliente)  selCliente.value = '';
+  if (selContrato) selContrato.innerHTML = '<option value="">Primero seleccione un cliente...</option>';
+  document.getElementById('infoContratoSeleccionado').style.display = 'none';
+  document.getElementById('seccionTarifas').style.display           = 'none';
+  document.getElementById('msgSinTarifas').style.display            = 'none';
+ 
   if (document.getElementById('buscarCups')) {
     document.getElementById('buscarCups').value        = '';
     document.getElementById('sugerenciasCups').style.display = 'none';
     renderProcedimientosSeleccionados();
-    sincronizarDuracion();  // resetea el campo duración a 20
+    sincronizarDuracion();
   }
+
+  const selCausa   = document.getElementById('causa_externa');
+  const selVia     = document.getElementById('via_ingreso');
+  const selAmbito  = document.getElementById('ambito_atencion');
+  const inputAuth  = document.getElementById('numero_autorizacion');
+  if (selCausa)  selCausa.value  = '';
+  if (selVia)    selVia.value    = 'AMBULATORIO';
+  if (selAmbito) selAmbito.value = 'CONSULTA_EXTERNA';
+  if (inputAuth) inputAuth.value = '';
+
+  const chkAdicional = document.getElementById('es_adicional');
+  if (chkAdicional) chkAdicional.checked = false;
+}
+
+function toggleCitaAdicional() {
+  citaForm.es_adicional = document.getElementById('es_adicional').checked;
+  // Recargar slots — si es adicional, muestra TODOS los horarios
+  cargarHorariosMedico();
 }
 
 // ---------------------------------------------------------------
@@ -1576,20 +1877,20 @@ async function onMedicoChange() {
   const medicoId = document.getElementById('medico_id_modal').value;
   citaForm.medico_id     = medicoId;
   citaForm.medico_nombre = medicosData.find(m => m.id == medicoId)?.nombre_completo || '';
- 
+
   procedimientosSeleccionados = [];
   procedimientosMedico        = [];
   renderProcedimientosSeleccionados();
   sincronizarDuracion();
- 
+
   const seccion = document.getElementById('seccionProcedimientos');
   if (!medicoId) {
     seccion.style.display = 'none';
     return;
   }
- 
+
   seccion.style.display = 'block';
- 
+
   try {
     const res  = await fetch(`/citas/api/medico/${medicoId}/procedimientos`);
     const data = await res.json();
@@ -1597,11 +1898,101 @@ async function onMedicoChange() {
   } catch {
     procedimientosMedico = [];
   }
- 
+
   document.getElementById('buscarCups').value              = '';
   document.getElementById('sugerenciasCups').style.display = 'none';
- 
-  cargarHorariosMedico();
+
+  // Buscar siguiente cita disponible automáticamente
+  await buscarSiguienteDisponible(medicoId);
+}
+
+async function buscarSiguienteDisponible(medicoId) {
+  const inputFecha     = document.getElementById('fecha_modal');
+  const selectHora     = document.getElementById('hora_inicio');
+  const infoDisp       = document.getElementById('infoHorarioMedico');
+  const duracionActual = parseInt(document.getElementById('duracion').value) || 20;
+
+  infoDisp.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando próxima disponibilidad...';
+  selectHora.innerHTML = '<option value="">Buscando...</option>';
+
+  const hoy   = new Date();
+  let fecha   = new Date(hoy);
+  let encontrado = false;
+  let intentos   = 0;
+  const maxDias  = 90; // buscar hasta 3 meses
+
+  while (!encontrado && intentos < maxDias) {
+    const fechaStr = fecha.toISOString().split("T")[0];
+
+    // Saltar domingos (opcional — descomenta si no trabajan domingos)
+    // if (fecha.getDay() === 0) { fecha.setDate(fecha.getDate() + 1); intentos++; continue; }
+
+    try {
+      const res  = await fetch(`/citas/api/agenda?fecha=${fechaStr}&medico_id=${medicoId}`);
+      const data = await res.json();
+      const citas = data.data || [];
+
+      // Calcular hora mínima si es hoy
+      const esHoy = fechaStr === hoy.toISOString().split("T")[0];
+      let minMinutos = 6 * 60;
+      if (esHoy) {
+        minMinutos = Math.ceil((hoy.getHours() * 60 + hoy.getMinutes() + 1) / 5) * 5;
+      }
+
+      // Buscar primer slot libre
+      for (let h = 6; h < 20; h++) {
+        for (let m = 0; m < 60; m += 5) {
+          const slotMin = h * 60 + m;
+          if (slotMin < minMinutos) continue;
+
+          const finSlot = slotMin + duracionActual;
+
+          const ocupado = citas.some(c => {
+            if (c.estado === 'CANCELADA') return false;
+            const [ch, cm] = c.hora_inicio.split(':').map(Number);
+            const inicioC  = ch * 60 + cm;
+            const finC     = inicioC + (c.duracion || 20);
+            return slotMin < finC && finSlot > inicioC;
+          });
+
+          if (!ocupado) {
+            // Encontramos el primer slot libre
+            inputFecha.value = fechaStr;
+            citaForm.fecha   = fechaStr;
+            encontrado = true;
+
+            // Cargar todos los slots de ese día
+            await cargarHorariosMedico();
+
+            // Pre-seleccionar la hora encontrada
+            const horaStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            selectHora.value     = horaStr;
+            citaForm.hora_inicio = horaStr;
+            actualizarHoraFin();
+
+            // Mensaje de éxito
+            const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+            const fechaHumana = new Date(fechaStr + 'T12:00:00').toLocaleDateString('es-ES', opciones);
+            infoDisp.innerHTML += `<br><small style="color:var(--color-atencion);">
+              <i class="fa-solid fa-magic"></i> Próximo disponible: ${fechaHumana} a las ${horaStr}
+            </small>`;
+
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.error(`Error buscando disponibilidad ${fechaStr}:`, e);
+    }
+
+    fecha.setDate(fecha.getDate() + 1);
+    intentos++;
+  }
+
+  if (!encontrado) {
+    infoDisp.innerHTML = '<span style="color:var(--color-cancelada);">No se encontró disponibilidad en los próximos 90 días</span>';
+    selectHora.innerHTML = '<option value="">Sin disponibilidad</option>';
+  }
 }
 
 // ---------------------------------------------------------------
@@ -1721,6 +2112,11 @@ function pasoSiguiente() {
   }
   currentStep++;
   actualizarStepUI();
+
+  // Al entrar al paso 3, recargar tarifas si ya hay contrato seleccionado
+  if (currentStep === 3 && citaForm.contrato_id) {
+    cargarTarifasProcedimientos(citaForm.contrato_id);
+  }
 }
 
 function pasoAnterior() {
@@ -1738,6 +2134,7 @@ function validarPaso(step) {
         return false;
       }
       return true;
+ 
     case 2:
       citaForm.medico_id   = document.getElementById('medico_id_modal').value;
       citaForm.fecha       = document.getElementById('fecha_modal').value;
@@ -1748,17 +2145,47 @@ function validarPaso(step) {
       if (!citaForm.fecha)       { mostrarToast('Seleccione una fecha', 'error'); return false; }
       if (!citaForm.hora_inicio) { mostrarToast('Seleccione una hora de inicio', 'error'); return false; }
       return true;
-    case 3:
-      citaForm.tipo_atencion = document.getElementById('tipo_atencion').value;
-      citaForm.modalidad = document.getElementById('modalidad').value;
+ 
+    case 3:  // Cliente, contrato y validación de tarifas
+      citaForm.cliente_id  = document.getElementById('cliente_id_modal').value;
+      citaForm.contrato_id = document.getElementById('contrato_id_modal').value;
+
+      if (!citaForm.cliente_id)  { mostrarToast('Seleccione un cliente / entidad', 'error'); return false; }
+      if (!citaForm.contrato_id) { mostrarToast('Seleccione un contrato', 'error'); return false; }
+
+      // Validar que TODOS los procedimientos tengan tarifa en el manual
+      if (procedimientosSeleccionados.length > 0) {
+        const sinTarifa = procedimientosSeleccionados.filter(p => !tarifasProcedimientos[p.cups_id]);
+        if (sinTarifa.length > 0) {
+          const codigos = sinTarifa.map(p => p.codigo).join(', ');
+          mostrarToast(
+            `Los procedimientos ${codigos} no están cubiertos por el manual tarifario de este contrato. Cambie el contrato o vuelva al paso 2 y retire los procedimientos.`,
+            'error'
+          );
+          return false;
+        }
+      }
+      return true;
+ 
+    case 4:
+      citaForm.tipo_atencion      = document.getElementById('tipo_atencion').value;
+      citaForm.modalidad          = document.getElementById('modalidad').value;
       citaForm.finalidad_consulta = document.getElementById('finalidad_consulta').value;
-      citaForm.sede_id = document.getElementById('sede_id_modal').value;
-      citaForm.sede_nombre = sedesData.find(s => s.id == citaForm.sede_id)?.nombre || '';
-      citaForm.motivo_consulta = document.getElementById('motivo_consulta').value;
-      citaForm.prioridad = document.querySelector('input[name="prioridad"]:checked').value;
+      citaForm.sede_id            = document.getElementById('sede_id_modal').value;
+      citaForm.sede_nombre        = sedesData.find(s => s.id == citaForm.sede_id)?.nombre || '';
+      citaForm.motivo_consulta    = document.getElementById('motivo_consulta').value;
+      citaForm.prioridad          = document.querySelector('input[name="prioridad"]:checked').value;
+      // ── NUEVOS RIPS ──
+      citaForm.causa_externa        = document.getElementById('causa_externa').value;
+      citaForm.via_ingreso          = document.getElementById('via_ingreso').value;
+      citaForm.ambito_atencion      = document.getElementById('ambito_atencion').value;
+      citaForm.numero_autorizacion  = document.getElementById('numero_autorizacion').value;
       
-      if (!citaForm.sede_id) { mostrarToast('Seleccione una sede', 'error'); return false; }
+      if (!citaForm.sede_id)               { mostrarToast('Seleccione una sede', 'error'); return false; }
       if (!citaForm.motivo_consulta.trim()) { mostrarToast('Ingrese el motivo', 'error'); return false; }
+      if (!citaForm.causa_externa)          { mostrarToast('Seleccione la causa externa', 'error'); return false; }
+      if (!citaForm.via_ingreso)            { mostrarToast('Seleccione la vía de ingreso', 'error'); return false; }
+      if (!citaForm.ambito_atencion)        { mostrarToast('Seleccione el ámbito de atención', 'error'); return false; }
       return true;
     default: return true;
   }
@@ -1856,56 +2283,80 @@ function seleccionarPaciente(id, nombre) {
 async function cargarHorariosMedico() {
   const medicoId = document.getElementById('medico_id_modal').value;
   const fecha    = document.getElementById('fecha_modal').value;
- 
+
   if (!medicoId || !fecha) return;
- 
+
+  // No permitir fechas pasadas
+  const hoy = new Date().toISOString().split("T")[0];
+  if (fecha < hoy) {
+    mostrarToast('No se pueden agendar citas en fechas pasadas', 'error');
+    document.getElementById('fecha_modal').value = hoy;
+    return;
+  }
+
   citaForm.medico_id     = medicoId;
   citaForm.medico_nombre = medicosData.find(m => m.id == medicoId)?.nombre_completo || '';
   citaForm.fecha         = fecha;
- 
+
   const selectHora = document.getElementById('hora_inicio');
   selectHora.innerHTML = '<option value="">Cargando...</option>';
- 
+
   try {
     const res             = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
     const data            = await res.json();
     const citasExistentes = data.data || [];
     const duracionActual  = parseInt(document.getElementById('duracion').value) || 20;
- 
+
+    // Calcular hora mínima: si es hoy, redondear al siguiente slot de 5 min
+    const ahora    = new Date();
+    const esHoy    = fecha === hoy;
+    let minMinutos = 6 * 60; // 06:00 por defecto
+
+    if (esHoy) {
+      const minActual = ahora.getHours() * 60 + ahora.getMinutes();
+      // Redondear al siguiente múltiplo de 5
+      minMinutos = Math.ceil((minActual + 1) / 5) * 5;
+    }
+
     const slots = [];
     for (let h = 6; h < 20; h++) {
       for (let m = 0; m < 60; m += 5) {
         const slotMin = h * 60 + m;
+
+        // Saltar slots en el pasado
+        if (slotMin < minMinutos) continue;
+
         const finSlot = slotMin + duracionActual;
         const hora    = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
- 
+
         const ocupado = citasExistentes.some(c => {
           if (c.estado === 'CANCELADA') return false;
-          const [ch, cm]    = c.hora_inicio.split(':').map(Number);
-          const inicioC     = ch * 60 + cm;
-          const finC        = inicioC + (c.duracion || 20);
+          const [ch, cm] = c.hora_inicio.split(':').map(Number);
+          const inicioC  = ch * 60 + cm;
+          const finC     = inicioC + (c.duracion || 20);
           return slotMin < finC && finSlot > inicioC;
         });
- 
-        if (!ocupado) slots.push(hora);
+
+        if (!ocupado || citaForm.es_adicional) slots.push(hora);
       }
     }
- 
+
     selectHora.innerHTML =
       '<option value="">Seleccionar hora...</option>' +
       slots.map(h => `<option value="${h}">${h}</option>`).join('');
- 
+
+    const citasActivas = citasExistentes.filter(c => c.estado !== 'CANCELADA').length;
     document.getElementById('infoHorarioMedico').innerHTML = `
-      <strong>${citasExistentes.filter(c => c.estado !== 'CANCELADA').length}</strong> citas agendadas ·
+      <strong>${citasActivas}</strong> citas agendadas ·
       <strong>${slots.length}</strong> slots disponibles para ${duracionActual} min
+      ${esHoy ? '<br><small style="color:var(--color-pendiente);">Solo se muestran horarios futuros</small>' : ''}
     `;
- 
-    // Al seleccionar hora → actualizar hora fin
+
     selectHora.onchange = () => {
       citaForm.hora_inicio = selectHora.value;
       actualizarHoraFin();
     };
- 
+
   } catch {
     selectHora.innerHTML = '<option value="">Error cargando horarios</option>';
   }
@@ -1916,14 +2367,18 @@ function generarResumen() {
   const duracionFinal = Math.max(5, parseInt(document.getElementById('duracion').value) || 20);
  
   const procs = procedimientosSeleccionados.length
-    ? procedimientosSeleccionados.map(p => `
-        <div style="display:flex; justify-content:space-between; font-size:12px;
-                    padding:4px 0; border-bottom:1px solid var(--border);">
-          <span><strong>${p.codigo}</strong> — ${p.descripcion}</span>
-          <span style="color:var(--color-confirmada); white-space:nowrap; margin-left:8px;">
-            ${p.duracion_min} min
-          </span>
-        </div>`).join('')
+    ? procedimientosSeleccionados.map(p => {
+        const tarifa = tarifasProcedimientos[p.cups_id];
+        const valorStr = tarifa ? `$${formatMoney(tarifa.valor_total)}` : 'Sin tarifa';
+        return `
+          <div style="display:flex; justify-content:space-between; font-size:12px;
+                      padding:4px 0; border-bottom:1px solid var(--border);">
+            <span><strong>${p.codigo}</strong> — ${p.descripcion}</span>
+            <span style="color:var(--color-confirmada); white-space:nowrap; margin-left:8px;">
+              ${p.duracion_min} min · ${valorStr}
+            </span>
+          </div>`;
+      }).join('')
     : '<div style="font-size:12px; color:var(--text-muted);">Sin procedimientos específicos</div>';
  
   document.getElementById('resumenCita').innerHTML = `
@@ -1942,10 +2397,41 @@ function generarResumen() {
         <span style="color:var(--text-muted); font-weight:400;">(${duracionFinal} min)</span>
       </span>
     </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-building"></i> Cliente</span>
+      <span class="resumen-value">${citaForm.cliente_nombre}</span>
+    </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-file-contract"></i> Contrato</span>
+      <span class="resumen-value">${citaForm.contrato_nro} · ${citaForm.manual_nombre}</span>
+    </div>
     <div class="resumen-row" style="flex-direction:column; gap:8px;">
       <span class="resumen-label"><i class="fa-solid fa-syringe"></i> Procedimientos CUPS</span>
       <div style="width:100%;">${procs}</div>
     </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-dollar-sign"></i> Valor total</span>
+      <span class="resumen-value" style="font-size:18px; font-weight:700; color:var(--color-confirmada);">
+        $${formatMoney(citaForm.valor_tarifa)}
+      </span>
+    </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-shield-halved"></i> Causa externa</span>
+      <span class="resumen-value">${citaForm.causa_externa.replace(/_/g, ' ') || '—'}</span>
+    </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-door-open"></i> Vía ingreso</span>
+      <span class="resumen-value">${citaForm.via_ingreso.replace(/_/g, ' ') || '—'}</span>
+    </div>
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-hospital"></i> Ámbito</span>
+      <span class="resumen-value">${citaForm.ambito_atencion.replace(/_/g, ' ') || '—'}</span>
+    </div>
+    ${citaForm.numero_autorizacion ? `
+    <div class="resumen-row">
+      <span class="resumen-label"><i class="fa-solid fa-hashtag"></i> Nro. Autorización</span>
+      <span class="resumen-value">${citaForm.numero_autorizacion}</span>
+    </div>` : ''}
     <div class="resumen-row">
       <span class="resumen-label"><i class="fa-solid fa-stethoscope"></i> Tipo</span>
       <span class="resumen-value">${citaForm.tipo_atencion} · ${citaForm.modalidad}</span>
@@ -1990,6 +2476,16 @@ async function guardarCita() {
       motivo_consulta:    citaForm.motivo_consulta,
       prioridad:          citaForm.prioridad,
       estado:             'PENDIENTE',
+      es_adicional:       citaForm.es_adicional || false,
+      // ── NUEVOS ──
+      cliente_id:         citaForm.cliente_id ? parseInt(citaForm.cliente_id) : null,
+      contrato_id:        citaForm.contrato_id ? parseInt(citaForm.contrato_id) : null,
+      causa_externa:        citaForm.causa_externa || null,
+      via_ingreso:          citaForm.via_ingreso || null,
+      ambito_atencion:      citaForm.ambito_atencion || null,
+      numero_autorizacion:  citaForm.numero_autorizacion || null,
+      valor_tarifa:       citaForm.valor_tarifa || 0,
+      // ────────────
       procedimientos:     procedimientosSeleccionados.map((p, i) => ({
         cups_id:      p.cups_id,
         duracion_min: p.duracion_min,
@@ -2005,12 +2501,10 @@ async function guardarCita() {
     const data = await res.json();
  
     if (data.ok) {
-      // Limpiar borrador ANTES de cerrar
       limpiarBorrador();
       _citaGuardadaExitosamente = true;
- 
       mostrarToast('Cita creada correctamente', 'success');
-      document.getElementById('modalCita').classList.remove('active'); // cierre directo sin guardar borrador
+      document.getElementById('modalCita').classList.remove('active');
       cargarAgenda();
     } else {
       mostrarToast(data.error || 'Error al crear cita', 'error');
@@ -2023,6 +2517,8 @@ async function guardarCita() {
     actualizarStepUI();
   }
 }
+
+
 // ===== TOAST =====
 function mostrarToast(mensaje, tipo = 'info') {
   const container = document.getElementById('toastContainer');
@@ -2288,7 +2784,7 @@ function actualizarCampana() {
       // Texto del tooltip
       const nombre = b.citaForm?.paciente_nombre || 'Paciente';
       const paso   = b.currentStep || 1;
-      campana.title = `Borrador: ${nombre} (paso ${paso} de 4)`;
+      campana.title = `Borrador: ${nombre} (paso ${paso} de 5)`;
 
       if (badge) badge.style.display = 'flex';
     } catch {

@@ -18,6 +18,7 @@ def _empresa_id(fallback=None):
     return session.get("empresa_id") or fallback
 
 
+
 def _normalize(row):
     if not row:
         return {}
@@ -48,6 +49,14 @@ def _normalize(row):
         "evolucion_id": row.get("evolucion_id"),
         "usuario_creacion": row.get("usuario_creacion"),
         "fecha_creacion": row.get("fecha_creacion"),
+        "cliente_id": row.get("cliente_id"),
+        "contrato_id": row.get("contrato_id"),
+        "valor_tarifa": row.get("valor_tarifa"),
+        "causa_externa": row.get("causa_externa"),
+        "via_ingreso": row.get("via_ingreso"),
+        "ambito_atencion": row.get("ambito_atencion"),
+        "numero_autorizacion": row.get("numero_autorizacion"),
+        "es_adicional": row.get("es_adicional"),
     }
 
 
@@ -314,6 +323,33 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
             "duracion_min": p.get("duracion_min", 20),
         })
 
+    # Cliente y contrato (nombres para mostrar)
+    cliente_nombre = ""
+    contrato_nro   = ""
+    manual_nombre  = ""
+
+    if row.get("cliente_id"):
+        cli_res = (
+            sb.table("hc_clientes")
+            .select("nombre")
+            .eq("id", row["cliente_id"])
+            .limit(1)
+            .execute()
+        )
+        cliente_nombre = (cli_res.data or [{}])[0].get("nombre", "")
+
+    if row.get("contrato_id"):
+        cont_res = (
+            sb.table("hc_contratos")
+            .select("nro_contrato, manual_tarifario")
+            .eq("id", row["contrato_id"])
+            .limit(1)
+            .execute()
+        )
+        cont = (cont_res.data or [{}])[0]
+        contrato_nro  = cont.get("nro_contrato", "")
+        manual_nombre = cont.get("manual_tarifario", "")
+
     return {
         # Cita base
         "id":                 row.get("id"),
@@ -340,6 +376,20 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
         # Sede
         "sede_id":            sede.get("id"),
         "sede_nombre":        sede.get("nombre", ""),
+        # Cliente y Contrato
+        "cliente_id":         row.get("cliente_id"),
+        "cliente_nombre":     cliente_nombre,
+        "contrato_id":        row.get("contrato_id"),
+        "contrato_nro":       contrato_nro,
+        "manual_nombre":      manual_nombre,
+        "valor_tarifa":       row.get("valor_tarifa"),
+        # RIPS
+        "causa_externa":      row.get("causa_externa"),
+        "via_ingreso":        row.get("via_ingreso"),
+        "ambito_atencion":    row.get("ambito_atencion"),
+        "numero_autorizacion": row.get("numero_autorizacion"),
+        # Adicional
+        "es_adicional":       row.get("es_adicional"),
         # Procedimientos
         "procedimientos":     procedimientos,
     }

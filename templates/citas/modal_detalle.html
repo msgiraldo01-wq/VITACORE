@@ -7,6 +7,12 @@
         <i class="fa-solid fa-calendar-check" style="color: var(--color-confirmada);"></i>
         Detalle de Cita
         <span id="detalle-estado-badge" class="detalle-estado-badge"></span>
+        <span id="detalle-adicional-badge" style="display:none;
+              font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;
+              background:rgba(245,158,11,0.15); color:var(--color-pendiente);
+              text-transform:uppercase; letter-spacing:0.04em;">
+          Adicional
+        </span>
       </h2>
       <button onclick="cerrarModalDetalle()" aria-label="Cerrar">✕</button>
     </div>
@@ -44,6 +50,31 @@
             <div class="detalle-field">
               <span class="detalle-label">Email</span>
               <span class="detalle-value" id="d-paciente-email">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLIENTE Y CONTRATO -->
+        <div class="detalle-seccion" id="detalle-seccion-contrato" style="display:none;">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-building"></i> Cliente y Contrato
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Cliente / Entidad</span>
+              <span class="detalle-value" id="d-cliente-nombre">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Nro. Contrato</span>
+              <span class="detalle-value" id="d-contrato-nro">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Manual tarifario</span>
+              <span class="detalle-value" id="d-contrato-manual">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Valor tarifa</span>
+              <span class="detalle-value" id="d-valor-tarifa" style="color:var(--color-confirmada); font-weight:700;">—</span>
             </div>
           </div>
         </div>
@@ -110,6 +141,31 @@
           </div>
         </div>
 
+        <!-- DATOS NORMATIVOS RIPS -->
+        <div class="detalle-seccion" id="detalle-seccion-rips" style="display:none;">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-shield-halved"></i> Datos normativos
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Causa externa</span>
+              <span class="detalle-value" id="d-causa-externa">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Vía de ingreso</span>
+              <span class="detalle-value" id="d-via-ingreso">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Ámbito de atención</span>
+              <span class="detalle-value" id="d-ambito-atencion">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Nro. Autorización</span>
+              <span class="detalle-value" id="d-nro-autorizacion">—</span>
+            </div>
+          </div>
+        </div>
+
         <!-- PROCEDIMIENTOS CUPS -->
         <div class="detalle-seccion" id="detalle-seccion-cups" style="display: none;">
           <div class="detalle-seccion-titulo">
@@ -121,13 +177,9 @@
       </div>
     </div>
 
-    <!-- FOOTER REORGANIZADO (sticky) -->
+    <!-- FOOTER (sticky) -->
     <div class="modal-footer" id="detalleFooter" style="display: none;">
-      
-      <!-- Izquierda: acciones de estado (confirmar, iniciar, finalizar, cancelar) -->
       <div class="btn-group" id="detalle-acciones"></div>
-      
-      <!-- Derecha: utilidades (ver, pdf, cerrar) -->
       <div class="btn-group btn-group-utilidades">
         <a class="btn btn-outline btn-sm" 
            id="btn-ver-html" 
@@ -137,7 +189,6 @@
           <i class="fa-solid fa-eye" style="color:#0d5c63;"></i>
           <span class="btn-label">Ver</span>
         </a>
-        
         <button class="btn btn-primary btn-sm" 
                 id="btn-descargar-pdf"
                 onclick="descargarPDF()"
@@ -145,13 +196,11 @@
           <i class="fa-solid fa-file-pdf"></i>
           <span class="btn-label">PDF</span>
         </button>
-        
         <button class="btn btn-outline btn-sm" onclick="cerrarModalDetalle()">
           <i class="fa-solid fa-xmark"></i>
           <span class="btn-label">Cerrar</span>
         </button>
       </div>
-
     </div>
 
   </div>
@@ -160,7 +209,6 @@
 <style>
 /* ===== MODAL DETALLE - COMPLETO ===== */
 
-/* Estructura del modal */
 .modal-full {
   max-width: 620px;
   max-height: 85vh;
@@ -169,7 +217,6 @@
   overflow: hidden;
 }
 
-/* Header sticky */
 .modal-header {
   flex-shrink: 0;
   position: sticky;
@@ -178,14 +225,12 @@
   background: var(--surface);
 }
 
-/* Body scrollable */
 .modal-body {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
 }
 
-/* Footer sticky */
 .modal-footer {
   flex-shrink: 0;
   position: sticky;
@@ -200,7 +245,6 @@
   gap: 12px;
 }
 
-/* Grupos de botones */
 .btn-group {
   display: flex;
   gap: 8px;
@@ -212,7 +256,6 @@
   margin-left: auto;
 }
 
-/* Botones compactos */
 .btn-sm {
   padding: 8px 14px;
   font-size: 13px;
@@ -224,7 +267,6 @@
   font-size: 14px;
 }
 
-/* Secciones del contenido */
 .detalle-seccion {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
@@ -272,7 +314,6 @@
   font-weight: 500;
 }
 
-/* Badges de estado */
 .detalle-estado-badge {
   font-size: 11px;
   font-weight: 700;
@@ -293,7 +334,6 @@
   font-weight: 700;
 }
 
-/* CUPS */
 .cups-row {
   display: grid;
   grid-template-columns: 80px 1fr 60px;
@@ -330,10 +370,9 @@
   white-space: nowrap;
 }
 
-/* Botones de acción de estado (confirmar, iniciar, etc.) */
 .btn-accion-confirmar  { background: var(--color-confirmada); color: white; }
 .btn-accion-iniciar    { background: var(--color-atencion);   color: white; }
-.btn-accion-finalizar  { background: var(--color-finalizada);  color: white; }
+.btn-accion-finalizar  { background: var(--color-finalizada); color: white; }
 .btn-accion-cancelar   { background: var(--color-cancelada);  color: white; }
 
 .btn-accion-confirmar:hover  { background: #2563eb; }
@@ -341,39 +380,19 @@
 .btn-accion-finalizar:hover  { background: #4b5563; }
 .btn-accion-cancelar:hover   { background: #dc2626; }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 540px) {
   .modal-footer {
     flex-direction: column-reverse;
     align-items: stretch;
     gap: 10px;
   }
-  
-  .btn-group-utilidades {
-    margin-left: 0;
-    justify-content: center;
-  }
-  
-  #detalle-acciones {
-    justify-content: center;
-  }
-  
-  .btn-label {
-    display: inline; /* mantener texto en tablet */
-  }
+  .btn-group-utilidades { margin-left: 0; justify-content: center; }
+  #detalle-acciones { justify-content: center; }
 }
 
 @media (max-width: 380px) {
-  .btn-label {
-    display: none; /* solo iconos en móvil muy pequeño */
-  }
-  
-  .btn-sm {
-    padding: 8px 10px;
-  }
-  
-  .detalle-grid {
-    grid-template-columns: 1fr; /* una columna en móvil */
-  }
+  .btn-label { display: none; }
+  .btn-sm { padding: 8px 10px; }
+  .detalle-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -1,5 +1,6 @@
-<!-- templates/citas/modal_cita.html -->
-<!-- Modal Progresivo: 4 Pasos para Agendar Cita -->
+<!-- ============================================================
+     PASO 4: REEMPLAZAR templates/citas/modal_cita.html COMPLETO
+     ============================================================ -->
 
 <div class="modal-overlay" id="modalCita">
   <div class="modal-full">
@@ -9,23 +10,26 @@
       <h2>
         <i class="fa-solid fa-calendar-plus"></i>
         Agendar Nueva Cita
-        <span class="step-indicator" id="stepIndicator">Paso 1 de 4</span>
+        <span class="step-indicator" id="stepIndicator">Paso 1 de 5</span>
       </h2>
       <button onclick="cerrarModalCita()">✕</button>
     </div>
 
-    <!-- STEPS PROGRESS -->
+    <!-- STEPS PROGRESS (ahora 5 pasos) -->
     <div class="steps-progress">
       <div class="step-dot active" data-step="1" id="stepDot1"></div>
       <div class="step-dot" data-step="2" id="stepDot2"></div>
       <div class="step-dot" data-step="3" id="stepDot3"></div>
       <div class="step-dot" data-step="4" id="stepDot4"></div>
+      <div class="step-dot" data-step="5" id="stepDot5"></div>
     </div>
 
     <!-- BODY -->
     <div class="modal-body">
 
-      <!-- PASO 1: PACIENTE -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- PASO 1: PACIENTE (sin cambios) -->
+      <!-- ═══════════════════════════════════════════════════════ -->
       <div class="step-content active" id="step1">
         <h3 style="margin: 0 0 16px 0; font-size: 16px;">
           <i class="fa-solid fa-user"></i> Seleccionar Paciente
@@ -55,14 +59,14 @@
         <input type="hidden" id="paciente_nombre">
       </div>
 
-      <!-- PASO 2: MÉDICO Y FECHA -->
-
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- PASO 2: MÉDICO Y FECHA (sin cambios) -->
+      <!-- ═══════════════════════════════════════════════════════ -->
       <div class="step-content" id="step2">
         <h3 style="margin: 0 0 16px 0; font-size: 16px;">
           <i class="fa-solid fa-user-doctor"></i> Médico, Procedimientos y Fecha
         </h3>
 
-        <!-- Médico y Fecha -->
         <div class="form-grid" style="margin-bottom: 16px;">
           <div>
             <label>Médico</label>
@@ -76,14 +80,12 @@
           </div>
         </div>
 
-        <!-- Sección procedimientos CUPS (se muestra al elegir médico) -->
         <div id="seccionProcedimientos" style="display:none; margin-bottom: 16px;">
           <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted);
                         margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;">
             Procedimientos CUPS
           </label>
 
-          <!-- Buscador -->
           <div class="search-box" style="margin-bottom: 8px;">
             <i class="fa-solid fa-search"></i>
             <input
@@ -97,7 +99,6 @@
             >
           </div>
 
-          <!-- Sugerencias -->
           <div id="sugerenciasCups" style="
             display: none;
             border: 1px solid var(--border);
@@ -108,10 +109,8 @@
             background: var(--surface);
           "></div>
 
-          <!-- Tabla de seleccionados -->
           <div id="tablaProcedimientosWrap" style="display: none;">
             <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 8px;">
-              <!-- Encabezado -->
               <div style="
                 display: grid;
                 grid-template-columns: 90px 1fr 90px 36px;
@@ -129,12 +128,10 @@
                 <span style="text-align:center;">Min</span>
                 <span></span>
               </div>
-              <!-- Filas (generadas por JS) -->
               <div id="listaProcedimientosSeleccionados"></div>
             </div>
           </div>
 
-          <!-- Mensaje vacío -->
           <div id="msgSinProcedimientos" style="
             padding: 10px 12px;
             font-size: 13px;
@@ -149,26 +146,17 @@
           </div>
         </div>
 
-        <!-- Hora inicio · Duración · Hora fin -->
         <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 16px;">
-
           <div>
             <label>Hora de inicio</label>
             <select id="hora_inicio" class="select">
               <option value="">Seleccionar hora...</option>
             </select>
           </div>
-
           <div>
             <label style="display:flex; align-items:center; gap:6px;">
               Duración (min)
-              
             </label>
-            <!--
-              No tiene readonly: el usuario puede ajustar la duración total
-              a mano en intervalos de 5, aunque haya procedimientos cargados.
-              onchange → recalcula hora fin y actualiza citaForm.duracion
-            -->
             <input
               type="number"
               id="duracion"
@@ -180,7 +168,6 @@
               style="font-weight: 600; color: var(--color-confirmada);"
             >
           </div>
-
           <div>
             <label>Hora fin estimada</label>
             <input
@@ -192,10 +179,8 @@
               style="background: var(--bg); color: var(--text-muted);"
             >
           </div>
-
         </div>
 
-        <!-- Info de disponibilidad -->
         <div style="padding: 16px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border);">
           <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
             <i class="fa-solid fa-clock"></i> Disponibilidad
@@ -205,10 +190,153 @@
           </div>
         </div>
 
+        <!-- Cita adicional (sobreagendamiento) -->
+        <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;
+                    padding: 12px 16px; background: rgba(245,158,11,0.06);
+                    border-radius: 10px; border: 1px solid rgba(245,158,11,0.2);">
+          <input type="checkbox" id="es_adicional" style="width:18px; height:18px; cursor:pointer;"
+                 onchange="toggleCitaAdicional()">
+          <label for="es_adicional" style="cursor:pointer; font-size:13px; color:var(--text); font-weight:500; text-transform:none; margin:0;">
+            <i class="fa-solid fa-layer-group" style="color:var(--color-pendiente); margin-right:4px;"></i>
+            Cita adicional (sobreagendar en horario ocupado)
+          </label>
+        </div>
       </div>
 
-      <!-- PASO 3: DETALLES -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- PASO 3: CLIENTE, CONTRATO Y TARIFA (✨ NUEVO) -->
+      <!-- ═══════════════════════════════════════════════════════ -->
       <div class="step-content" id="step3">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px;">
+          <i class="fa-solid fa-building"></i> Cliente, Contrato y Tarifa
+        </h3>
+
+        <!-- Cliente -->
+        <div class="form-grid" style="margin-bottom: 16px;">
+          <div>
+            <label>Cliente / Entidad *</label>
+            <select id="cliente_id_modal" class="select" onchange="onClienteChange()">
+              <option value="">Seleccionar cliente...</option>
+            </select>
+          </div>
+          <div>
+            <label>Contrato *</label>
+            <select id="contrato_id_modal" class="select" onchange="onContratoChange()">
+              <option value="">Primero seleccione un cliente...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Info del contrato seleccionado -->
+        <div id="infoContratoSeleccionado" style="display:none; margin-bottom: 16px;">
+          <div style="
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+          ">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted);
+                        text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 10px;">
+              <i class="fa-solid fa-file-contract"></i> Datos del contrato
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+              <div>
+                <span style="color: var(--text-muted);">Nro:</span>
+                <strong id="info-contrato-nro">—</strong>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Manual:</span>
+                <strong id="info-contrato-manual">—</strong>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Vigencia:</span>
+                <span id="info-contrato-vigencia">—</span>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Tipo:</span>
+                <span id="info-contrato-tipo">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarifas de los procedimientos seleccionados -->
+        <div id="seccionTarifas" style="display:none;">
+          <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted);
+                        margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;">
+            <i class="fa-solid fa-dollar-sign"></i> Tarifas según manual tarifario
+          </label>
+
+          <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 8px;">
+            <!-- Encabezado -->
+            <div style="
+              display: grid;
+              grid-template-columns: 90px 1fr 100px 100px 100px 110px;
+              background: var(--bg);
+              padding: 8px 12px;
+              border-bottom: 1px solid var(--border);
+              font-size: 11px;
+              font-weight: 600;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              letter-spacing: 0.03em;
+            ">
+              <span>Código</span>
+              <span>Procedimiento</span>
+              <span style="text-align:right;">Paquete</span>
+              <span style="text-align:right;">Procedim.</span>
+              <span style="text-align:right;">Suministro</span>
+              <span style="text-align:right; font-weight:700;">Total</span>
+            </div>
+            <!-- Filas dinámicas -->
+            <div id="listaTarifasProcedimientos"></div>
+          </div>
+
+          <!-- Total general -->
+          <div style="
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(16,185,129,0.08);
+            border-radius: 10px;
+            border: 1px solid rgba(16,185,129,0.2);
+          ">
+            <span style="font-size: 14px; font-weight: 600; color: var(--text);">
+              Valor total de la cita:
+            </span>
+            <span id="totalTarifaCita" style="
+              font-size: 20px;
+              font-weight: 700;
+              color: var(--color-confirmada);
+            ">$0</span>
+          </div>
+        </div>
+
+        <!-- Mensaje si no hay procedimientos -->
+        <div id="msgSinTarifas" style="
+          padding: 16px;
+          font-size: 13px;
+          color: var(--text-muted);
+          background: var(--bg);
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          text-align: center;
+          display: none;
+        ">
+          <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+          Seleccione un contrato para ver las tarifas de los procedimientos
+        </div>
+      </div>
+
+      <!-- ============================================================
+          REEMPLAZAR el paso 4 completo en modal_cita.html
+          Busca el div con id="step4" y reemplázalo por esto:
+      ============================================================ -->
+
+      <!-- PASO 4: DETALLES (con campos normativos RIPS) -->
+      <div class="step-content" id="step4">
         <h3 style="margin: 0 0 16px 0; font-size: 16px;">
           <i class="fa-solid fa-clipboard-list"></i> Detalles de la Cita
         </h3>
@@ -251,6 +379,52 @@
             </select>
           </div>
 
+          <!-- ── NUEVOS CAMPOS RIPS ── -->
+
+          <div>
+            <label>Causa externa *</label>
+            <select id="causa_externa" class="select">
+              <option value="">Seleccionar...</option>
+              <option value="ENFERMEDAD_GENERAL">Enfermedad general</option>
+              <option value="ACCIDENTE_TRANSITO">Accidente de tránsito</option>
+              <option value="ACCIDENTE_TRABAJO">Accidente de trabajo</option>
+              <option value="ENFERMEDAD_PROFESIONAL">Enfermedad profesional</option>
+              <option value="EVENTO_CATASTROFICO">Evento catastrófico</option>
+              <option value="LESION_AGRESION">Lesión por agresión</option>
+              <option value="LESION_AUTOINFLIGIDA">Lesión autoinfligida</option>
+              <option value="OTRA">Otra</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Vía de ingreso *</label>
+            <select id="via_ingreso" class="select">
+              <option value="">Seleccionar...</option>
+              <option value="AMBULATORIO" selected>Ambulatorio</option>
+              <option value="HOSPITALARIO">Hospitalario</option>
+              <option value="URGENCIAS">Urgencias</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Ámbito de atención *</label>
+            <select id="ambito_atencion" class="select">
+              <option value="">Seleccionar...</option>
+              <option value="CONSULTA_EXTERNA" selected>Consulta externa</option>
+              <option value="HOSPITALIZACION">Hospitalización</option>
+              <option value="URGENCIAS">Urgencias</option>
+              <option value="CIRUGIA_AMBULATORIA">Cirugía ambulatoria</option>
+              <option value="DOMICILIARIO">Domiciliario</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Nro. Autorización</label>
+            <input type="text" id="numero_autorizacion" class="input" placeholder="Número de autorización EPS">
+          </div>
+
+          <!-- ── FIN NUEVOS CAMPOS ── -->
+
           <div style="grid-column: span 2;">
             <label>Motivo de consulta</label>
             <input type="text" id="motivo_consulta" class="input" placeholder="Describa el motivo de la consulta...">
@@ -273,14 +447,15 @@
         </div>
       </div>
 
-      <!-- PASO 4: RESUMEN -->
-      <div class="step-content" id="step4">
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- PASO 5: RESUMEN (era paso 4) -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <div class="step-content" id="step5">
         <h3 style="margin: 0 0 16px 0; font-size: 16px;">
           <i class="fa-solid fa-check-circle"></i> Confirmar Cita
         </h3>
         
         <div class="resumen-cita" id="resumenCita">
-          <!-- Se llena dinámicamente -->
         </div>
 
         <div style="margin-top: 16px; padding: 12px 16px; background: rgba(245,158,11,0.1); border-radius: 10px; border: 1px solid rgba(245,158,11,0.3);">

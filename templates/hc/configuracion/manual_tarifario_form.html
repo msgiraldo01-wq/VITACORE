@@ -97,7 +97,7 @@
 
 .form-actions { margin-top: 20px; display: flex; gap: 10px; }
 
-/* ── Info crear primero ── */
+/* ── Info panel ── */
 .info-panel {
   background: rgba(14,165,233,.07);
   border: 1px solid rgba(14,165,233,.25);
@@ -126,7 +126,7 @@
   flex: 1;
 }
 
-/* ── Buscador CUPS / MED inline ── */
+/* ── Buscador inline ── */
 .inline-search-wrap {
   position: relative;
   flex: 1;
@@ -193,6 +193,11 @@
   border: 1px solid rgba(226,232,240,.9);
   border-radius: 16px;
   overflow: hidden;
+}
+
+.data-table-scroll {
+  max-height: 600px;
+  overflow-y: auto;
   overflow-x: auto;
 }
 
@@ -272,7 +277,6 @@
 
 .btn-del:hover { background: rgba(239,68,68,.2); }
 
-/* ── Botón editar proc ── */
 .btn-edit-proc {
   background: rgba(14,165,233,.1);
   color: #0c4a6e;
@@ -288,6 +292,45 @@
   gap: 5px;
 }
 .btn-edit-proc:hover { background: rgba(14,165,233,.2); }
+
+/* ── Filtro tabla ── */
+.table-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.table-filter-input {
+  flex: 1;
+  max-width: 320px;
+  padding: 9px 13px 9px 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(203,213,225,.9);
+  background: var(--surface);
+  font-size: .88rem;
+  outline: none;
+  color: var(--text);
+}
+
+.table-filter-input:focus {
+  border-color: rgba(14,165,233,.6);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+}
+
+.table-count {
+  font-size: .82rem;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.scroll-loader {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-faint);
+  font-size: .85rem;
+}
 
 /* ── Modal de edición ── */
 .modal-overlay {
@@ -438,7 +481,6 @@
   border-color: rgba(99,102,241,.4);
 }
 
-/* ── CSV tips ── */
 .csv-hint {
   font-size: .78rem;
   color: var(--text-faint);
@@ -479,27 +521,23 @@
 
   <form method="POST" id="formManual">
 
-    <!-- Identificación -->
     <div class="card-form">
       <p class="form-group-title">
         <i class="fa-solid fa-fingerprint" style="margin-right:6px;"></i>Identificación
       </p>
       <div class="fg-3">
-
         <div class="field">
           <label>Código *</label>
           <input type="text" name="codigo" required
                  value="{{ manual.codigo or '' }}"
                  placeholder="Ej: ISS-2001">
         </div>
-
         <div class="field span2">
           <label>Nombre *</label>
           <input type="text" name="nombre" required
                  value="{{ manual.nombre or '' }}"
                  placeholder="Nombre del manual tarifario">
         </div>
-
         <div class="field">
           <label>Estado</label>
           <select name="estado">
@@ -507,7 +545,6 @@
             <option value="INACTIVO" {{ 'selected' if manual.get('estado') == 'INACTIVO' }}>Inactivo</option>
           </select>
         </div>
-
         <div class="field">
           <label>Tipo moneda</label>
           <select name="tipo_moneda">
@@ -515,17 +552,14 @@
             <option value="USD" {{ 'selected' if manual.get('tipo_moneda') == 'USD' }}>USD — Dólar</option>
           </select>
         </div>
-
       </div>
     </div>
 
-    <!-- Manual base -->
     <div class="card-form">
       <p class="form-group-title">
         <i class="fa-solid fa-link" style="margin-right:6px;"></i>Manual base y ajuste de precios
       </p>
       <div class="fg-3">
-
         <div class="field span2">
           <label>Manual base</label>
           <select name="manual_base_id">
@@ -538,16 +572,13 @@
             {% endfor %}
           </select>
         </div>
-
         <div class="field">
           <label>% Base</label>
           <input type="number" name="pct_base" min="0" max="9999" step="0.01"
                  value="{{ manual.get('pct_base', 100) }}"
                  placeholder="100">
         </div>
-
       </div>
-
       <p style="font-size:.82rem;color:var(--text-faint);margin:10px 0 0;">
         <i class="fa-solid fa-circle-info" style="margin-right:5px;"></i>
         Si seleccionas un manual base, los valores de los procedimientos se heredan
@@ -555,7 +586,6 @@
       </p>
     </div>
 
-    <!-- Vigencia -->
     <div class="card-form">
       <p class="form-group-title">
         <i class="fa-solid fa-calendar-days" style="margin-right:6px;"></i>Vigencia
@@ -588,7 +618,7 @@
 
 
 <!-- ══════════════════════════════════════════
-     TAB 2 — PROCEDIMIENTOS
+     TAB 2 — PROCEDIMIENTOS (con scroll infinito)
 ══════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-procedimientos">
 
@@ -602,16 +632,14 @@
 
   <div class="tab-toolbar">
     <div class="tab-toolbar-left">
-      <!-- Buscador CUPS -->
       <div class="inline-search-wrap">
         <i class="fa-solid fa-magnifying-glass ico-s"></i>
         <input type="text" id="cupsSearch"
-               placeholder="Buscar CUPS por código o nombre...">
+               placeholder="Buscar CUPS por código o nombre para agregar...">
         <div class="inline-dropdown" id="cupsDropdown"></div>
       </div>
     </div>
 
-    <!-- Importar CSV -->
     <label class="btn-import">
       <i class="fa-solid fa-file-arrow-up"></i>
       Importar CSV / Excel
@@ -621,37 +649,53 @@
 
   <div class="csv-hint">
     <i class="fa-solid fa-circle-info"></i>
-    Columnas esperadas: <strong>cod_proc, nombre_procedimiento, valor_paquete, valor_procedimiento, valor_suministro, cod_factura, cod_cups, grupo, via_ingreso, ambito_atencion, finalidad</strong>
+    Columnas: <strong>cod_proc, nombre_procedimiento, valor_paquete, valor_procedimiento, valor_suministro, cod_factura, cod_cups, grupo, via_ingreso, ambito_atencion, finalidad</strong>
   </div>
 
   <br>
 
+  <!-- Filtro + contador -->
+  <div class="table-filter-bar">
+    <div class="inline-search-wrap" style="max-width:320px;">
+      <i class="fa-solid fa-filter ico-s"></i>
+      <input type="text" id="filterProcs" class="table-filter-input"
+             placeholder="Filtrar en tabla por código o nombre..."
+             style="padding-left:36px;">
+    </div>
+    <span class="table-count" id="procsCount"></span>
+  </div>
+
   <div class="data-table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Cod Proc</th>
-          <th>Nombre procedimiento</th>
-          <th>Valor paquete</th>
-          <th>Valor proced.</th>
-          <th>Vlr. sumin.</th>
-          <th>Cod factura</th>
-          <th>CUPS</th>
-          <th>Grupo</th>
-          <th>Vía ingreso</th>
-          <th>Ámbito</th>
-          <th>Finalidad</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="procsBody">
-        <tr>
-          <td colspan="12" class="empty-tab">
-            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="data-table-scroll" id="procsScrollContainer">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cod Proc</th>
+            <th>Nombre procedimiento</th>
+            <th>Valor paquete</th>
+            <th>Valor proced.</th>
+            <th>Vlr. sumin.</th>
+            <th>Cod factura</th>
+            <th>CUPS</th>
+            <th>Grupo</th>
+            <th>Vía ingreso</th>
+            <th>Ámbito</th>
+            <th>Finalidad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="procsBody">
+          <tr>
+            <td colspan="12" class="empty-tab">
+              <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="scroll-loader" id="procsLoader" style="display:none;">
+        <i class="fa-solid fa-spinner fa-spin"></i> Cargando más...
+      </div>
+    </div>
   </div>
 
   {% endif %}
@@ -673,7 +717,6 @@
 
   <div class="tab-toolbar">
     <div class="tab-toolbar-left">
-      <!-- Buscador Medicamentos -->
       <div class="inline-search-wrap">
         <i class="fa-solid fa-magnifying-glass ico-s"></i>
         <input type="text" id="medSearch"
@@ -691,29 +734,31 @@
 
   <div class="csv-hint">
     <i class="fa-solid fa-circle-info"></i>
-    Columnas esperadas: <strong>cod_item, nombre, valor_unitario</strong>
+    Columnas: <strong>cod_item, nombre, valor_unitario</strong>
   </div>
 
   <br>
 
   <div class="data-table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Cod Ítem</th>
-          <th>Nombre</th>
-          <th>Valor unitario</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="itemsBody">
-        <tr>
-          <td colspan="4" class="empty-tab">
-            <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="data-table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cod Ítem</th>
+            <th>Nombre</th>
+            <th>Valor unitario</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody">
+          <tr>
+            <td colspan="4" class="empty-tab">
+              <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   {% endif %}
@@ -732,7 +777,6 @@
       </button>
     </div>
 
-    <!-- Identificación -->
     <p class="modal-section-title">
       <i class="fa-solid fa-fingerprint" style="margin-right:5px;"></i>Identificación
     </p>
@@ -759,7 +803,6 @@
       </div>
     </div>
 
-    <!-- Valores -->
     <p class="modal-section-title">
       <i class="fa-solid fa-dollar-sign" style="margin-right:5px;"></i>Valores
     </p>
@@ -778,7 +821,6 @@
       </div>
     </div>
 
-    <!-- Normativa RIPS -->
     <p class="modal-section-title">
       <i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Clasificación normativa (RIPS)
     </p>
@@ -868,30 +910,63 @@ document.getElementById("formManual")?.addEventListener("submit", function (e) {
 })
 
 /* ══════════════════════════════════════════
-   PROCEDIMIENTOS
+   PROCEDIMIENTOS — SCROLL INFINITO
 ══════════════════════════════════════════ */
+
+let _procsData     = []   // todos los procedimientos cargados del API
+let _procsFiltered = []   // filtrados por el buscador
+let _procsPage     = 0    // página actual del scroll infinito
+const PROCS_PAGE_SIZE = 50
+let _procsFilterTimeout = null
 
 async function cargarProcs() {
   const tbody = document.getElementById("procsBody")
   if (!tbody) return
   tbody.innerHTML = `<tr><td colspan="12" class="empty-tab">
     <i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>`
+
   const res  = await fetch(BASE_PROC)
   const data = await res.json()
-  renderProcs(data)
+  _procsData     = data
+  _procsFiltered = data
+  _procsPage     = 0
+
+  actualizarContador()
+  renderProcsPage(true)
 }
 
-function renderProcs(data) {
-  _procsData = data  // guardar para acceder desde el modal
-  const tbody = document.getElementById("procsBody")
-  if (!data.length) {
+function actualizarContador() {
+  const el = document.getElementById("procsCount")
+  if (!el) return
+  const filtrados = _procsFiltered.length
+  const total     = _procsData.length
+  el.textContent = filtrados === total
+    ? `${total} procedimientos`
+    : `${filtrados} de ${total} procedimientos`
+}
+
+function renderProcsPage(reset) {
+  const tbody  = document.getElementById("procsBody")
+  const loader = document.getElementById("procsLoader")
+  if (!tbody) return
+
+  if (reset) {
+    tbody.innerHTML = ""
+    _procsPage = 0
+  }
+
+  const start = _procsPage * PROCS_PAGE_SIZE
+  const slice = _procsFiltered.slice(start, start + PROCS_PAGE_SIZE)
+
+  if (!_procsFiltered.length && reset) {
     tbody.innerHTML = `<tr><td colspan="12" class="empty-tab">
       <i class="fa-solid fa-syringe" style="font-size:1.4rem;opacity:.3;"></i><br><br>
       Sin procedimientos. Usa el buscador o importa un CSV.</td></tr>`
+    if (loader) loader.style.display = "none"
     return
   }
 
-  const viaOpts = ["", "AMBULATORIO", "HOSPITALARIO", "URGENCIAS"]
+  const viaOpts    = ["", "AMBULATORIO", "HOSPITALARIO", "URGENCIAS"]
   const ambitoOpts = ["", "CONSULTA_EXTERNA", "HOSPITALIZACION", "URGENCIAS", "CIRUGIA_AMBULATORIA"]
   const finalOpts  = ["", "DIAGNOSTICO", "TERAPEUTICO", "PROTECCION_ESPECIFICA",
                       "REHABILITACION", "DETECCION_ALTERACION"]
@@ -900,7 +975,7 @@ function renderProcs(data) {
     return opts.map(o => `<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join("")
   }
 
-  tbody.innerHTML = data.map(p => `
+  const html = slice.map(p => `
     <tr data-id="${p.id}">
       <td><strong>${p.cod_proc || '—'}</strong></td>
       <td style="max-width:200px;font-size:.82rem;">${p.nombre_procedimiento || p.cups_descripcion || '—'}</td>
@@ -940,7 +1015,48 @@ function renderProcs(data) {
         </button>
       </td>
     </tr>`).join("")
+
+  tbody.insertAdjacentHTML("beforeend", html)
+  _procsPage++
+
+  // Mostrar/ocultar loader
+  const hayMas = (start + PROCS_PAGE_SIZE) < _procsFiltered.length
+  if (loader) loader.style.display = hayMas ? "block" : "none"
 }
+
+// Scroll infinito
+document.getElementById("procsScrollContainer")?.addEventListener("scroll", function () {
+  const { scrollTop, scrollHeight, clientHeight } = this
+  if (scrollHeight - scrollTop - clientHeight < 100) {
+    const maxLoaded = _procsPage * PROCS_PAGE_SIZE
+    if (maxLoaded < _procsFiltered.length) {
+      renderProcsPage(false)
+    }
+  }
+})
+
+// Filtro de tabla
+document.getElementById("filterProcs")?.addEventListener("input", function () {
+  clearTimeout(_procsFilterTimeout)
+  const q = this.value.trim().toLowerCase()
+
+  _procsFilterTimeout = setTimeout(() => {
+    if (!q) {
+      _procsFiltered = _procsData
+    } else {
+      _procsFiltered = _procsData.filter(p =>
+        (p.cod_proc || '').toLowerCase().includes(q) ||
+        (p.nombre_procedimiento || '').toLowerCase().includes(q) ||
+        (p.cups_codigo || '').toLowerCase().includes(q) ||
+        (p.cups_descripcion || '').toLowerCase().includes(q) ||
+        (p.grupo || '').toLowerCase().includes(q)
+      )
+    }
+    actualizarContador()
+    renderProcsPage(true)
+  }, 250)
+})
+
 
 async function actualizarProc(id, campo, valor) {
   const body = {}
@@ -969,7 +1085,7 @@ async function eliminarProc(id) {
   cargarProcs()
 }
 
-/* Buscador CUPS */
+/* Buscador CUPS para agregar */
 const cupsSearch   = document.getElementById("cupsSearch")
 const cupsDropdown = document.getElementById("cupsDropdown")
 let cupsTimeout = null
@@ -1001,10 +1117,10 @@ cupsDropdown?.addEventListener("click", async function (e) {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
-      cups_id:             parseInt(opt.dataset.id),
-      cod_proc:            opt.dataset.codigo,
+      cups_id:              parseInt(opt.dataset.id),
+      cod_proc:             opt.dataset.codigo,
       nombre_procedimiento: opt.dataset.desc,
-      cod_cups:            opt.dataset.codigo,
+      cod_cups:             opt.dataset.codigo,
     })
   })
   const data = await res.json()
@@ -1168,9 +1284,9 @@ document.getElementById("csvItems")?.addEventListener("change", async function (
   }
 })
 
+
 /* ── Modal editar procedimiento ── */
 let _procActualId = null
-let _procsData    = []
 
 function abrirModalProc(id) {
   const p = _procsData.find(x => x.id === id)
@@ -1184,7 +1300,7 @@ function abrirModalProc(id) {
   document.getElementById("m_grupo").value               = p.grupo               || ""
   document.getElementById("m_valor_paquete").value       = p.valor_paquete       || 0
   document.getElementById("m_valor_procedimiento").value = p.valor_procedimiento || 0
-  document.getElementById("m_valor_suministro").value   = p.valor_suministro    || 0
+  document.getElementById("m_valor_suministro").value    = p.valor_suministro    || 0
   document.getElementById("m_via_ingreso").value         = p.via_ingreso         || ""
   document.getElementById("m_ambito_atencion").value     = p.ambito_atencion     || ""
   document.getElementById("m_finalidad").value           = p.finalidad           || ""
@@ -1240,7 +1356,6 @@ async function guardarModalProc() {
   }
 }
 
-// Cerrar modal al click fuera del box
 document.getElementById("modalEditProc")?.addEventListener("click", function(e) {
   if (e.target === this) cerrarModal()
 })
@@ -1253,7 +1368,7 @@ document.addEventListener("click", e => {
   }
 })
 
-/* ── Activar pestaña por hash en URL (#procedimientos o #items) ── */
+/* ── Activar pestaña por hash ── */
 function activarTabPorHash() {
   const hash = window.location.hash.replace("#", "")
   if (!hash || MODO !== "editar") return
@@ -1267,7 +1382,6 @@ function activarTabPorHash() {
   if (hash === "items") cargarItems()
 }
 
-// Ejecutar al cargar y cuando cambie el hash
 activarTabPorHash()
 window.addEventListener("hashchange", activarTabPorHash)
 

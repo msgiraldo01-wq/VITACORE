@@ -165,10 +165,11 @@ def api_crear_cita():
                 continue
  
             if hora_inicio < fin_existente and hora_fin > inicio_existente:
-                return {
-                    "ok": False,
-                    "error": "El médico ya tiene una cita en ese horario"
-                }, 400
+                if not data.get("es_adicional"):
+                    return {
+                        "ok": False,
+                        "error": "El médico ya tiene una cita en ese horario"
+                    }, 400
  
         # -----------------------------
         # CREAR CITA
@@ -448,3 +449,229 @@ def api_pdf_cita(cita_id):
         print("ERROR /pdf:", traceback.format_exc())
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+
+# --------------------------------------------------
+# API: CLIENTES (para cascada en modal de cita)     
+# --------------------------------------------------
+
+@bp_citas.route("/api/clientes")
+def api_clientes():
+    """Lista todos los clientes activos para el select del modal."""
+    try:
+        from repositories import hc_clientes_repo as cli_repo
+
+        data = cli_repo.listar()
+        # Filtrar solo activos
+        activos = [c for c in data if c.get("estado") == "ACTIVO"]
+        return jsonify({"ok": True, "data": activos})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --------------------------------------------------
+# API: CONTRATOS POR CLIENTE
+# --------------------------------------------------
+
+@bp_citas.route("/api/cliente/<int:cliente_id>/contratos")
+def api_contratos_cliente(cliente_id):
+    """Lista los contratos activos de un cliente específico."""
+    try:
+        from repositories import hc_contratos_repo as cont_repo
+
+        todos = cont_repo.listar_por_cliente(cliente_id)
+        # Filtrar solo activos
+        activos = [c for c in todos if c.get("estado") == "ACTIVO"]
+        return jsonify({"ok": True, "data": activos})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --------------------------------------------------
+# API: TARIFAS DEL MANUAL TARIFARIO (por contrato)
+# --------------------------------------------------
+
+@bp_citas.route("/api/contrato/<int:contrato_id>/tarifas")
+def api_tarifas_contrato(contrato_id):
+    """
+    Dado un contrato, busca su manual_tarifario (por nombre)
+    y devuelve los procedimientos con tarifas de ese manual.
+    El valor_total depende del tipo_contrato:
+      - PAQUETE → valor_paquete
+      - EVENTO  → valor_procedimiento + valor_suministro
+    """
+    try:
+        from repositories import hc_contratos_repo as cont_repo
+        from repositories import hc_manuales_repo as man_repo
+ 
+        # 1. Obtener el contrato
+        contrato = cont_repo.obtener(contrato_id)
+        if not contrato:
+            return jsonify({"ok": False, "error": "Contrato no encontrado"}), 404
+ 
+        nombre_manual = (contrato.get("manual_tarifario") or "").strip()
+        tipo_contrato = (contrato.get("tipo_contrato") or "EVENTO").upper()
+ 
+        if not nombre_manual:
+            return jsonify({
+                "ok": True,
+                "data": [],
+                "msg": "El contrato no tiene manual tarifario asignado"
+            })
+ 
+        # 2. Buscar el manual por nombre
+        from services.supabase_service import get_supabase_public
+        sb = get_supabase_public()
+ 
+        res_manual = (
+            sb.table("hc_manuales_tarifarios")
+            .select("id, nombre, codigo")
+            .eq("nombre", nombre_manual)
+            .limit(1)
+            .execute()
+        )
+ 
+        if not res_manual.data:
+            return jsonify({
+                "ok": True,
+                "data": [],
+                "msg": f"No se encontró el manual '{nombre_manual}'"
+            })
+ 
+        manual = res_manual.data[0]
+        manual_id = manual["id"]
+ 
+        # 3. Traer procedimientos del manual con tarifas
+        procedimientos = man_repo.listar_procedimientos(manual_id)
+ 
+        # 4. Formatear para el frontend
+        resultado = []
+        for p in procedimientos:
+            vp  = float(p.get("valor_paquete") or 0)
+            vpr = float(p.get("valor_procedimiento") or 0)
+            vs  = float(p.get("valor_suministro") or 0)
+ 
+            # Lógica según tipo de contrato
+            if tipo_contrato == "PAQUETE":
+                valor_total = vp
+            else:
+                valor_total = vpr + vs
+ 
+            resultado.append({
+                "id":                   p["id"],
+                "manual_id":            manual_id,
+                "manual_nombre":        manual["nombre"],
+                "cod_proc":             p.get("cod_proc", ""),
+                "nombre_procedimiento": p.get("nombre_procedimiento", ""),
+                "cups_codigo":          p.get("cups_codigo", ""),
+                "cups_descripcion":     p.get("cups_descripcion", ""),
+                "tipo_contrato":        tipo_contrato,
+                "valor_paquete":        vp,
+                "valor_procedimiento":  vpr,
+                "valor_suministro":     vs,
+                "valor_total":          valor_total,
+            })
+ 
+        return jsonify({
+            "ok": True,
+            "tipo_contrato": tipo_contrato,
+            "manual": {
+                "id": manual_id,
+                "nombre": manual["nombre"],
+                "codigo": manual.get("codigo", ""),
+            },
+            "data": resultado,
+        })
+ 
+    except Exception as e:
+        import traceback
+        print("ERROR /api/contrato/tarifas:", traceback.format_exc())
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --------------------------------------------------
+# API: BUSCAR TARIFA DE UN CUPS ESPECÍFICO EN UN CONTRATO
+# --------------------------------------------------
+
+@bp_citas.route("/api/contrato/<int:contrato_id>/tarifa-cups/<int:cups_id>")
+def api_tarifa_cups(contrato_id, cups_id):
+    """
+    Busca la tarifa de un CUPS específico en el manual del contrato.
+    El valor_total depende del tipo_contrato:
+      - PAQUETE → valor_paquete
+      - EVENTO  → valor_procedimiento + valor_suministro
+    """
+    try:
+        from repositories import hc_contratos_repo as cont_repo
+        from services.supabase_service import get_supabase_public
+ 
+        sb = get_supabase_public()
+ 
+        # 1. Obtener contrato y su manual
+        contrato = cont_repo.obtener(contrato_id)
+        if not contrato:
+            return jsonify({"ok": False, "error": "Contrato no encontrado"}), 404
+ 
+        nombre_manual = (contrato.get("manual_tarifario") or "").strip()
+        tipo_contrato = (contrato.get("tipo_contrato") or "EVENTO").upper()
+ 
+        if not nombre_manual:
+            return jsonify({"ok": True, "data": None, "msg": "Sin manual tarifario"})
+ 
+        # 2. Buscar manual por nombre
+        res_manual = (
+            sb.table("hc_manuales_tarifarios")
+            .select("id")
+            .eq("nombre", nombre_manual)
+            .limit(1)
+            .execute()
+        )
+ 
+        if not res_manual.data:
+            return jsonify({"ok": True, "data": None, "msg": f"Manual '{nombre_manual}' no encontrado"})
+ 
+        manual_id = res_manual.data[0]["id"]
+ 
+        # 3. Buscar el procedimiento en el manual por cups_id
+        res_proc = (
+            sb.table("hc_mt_procedimientos")
+            .select("*")
+            .eq("manual_id", manual_id)
+            .eq("cups_id", cups_id)
+            .limit(1)
+            .execute()
+        )
+ 
+        if not res_proc.data:
+            return jsonify({
+                "ok": True,
+                "data": None,
+                "msg": "Procedimiento no encontrado en el manual tarifario"
+            })
+ 
+        p   = res_proc.data[0]
+        vp  = float(p.get("valor_paquete") or 0)
+        vpr = float(p.get("valor_procedimiento") or 0)
+        vs  = float(p.get("valor_suministro") or 0)
+ 
+        # Lógica según tipo de contrato
+        if tipo_contrato == "PAQUETE":
+            valor_total = vp
+        else:
+            valor_total = vpr + vs
+ 
+        return jsonify({
+            "ok": True,
+            "data": {
+                "tipo_contrato":       tipo_contrato,
+                "valor_paquete":       vp,
+                "valor_procedimiento": vpr,
+                "valor_suministro":    vs,
+                "valor_total":         valor_total,
+            }
+        })
+ 
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500

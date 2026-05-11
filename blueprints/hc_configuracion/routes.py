@@ -1250,11 +1250,6 @@ def medico_remitente_buscar():
 #  CONSTANTE MANUALES TARIFARIOS (para contratos)
 # ══════════════════════════════════════════════════════════════════
 
-MANUALES_TARIFARIOS = [
-    "ISS 2001",
-    "SOAT 2024",
-    "MANUAL INTERNO",
-]
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1418,19 +1413,22 @@ def contrato_nuevo():
     if request.method == "GET":
         return render_template("hc/configuracion/contrato_form.html",
                                modo="crear", contrato={}, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     form = request.form
     data = _contrato_payload(form, cliente_id)
     if not data["nro_contrato"]:
         flash("El número de contrato es obligatorio.", "warning")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     if repo_contratos.existe_nro(data["nro_contrato"]):
         flash("Ya existe un contrato con ese número.", "warning")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     try:
         repo_contratos.crear(data)
         flash("Contrato creado correctamente.", "success")
@@ -1439,7 +1437,8 @@ def contrato_nuevo():
         flash(f"Error al guardar el contrato: {e}", "danger")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
 
 
 @bp_hc_configuracion.route("/contratos/editar/<int:contrato_id>", methods=["GET", "POST"])
@@ -1452,19 +1451,22 @@ def contrato_editar(contrato_id):
     if request.method == "GET":
         return render_template("hc/configuracion/contrato_form.html",
                                modo="editar", contrato=contrato, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     form = request.form
     data = _contrato_payload(form, contrato["cliente_id"])
     if not data["nro_contrato"]:
         flash("El número de contrato es obligatorio.", "warning")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     if repo_contratos.existe_nro(data["nro_contrato"], exclude_id=contrato_id):
         flash("Ya existe otro contrato con ese número.", "warning")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
     try:
         repo_contratos.actualizar(contrato_id, data)
         flash("Contrato actualizado correctamente.", "success")
@@ -1473,7 +1475,8 @@ def contrato_editar(contrato_id):
         flash(f"Error al actualizar el contrato: {e}", "danger")
         return render_template("hc/configuracion/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
-                               sedes=repo_sedes.listar(), manuales_tarifarios=MANUALES_TARIFARIOS)
+                               sedes=repo_sedes.listar(),
+                               manuales_tarifarios=repo_manuales.listar_activos())
 
 
 @bp_hc_configuracion.route("/contratos/toggle/<int:contrato_id>", methods=["POST"])
