@@ -205,7 +205,136 @@
   margin-bottom: 12px;
 }
 
-@media (max-width:860px) { .form-grid { grid-template-columns: 1fr; } }
+/* ── programación semanal ─────────────────────────── */
+.prog-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.prog-dia {
+  background: #fff;
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 120px;
+}
+
+.prog-dia-header {
+  font-size: .82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(226,232,240,.7);
+}
+
+.prog-bloque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(14,165,255,.08);
+  border: 1px solid rgba(14,165,255,.2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #0c4a6e;
+}
+
+.prog-bloque .btn-del-bloque {
+  background: none;
+  border: none;
+  color: #991b1b;
+  cursor: pointer;
+  font-size: .78rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: .6;
+  transition: opacity .15s;
+}
+
+.prog-bloque .btn-del-bloque:hover { opacity: 1; }
+
+.prog-add-btn {
+  width: 100%;
+  background: none;
+  border: 1px dashed rgba(203,213,225,.8);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: .78rem;
+  transition: border-color .15s, color .15s;
+}
+
+.prog-add-btn:hover {
+  border-color: #0ea5ff;
+  color: #0ea5ff;
+}
+
+/* ── bloqueos ─────────────────────────────────────── */
+.bloqueo-form-row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.bloqueo-form-row .field {
+  flex: 1;
+  min-width: 150px;
+}
+
+.bloqueo-form-row .field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bloqueo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(239,68,68,.06);
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+
+.bloqueo-card .bloqueo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bloqueo-card .bloqueo-fechas {
+  font-weight: 700;
+  font-size: .88rem;
+  color: #7f1d1d;
+}
+
+.bloqueo-card .bloqueo-motivo {
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+@media (max-width:1100px) {
+  .prog-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width:860px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .prog-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width:500px) {
+  .prog-grid { grid-template-columns: 1fr; }
+}
 
 </style>
 {% endblock %}
@@ -219,6 +348,9 @@
   </button>
   <button class="tab-btn" data-tab="procedimientos">
     <i class="fa-solid fa-syringe"></i> Procedimientos
+  </button>
+  <button class="tab-btn" data-tab="programacion">
+    <i class="fa-solid fa-calendar-week"></i> Programación
   </button>
 </div>
 
@@ -403,6 +535,98 @@
 
 </div>
 
+
+<!-- ══════════════════════════════════════════════════
+     TAB 3 — PROGRAMACIÓN Y BLOQUEOS
+════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-programacion">
+
+  {% if modo == 'crear' %}
+  <div style="background:rgba(14,165,255,.07);border:1px solid rgba(14,165,255,.3);
+              border-radius:14px;padding:16px 20px;margin-bottom:16px;font-size:.9rem;">
+    <i class="fa-solid fa-circle-info" style="color:#0ea5ff;margin-right:8px;"></i>
+    Guarda primero los datos generales para poder configurar la programación.
+  </div>
+  {% else %}
+
+  <!-- ── Horario semanal ───────────────────────────── -->
+  <h3 style="font-size:.95rem; margin:0 0 4px 0;">
+    <i class="fa-solid fa-clock" style="color:#0ea5ff; margin-right:6px;"></i>
+    Horario semanal recurrente
+  </h3>
+  <p class="proc-hint">
+    Define los bloques horarios de atención para cada día de la semana.
+    Puedes agregar varios bloques por día (ej: mañana y tarde).
+  </p>
+
+  <div class="prog-grid" id="progGrid">
+    <!-- Se llena con JS -->
+  </div>
+
+  <hr style="border:none; border-top:1px solid rgba(226,232,240,.7); margin:28px 0 20px;">
+
+  <!-- ── Bloqueos ──────────────────────────────────── -->
+  <h3 style="font-size:.95rem; margin:0 0 4px 0;">
+    <i class="fa-solid fa-ban" style="color:#ef4444; margin-right:6px;"></i>
+    Bloqueos de agenda
+  </h3>
+  <p class="proc-hint">
+    Bloquea rangos de fechas donde el profesional no estará disponible
+    (vacaciones, incapacidad, reuniones, etc).
+  </p>
+
+  <div class="bloqueo-form-row" style="flex-wrap:wrap;">
+    <div class="field">
+      <label>Fecha inicio</label>
+      <input type="date" id="bloqueoFechaInicio">
+    </div>
+    <div class="field">
+      <label>Fecha fin</label>
+      <input type="date" id="bloqueoFechaFin">
+    </div>
+    <div class="field" style="flex:0; min-width:auto;">
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap;">
+        <input type="checkbox" id="bloqueoParcial" onchange="toggleBloqueoParcial()"
+               style="width:16px; height:16px; cursor:pointer;">
+        Bloqueo por horas
+      </label>
+    </div>
+  </div>
+ 
+  <div id="bloqueoHorasRow" class="bloqueo-form-row" style="display:none; margin-top:-8px;">
+    <div class="field">
+      <label>Hora inicio</label>
+      <input type="time" id="bloqueoHoraInicio" value="08:00">
+    </div>
+    <div class="field">
+      <label>Hora fin</label>
+      <input type="time" id="bloqueoHoraFin" value="12:00">
+    </div>
+  </div>
+ 
+  <div class="bloqueo-form-row" style="margin-top:4px;">
+    <div class="field" style="flex:2;">
+      <label>Motivo</label>
+      <input type="text" id="bloqueoMotivo" placeholder="Ej: Vacaciones, Mantenimiento equipo, Reunión..."
+             maxlength="200">
+    </div>
+    <div class="field" style="flex:0; min-width:auto;">
+      <label>&nbsp;</label>
+      <button class="btn-ax primary" type="button" onclick="agregarBloqueo()"
+              style="white-space:nowrap; padding:12px 18px;">
+        <i class="fa-solid fa-plus"></i> Agregar
+      </button>
+    </div>
+  </div>
+
+  <div id="bloqueosLista">
+    <!-- Se llena con JS -->
+  </div>
+
+  {% endif %}
+
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -410,12 +634,14 @@
 <script>
 
 /* ── constantes ──────────────────────────────────── */
-// ✅ DESPUÉS — maneja modo crear correctamente
-const PROF_ID = {{ (item.id if item and item.id else None) | tojson }}
-const MODO    = {{ modo | tojson }}
+const PROF_ID   = {{ (item.id if item and item.id else None) | tojson }}
+const MODO      = {{ modo | tojson }}
 const BASE_PROC = `/hc/configuracion/profesionales/${PROF_ID}/procedimientos`
-// ✅ CORRECTO — usa la ruta que ya tienes funcionando
+const BASE_PROG = `/hc/configuracion/profesionales/${PROF_ID}/programacion`
+const BASE_BLOQ = `/hc/configuracion/profesionales/${PROF_ID}/bloqueos`
 const BASE_CUPS = `/hc/configuracion/cups/buscar`
+
+const DIAS_SEMANA = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
 
 /* ── tabs ────────────────────────────────────────── */
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -425,6 +651,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.add("active")
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active")
     if (btn.dataset.tab === "procedimientos" && MODO === "editar") cargarProcs()
+    if (btn.dataset.tab === "programacion"   && MODO === "editar") { cargarProgramacion(); cargarBloqueos() }
   })
 })
 
@@ -443,11 +670,11 @@ form?.addEventListener("submit", function(e) {
   }).then(r => { if (r.isConfirmed) form.submit() })
 })
 
+
 /* ══════════════════════════════════════════════════
-   PROCEDIMIENTOS
+   PROCEDIMIENTOS (sin cambios)
 ══════════════════════════════════════════════════ */
 
-/* cargar tabla */
 async function cargarProcs() {
   const tbody = document.getElementById("procTableBody")
   if (!tbody) return
@@ -456,6 +683,12 @@ async function cargarProcs() {
   const data = await res.json()
   renderProcs(data)
 }
+
+function toggleBloqueoParcial() {
+  const checked = document.getElementById('bloqueoParcial').checked;
+  document.getElementById('bloqueoHorasRow').style.display = checked ? 'flex' : 'none';
+}
+ 
 
 function renderProcs(data) {
   const tbody = document.getElementById("procTableBody")
@@ -483,7 +716,6 @@ function renderProcs(data) {
     </tr>`).join("")
 }
 
-/* guardar duración inline */
 async function guardarDuracion(id, val) {
   await fetch(`/hc/configuracion/profesionales/procedimientos/${id}/duracion`, {
     method:  "POST",
@@ -492,7 +724,6 @@ async function guardarDuracion(id, val) {
   })
 }
 
-/* eliminar */
 async function eliminarProc(id) {
   const conf = await Swal.fire({
     title: "¿Eliminar procedimiento?",
@@ -559,15 +790,286 @@ cupsDropdown?.addEventListener("click", async function(e) {
   }
 })
 
-/* cerrar dropdown al click fuera */
 document.addEventListener("click", e => {
   if (!e.target.closest(".cups-search-wrap")) cupsDropdown?.classList.remove("open")
 })
 
-/* cargar al inicio si es editar y tab activo */
+
+/* ══════════════════════════════════════════════════
+   PROGRAMACIÓN SEMANAL
+══════════════════════════════════════════════════ */
+
+let programacionData = []
+
+async function cargarProgramacion() {
+  const grid = document.getElementById("progGrid")
+  if (!grid) return
+
+  grid.innerHTML = DIAS_SEMANA.map((_, i) =>
+    `<div class="prog-dia" id="progDia${i}">
+       <div class="prog-dia-header">${DIAS_SEMANA[i]}</div>
+       <div class="prog-dia-bloques" id="progBloques${i}"></div>
+       <button class="prog-add-btn" onclick="mostrarFormBloque(${i})">
+         <i class="fa-solid fa-plus"></i> Agregar
+       </button>
+     </div>`
+  ).join("")
+
+  try {
+    const res  = await fetch(BASE_PROG)
+    programacionData = await res.json()
+
+    // Agrupar por día
+    for (let dia = 0; dia < 7; dia++) {
+      const container = document.getElementById(`progBloques${dia}`)
+      const bloques   = programacionData.filter(b => b.dia_semana === dia)
+
+      if (!bloques.length) {
+        container.innerHTML = `<div style="text-align:center; font-size:.78rem; color:var(--muted); padding:8px 0;">
+          Sin horario
+        </div>`
+      } else {
+        container.innerHTML = bloques.map(b => `
+          <div class="prog-bloque">
+            <span>${(b.hora_inicio || '').slice(0,5)} - ${(b.hora_fin || '').slice(0,5)}</span>
+            <button class="btn-del-bloque" onclick="eliminarBloque(${b.id})" title="Eliminar">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        `).join("")
+      }
+    }
+  } catch (e) {
+    console.error("Error cargando programación:", e)
+  }
+}
+
+async function mostrarFormBloque(dia) {
+  const { value: formValues } = await Swal.fire({
+    title: `Agregar bloque — ${DIAS_SEMANA[dia]}`,
+    html: `
+      <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:.82rem; font-weight:600; color:#64748b;">Hora inicio</label>
+          <input type="time" id="swalHoraInicio" class="swal2-input" style="width:140px; margin:0;" value="07:00">
+        </div>
+        <span style="font-size:1.2rem; color:#94a3b8; margin-top:18px;">→</span>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:.82rem; font-weight:600; color:#64748b;">Hora fin</label>
+          <input type="time" id="swalHoraFin" class="swal2-input" style="width:140px; margin:0;" value="12:00">
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Agregar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#0ea5ff',
+    preConfirm: () => {
+      const inicio = document.getElementById('swalHoraInicio').value
+      const fin    = document.getElementById('swalHoraFin').value
+      if (!inicio || !fin) {
+        Swal.showValidationMessage('Ambas horas son obligatorias')
+        return false
+      }
+      if (fin <= inicio) {
+        Swal.showValidationMessage('La hora fin debe ser mayor que la hora inicio')
+        return false
+      }
+      return { hora_inicio: inicio, hora_fin: fin }
+    }
+  })
+
+  if (!formValues) return
+
+  try {
+    const res = await fetch(BASE_PROG + "/agregar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dia_semana:  dia,
+        hora_inicio: formValues.hora_inicio,
+        hora_fin:    formValues.hora_fin,
+      })
+    })
+    const data = await res.json()
+
+    if (data.ok) {
+      cargarProgramacion()
+    } else {
+      Swal.fire({
+        title: "No se pudo agregar",
+        text: data.msg || "Error al guardar el bloque.",
+        icon: "warning",
+        confirmButtonColor: "#0ea5ff"
+      })
+    }
+  } catch (e) {
+    Swal.fire({ title: "Error", text: "Error de conexión", icon: "error" })
+  }
+}
+
+async function eliminarBloque(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar bloque?",
+    text: "Se quitará este horario de la programación.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/profesionales/programacion/${id}/eliminar`, { method: "POST" })
+  cargarProgramacion()
+}
+
+
+/* ══════════════════════════════════════════════════
+   BLOQUEOS
+══════════════════════════════════════════════════ */
+
+async function cargarBloqueos() {
+  const lista = document.getElementById("bloqueosLista");
+  if (!lista) return;
+ 
+  try {
+    const res  = await fetch(BASE_BLOQ);
+    const data = await res.json();
+ 
+    if (!data.length) {
+      lista.innerHTML = `<div style="text-align:center; padding:20px; color:var(--muted); font-size:.88rem;">
+        <i class="fa-solid fa-calendar-check" style="font-size:1.4rem; margin-bottom:8px; display:block;"></i>
+        No hay bloqueos configurados.
+      </div>`;
+      return;
+    }
+ 
+    lista.innerHTML = data.map(b => {
+      const fi = b.fecha_inicio || '—';
+      const ff = b.fecha_fin    || '—';
+ 
+      // Determinar si es parcial o día completo
+      const esParcial = b.hora_inicio != null && b.hora_fin != null;
+      const horasTexto = esParcial
+        ? `${(b.hora_inicio || '').slice(0,5)} → ${(b.hora_fin || '').slice(0,5)}`
+        : 'Día completo';
+ 
+      const badgeColor = esParcial ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.1)';
+      const badgeText  = esParcial ? '#92400e' : '#991b1b';
+      const iconClass  = esParcial ? 'fa-clock' : 'fa-calendar-xmark';
+ 
+      return `
+        <div class="bloqueo-card">
+          <div class="bloqueo-info">
+            <span class="bloqueo-fechas">
+              <i class="fa-solid ${iconClass}" style="margin-right:6px;"></i>
+              ${fi === ff ? fi : `${fi} → ${ff}`}
+              <span style="
+                display:inline-block;
+                background:${badgeColor};
+                color:${badgeText};
+                font-size:.75rem;
+                font-weight:700;
+                padding:2px 8px;
+                border-radius:6px;
+                margin-left:8px;
+              ">${horasTexto}</span>
+            </span>
+            <span class="bloqueo-motivo">${b.motivo || 'Sin motivo especificado'}</span>
+          </div>
+          <button class="btn-del-proc" onclick="eliminarBloqueoProg(${b.id})">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      `;
+    }).join("");
+  } catch (e) {
+    console.error("Error cargando bloqueos:", e);
+  }
+}
+
+async function agregarBloqueo() {
+  const fi      = document.getElementById("bloqueoFechaInicio").value;
+  const ff      = document.getElementById("bloqueoFechaFin").value;
+  const motivo  = document.getElementById("bloqueoMotivo").value.trim();
+  const parcial = document.getElementById("bloqueoParcial").checked;
+ 
+  if (!fi || !ff) {
+    Swal.fire({ title: "Fechas requeridas", text: "Selecciona fecha inicio y fin.", icon: "warning", confirmButtonColor: "#0ea5ff" });
+    return;
+  }
+  if (ff < fi) {
+    Swal.fire({ title: "Fechas inválidas", text: "La fecha fin no puede ser anterior a la fecha inicio.", icon: "warning", confirmButtonColor: "#0ea5ff" });
+    return;
+  }
+ 
+  let horaInicio = null;
+  let horaFin    = null;
+ 
+  if (parcial) {
+    horaInicio = document.getElementById("bloqueoHoraInicio").value;
+    horaFin    = document.getElementById("bloqueoHoraFin").value;
+ 
+    if (!horaInicio || !horaFin) {
+      Swal.fire({ title: "Horas requeridas", text: "Si es bloqueo parcial, selecciona hora inicio y fin.", icon: "warning", confirmButtonColor: "#0ea5ff" });
+      return;
+    }
+    if (horaFin <= horaInicio) {
+      Swal.fire({ title: "Horas inválidas", text: "La hora fin debe ser mayor que la hora inicio.", icon: "warning", confirmButtonColor: "#0ea5ff" });
+      return;
+    }
+  }
+ 
+  try {
+    const res = await fetch(BASE_BLOQ + "/agregar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fecha_inicio: fi,
+        fecha_fin:    ff,
+        motivo:       motivo || null,
+        hora_inicio:  horaInicio,
+        hora_fin:     horaFin,
+      })
+    });
+    const data = await res.json();
+ 
+    if (data.ok) {
+      document.getElementById("bloqueoFechaInicio").value = "";
+      document.getElementById("bloqueoFechaFin").value    = "";
+      document.getElementById("bloqueoMotivo").value      = "";
+      document.getElementById("bloqueoParcial").checked    = false;
+      document.getElementById("bloqueoHorasRow").style.display = "none";
+      cargarBloqueos();
+    } else {
+      Swal.fire({ title: "Error", text: data.msg || "No se pudo agregar.", icon: "error" });
+    }
+  } catch (e) {
+    Swal.fire({ title: "Error", text: "Error de conexión", icon: "error" });
+  }
+}
+
+async function eliminarBloqueoProg(id) {
+  const conf = await Swal.fire({
+    title: "¿Eliminar bloqueo?",
+    text: "El profesional volverá a estar disponible en esas fechas.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#ef4444"
+  })
+  if (!conf.isConfirmed) return
+  await fetch(`/hc/configuracion/profesionales/bloqueos/${id}/eliminar`, { method: "POST" })
+  cargarBloqueos()
+}
+
+
+/* ── cargar al inicio si es editar y tab activo ──── */
 if (MODO === "editar") {
   const tabActive = document.querySelector(".tab-btn.active")
   if (tabActive?.dataset.tab === "procedimientos") cargarProcs()
+  if (tabActive?.dataset.tab === "programacion") { cargarProgramacion(); cargarBloqueos() }
 }
 
 </script>

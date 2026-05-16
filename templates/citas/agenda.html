@@ -109,6 +109,58 @@
   margin-top: 2px;
 }
 
+.alerta-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 12px;
+}
+ 
+.alerta-banner.bloqueo-total {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #991b1b;
+}
+ 
+.alerta-banner.bloqueo-parcial {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  color: #92400e;
+}
+ 
+.bloqueo-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(239,68,68,0.06),
+    rgba(239,68,68,0.06) 6px,
+    rgba(239,68,68,0.02) 6px,
+    rgba(239,68,68,0.02) 12px
+  );
+  border-left: 3px solid rgba(239,68,68,0.4);
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 8px;
+}
+ 
+.bloqueo-overlay-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #991b1b;
+  background: rgba(239,68,68,0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* ===== TIMELINE ===== */
 .agenda-right {
   background: var(--surface);
@@ -861,28 +913,24 @@
 
     <div class="filter-group">
       <h3>Fecha</h3>
-      <input type="date" id="filtroFecha" class="input">
+      <input type="date" id="filtroFecha" class="input" onchange="cargarAgenda()">
     </div>
 
     <hr style="border: none; border-top: 1px solid var(--border); margin: 4px 0;">
 
     <div class="filter-group">
       <h3>Médico</h3>
-      <select id="filtroMedico" class="select">
-        <option value="">Todos los médicos</option>
+      <select id="filtroMedico" class="select" onchange="cargarAgenda()">
+        <option value="">Seleccione un médico...</option>
       </select>
     </div>
 
     <div class="filter-group">
       <h3>Sede</h3>
-      <select id="filtroSede" class="select">
+      <select id="filtroSede" class="select" onchange="cargarAgenda()">
         <option value="">Todas las sedes</option>
       </select>
     </div>
-
-    <button class="btn btn-outline" onclick="cargarAgenda()">
-      <i class="fa fa-search"></i> Buscar
-    </button>
 
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
       <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
@@ -971,6 +1019,9 @@ let mostrarCanceladas = false;
 let clientesData  = [];
 let contratosData = [];
 let tarifasProcedimientos = {};
+let rangosDisponibilidad = [];
+let alertasAgenda = [];
+let abortControllerDisponibilidad = null;
 
 let citaForm = {
   paciente_id: null,
@@ -1006,11 +1057,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const hoy = new Date().toISOString().split("T")[0];
   document.getElementById("filtroFecha").value = hoy;
   
-  cargarAgenda();
   cargarSelects();
   iniciarReloj();
   
-  // Cerrar modal al hacer click fuera
   document.getElementById('modalCita').addEventListener('click', (e) => {
     if (e.target.id === 'modalCita') cerrarModalCita();
   });
@@ -1046,16 +1095,39 @@ function iniciarReloj() {
 }
 
 function actualizarLineaHora() {
-  const now = new Date();
+  const now  = new Date();
   const hora = now.getHours();
   const minutos = now.getMinutes();
-  
-  if (hora >= 6 && hora < 20) {
-    const minutosDesde6 = (hora - 6) * 60 + minutos;
-    const posicion = (minutosDesde6 / 5) * 16;
+ 
+  // Calcular startHour desde los rangos activos
+  let startHour = 6; // fallback
+  if (rangosDisponibilidad.length) {
+    let minStart = 24 * 60;
+    for (const r of rangosDisponibilidad) {
+      const [sh, sm] = r.hora_inicio.split(':').map(Number);
+      if (sh * 60 + sm < minStart) minStart = sh * 60 + sm;
+    }
+    startHour = Math.floor(minStart / 60);
+  }
+ 
+  let endHour = 20;
+  if (rangosDisponibilidad.length) {
+    let maxEnd = 0;
+    for (const r of rangosDisponibilidad) {
+      const [eh, em] = r.hora_fin.split(':').map(Number);
+      if (eh * 60 + em > maxEnd) maxEnd = eh * 60 + em;
+    }
+    endHour = Math.ceil(maxEnd / 60);
+  }
+ 
+  if (hora >= startHour && hora < endHour) {
+    const minutosDesdeInicio = (hora - startHour) * 60 + minutos;
+    const posicion = (minutosDesdeInicio / 5) * 16;
     const line = document.getElementById('nowLine');
     line.style.display = 'block';
     line.style.top = `${posicion}px`;
+  } else {
+    document.getElementById('nowLine').style.display = 'none';
   }
 }
 
@@ -1076,41 +1148,56 @@ async function cargarSelects() {
     const resMedicos = await fetch('/citas/api/medicos');
     const dataMedicos = await resMedicos.json();
     medicosData = dataMedicos.data || [];
-    
-    const selectMedico = document.getElementById('filtroMedico');
+ 
+    const selectMedico      = document.getElementById('filtroMedico');
     const selectMedicoModal = document.getElementById('medico_id_modal');
-    
+ 
+    // Filtro de agenda — sin "Todos", placeholder de selección
+    selectMedico.innerHTML = '<option value="">Seleccione un médico...</option>';
     medicosData.forEach(m => {
-      const option = `<option value="${m.id}">${m.nombre_completo}</option>`;
-      selectMedico.innerHTML += option;
-      if (selectMedicoModal) selectMedicoModal.innerHTML += option;
+      selectMedico.innerHTML += `<option value="${m.id}">${m.nombre_completo}</option>`;
     });
-
+ 
+    // Modal de cita — mantiene el placeholder vacío
+    if (selectMedicoModal) {
+      selectMedicoModal.innerHTML = '<option value="">Seleccionar médico...</option>';
+      medicosData.forEach(m => {
+        selectMedicoModal.innerHTML += `<option value="${m.id}">${m.nombre_completo}</option>`;
+      });
+    }
+ 
+    // Auto-seleccionar el primer médico y cargar agenda
+    if (medicosData.length > 0) {
+      selectMedico.value = medicosData[0].id;
+      cargarAgenda();
+    }
+ 
     // Cargar sedes
     const resSedes = await fetch('/citas/api/sedes');
     const dataSedes = await resSedes.json();
     sedesData = dataSedes.data || [];
-    
-    const selectSede = document.getElementById('filtroSede');
+ 
+    const selectSede      = document.getElementById('filtroSede');
     const selectSedeModal = document.getElementById('sede_id_modal');
-    
+ 
     sedesData.forEach(s => {
       const option = `<option value="${s.id}">${s.nombre}</option>`;
       selectSede.innerHTML += option;
       if (selectSedeModal) selectSedeModal.innerHTML += option;
     });
-
+ 
+    // Cargar clientes
     const resClientes = await fetch('/citas/api/clientes');
     const dataClientes = await resClientes.json();
     clientesData = dataClientes.data || [];
-
+ 
     const selectCliente = document.getElementById('cliente_id_modal');
     if (selectCliente) {
       clientesData.forEach(c => {
         selectCliente.innerHTML += `<option value="${c.id}">${c.nombre} (${c.nit || c.codigo})</option>`;
       });
     }
-
+ 
   } catch (error) {
     console.error('Error cargando selects:', error);
   }
@@ -1168,70 +1255,234 @@ async function onClienteChange() {
 
 // ===== CARGAR AGENDA =====
 async function cargarAgenda() {
-  const fecha = document.getElementById("filtroFecha").value;
+  const fecha     = document.getElementById("filtroFecha").value;
   const medico_id = document.getElementById("filtroMedico").value;
-  const sede_id = document.getElementById("filtroSede").value;
-
+  const sede_id   = document.getElementById("filtroSede").value;
+ 
   actualizarTituloFecha(fecha);
-  
+ 
+  if (!medico_id) {
+    document.getElementById("agendaList").innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  height:300px; color:var(--text-muted); gap:12px;">
+        <i class="fa-solid fa-user-doctor" style="font-size:2.5rem; opacity:.4;"></i>
+        <span style="font-size:.95rem;">Selecciona un médico para ver su agenda</span>
+      </div>
+    `;
+    actualizarResumen([]);
+    rangosDisponibilidad = [];
+    alertasAgenda = [];
+    return;
+  }
+ 
   try {
-    let url = `/citas/api/agenda?fecha=${fecha}`;
-    if (medico_id) url += `&medico_id=${medico_id}`;
+    // ── Consultar disponibilidad y alertas en paralelo ──
+    const [resDisp, resAlertas] = await Promise.all([
+      fetch(`/hc/configuracion/profesionales/${medico_id}/disponibilidad?fecha=${fecha}`),
+      fetch(`/hc/configuracion/profesionales/${medico_id}/alertas?fecha=${fecha}`),
+    ]);
+ 
+    const dataDisp    = await resDisp.json();
+    const dataAlertas = await resAlertas.json();
+ 
+    rangosDisponibilidad = (dataDisp.ok && dataDisp.data) ? dataDisp.data : [];
+    alertasAgenda        = (dataAlertas.ok && dataAlertas.data) ? dataAlertas.data : [];
+ 
+    // ── Consultar citas ──
+    let url = `/citas/api/agenda?fecha=${fecha}&medico_id=${medico_id}`;
     if (sede_id) url += `&sede_id=${sede_id}`;
-
-    const res = await fetch(url);
+ 
+    const res  = await fetch(url);
     const data = await res.json();
-    
+ 
     citasData = data.data || [];
     renderAgenda(citasData);
     actualizarResumen(citasData);
+ 
   } catch (error) {
+    console.error('Error cargando agenda:', error);
     mostrarToast('Error al cargar la agenda', 'error');
   }
 }
 
 function renderAgenda(lista) {
   const container = document.getElementById("agendaList");
-  const startHour = 6, endHour = 20;
-
-  // Columna de horas + columna de citas con position relative
-  let html = '<div class="timeline">';
+ 
+  // ── Bloqueo total → banner prominente ──
+  const bloqueoTotal = alertasAgenda.find(a => a.tipo === 'bloqueo_total');
+  if (bloqueoTotal) {
+    container.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  height:300px; gap:16px;">
+        <div style="width:64px; height:64px; border-radius:50%; background:rgba(239,68,68,0.1);
+                    display:flex; align-items:center; justify-content:center;">
+          <i class="fa-solid fa-ban" style="font-size:1.8rem; color:#dc2626;"></i>
+        </div>
+        <span style="font-size:1rem; font-weight:700; color:#991b1b;">Día completamente bloqueado</span>
+        <span style="font-size:.88rem; color:var(--text-muted);">${bloqueoTotal.motivo}</span>
+        <a href="/hc/configuracion/profesionales" target="_blank"
+           style="font-size:.85rem; color:var(--color-confirmada); text-decoration:none;">
+          <i class="fa-solid fa-gear"></i> Administrar bloqueos
+        </a>
+      </div>
+    `;
+    container.style.position = 'relative';
+    return;
+  }
+ 
+  // ── Si no hay programación configurada ──
+  if (!rangosDisponibilidad.length) {
+    container.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  height:300px; color:var(--text-muted); gap:12px;">
+        <i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem; opacity:.4;"></i>
+        <span style="font-size:.95rem;">Este profesional no tiene horario configurado para este día.</span>
+        <a href="/hc/configuracion/profesionales" target="_blank"
+           style="font-size:.85rem; color:var(--color-confirmada); text-decoration:none;">
+          <i class="fa-solid fa-gear"></i> Ir a configurar programación
+        </a>
+      </div>
+    `;
+    container.style.position = 'relative';
+    return;
+  }
+ 
+  // ── Calcular hora global inicio y fin ──
+  let globalStartMin = 24 * 60;
+  let globalEndMin   = 0;
+ 
+  for (const r of rangosDisponibilidad) {
+    const [sh, sm] = r.hora_inicio.split(':').map(Number);
+    const [eh, em] = r.hora_fin.split(':').map(Number);
+    if (sh * 60 + sm < globalStartMin) globalStartMin = sh * 60 + sm;
+    if (eh * 60 + em > globalEndMin)   globalEndMin   = eh * 60 + em;
+  }
+ 
+  const startHour = Math.floor(globalStartMin / 60);
+  const endHour   = Math.ceil(globalEndMin / 60);
+ 
+  // ── Minutos activos ──
+  const minutosActivos = new Set();
+  for (const r of rangosDisponibilidad) {
+    const [sh, sm] = r.hora_inicio.split(':').map(Number);
+    const [eh, em] = r.hora_fin.split(':').map(Number);
+    for (let m = sh * 60 + sm; m < eh * 60 + em; m++) minutosActivos.add(m);
+  }
+ 
+  // ── Alertas de bloqueos parciales (banners) ──
+  let alertasHTML = '';
+  const bloqueosParciales = alertasAgenda.filter(a => a.tipo === 'bloqueo_parcial');
+  if (bloqueosParciales.length) {
+    alertasHTML = bloqueosParciales.map(a => `
+      <div class="alerta-banner bloqueo-parcial">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Bloqueado ${a.hora_inicio} - ${a.hora_fin}: ${a.motivo}</span>
+      </div>
+    `).join('');
+  }
+ 
+  // Contar canceladas del día
+  const canceladas = lista.filter(c => c.estado === 'CANCELADA').length;
+  if (canceladas > 0) {
+    alertasHTML += `
+      <div class="alerta-banner" style="
+        background:rgba(107,114,128,0.06);
+        border:1px solid rgba(107,114,128,0.2);
+        color:#4b5563;
+      ">
+        <i class="fa-solid fa-circle-xmark"></i>
+        <span>${canceladas} cita${canceladas > 1 ? 's' : ''} cancelada${canceladas > 1 ? 's' : ''} hoy</span>
+      </div>
+    `;
+  }
+ 
+  // ── Generar grilla ──
+  let html = alertasHTML + '<div class="timeline">';
   for (let h = startHour; h < endHour; h++) {
     for (let m = 0; m < 60; m += 5) {
       const hora        = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
       const mostrarHora = (m === 0);
       const esMediaHora = (m === 30);
+      const minActual   = h * 60 + m;
+      const enRango     = minutosActivos.has(minActual);
+ 
+      const bgStyle = enRango
+        ? ''
+        : 'background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.02) 4px,rgba(0,0,0,0.02) 8px);';
+ 
       html += `
         <div class="timeline-hour" style="${esMediaHora ? 'opacity:0.6;' : ''}">
           ${mostrarHora ? `${String(h).padStart(2,'0')}:00` : (esMediaHora ? ':30' : '')}
         </div>
-        <div class="timeline-slot" id="slot-${hora}"></div>
+        <div class="timeline-slot" id="slot-${hora}" style="${bgStyle}"></div>
       `;
     }
   }
-  // Contenedor de cards encima del grid, posicionado absoluto
-  html += '</div><div id="citas-layer" style="position:absolute; top:0; left:var(--hour-width); right:0;"></div>';
+  html += '</div>';
   container.innerHTML = html;
   container.style.position = 'relative';
 
-  // ── Helper ──────────────────────────────────────────────────
+  // Calcular el offset que ocupan las alertas
+  const timelineDiv = container.querySelector('.timeline');
+  const timelineTop = timelineDiv ? timelineDiv.offsetTop : 0;
+
+  // Crear citas-layer posicionado relativo al timeline, NO al container
+  const layerDiv = document.createElement('div');
+  layerDiv.id = 'citas-layer';
+  layerDiv.style.cssText = `position:absolute; top:${timelineTop}px; left:var(--hour-width); right:0;`;
+  container.appendChild(layerDiv);
+ 
+  // ── Renderizar bloqueos parciales como overlays en el timeline ──
+  const layer = document.getElementById('citas-layer');
+ 
+  for (const bp of bloqueosParciales) {
+    if (!bp.hora_inicio || !bp.hora_fin) continue;
+ 
+    const [bh1, bm1] = bp.hora_inicio.split(':').map(Number);
+    const [bh2, bm2] = bp.hora_fin.split(':').map(Number);
+    const bpIni = bh1 * 60 + bm1;
+    const bpFin = bh2 * 60 + bm2;
+ 
+    // Solo si cae dentro del rango visible
+    if (bpFin <= startHour * 60 || bpIni >= endHour * 60) continue;
+ 
+    const clampIni = Math.max(bpIni, startHour * 60);
+    const clampFin = Math.min(bpFin, endHour * 60);
+ 
+    const topPx    = ((clampIni - startHour * 60) / 5) * 16;
+    const heightPx = ((clampFin - clampIni) / 5) * 16;
+ 
+    const overlay = document.createElement('div');
+    overlay.className = 'bloqueo-overlay';
+    overlay.style.top    = `${topPx}px`;
+    overlay.style.height = `${heightPx}px`;
+    overlay.innerHTML = `
+      <span class="bloqueo-overlay-label">
+        <i class="fa-solid fa-lock" style="margin-right:4px;"></i>
+        ${bp.motivo} (${bp.hora_inicio} - ${bp.hora_fin})
+      </span>
+    `;
+    layer.appendChild(overlay);
+  }
+ 
+  // ── Helper ──
   function horaAMin(h) {
     const p = String(h).trim().split(":");
     return parseInt(p[0] || 0) * 60 + parseInt(p[1] || 0);
   }
-
-  // ── Agrupar citas con solapamiento real ─────────────────────
+ 
+  // ── Agrupar citas con solapamiento ──
   const validas = lista.filter(c => {
     if (c.hora_inicio == null) return false;
     if (c.estado === 'CANCELADA' && !mostrarCanceladas) return false;
     return true;
   });
-  const grupos  = [];
-
+  const grupos = [];
+ 
   validas.forEach(c => {
     const ini = horaAMin(c.hora_inicio);
     const fin = ini + (c.duracion || 20);
-
+ 
     let grupoEncontrado = null;
     for (const g of grupos) {
       const solapa = g.some(x => {
@@ -1241,25 +1492,22 @@ function renderAgenda(lista) {
       });
       if (solapa) { grupoEncontrado = g; break; }
     }
-
     grupoEncontrado ? grupoEncontrado.push(c) : grupos.push([c]);
   });
-
-  // ── Renderizar ───────────────────────────────────────────────
-  const layer = document.getElementById('citas-layer');
-
+ 
+  // ── Renderizar citas ──
   grupos.forEach(grupoCitas => {
     const totalCols = grupoCitas.length;
-
+ 
     grupoCitas.forEach((c, colIndex) => {
       const inicioMin    = horaAMin(c.hora_inicio);
-      const inicioDesde6 = inicioMin - (startHour * 60);
+      const inicioDesde  = inicioMin - (startHour * 60);
       const duracion     = c.duracion || 20;
-      const topPx        = (inicioDesde6 / 5) * 16;
+      const topPx        = (inicioDesde / 5) * 16;
       const altura       = Math.max(48, (duracion / 5) * 16 - 2);
       const anchoPct     = 100 / totalCols;
       const leftPct      = colIndex * anchoPct;
-
+ 
       const div = document.createElement("div");
       div.className        = `cita-card estado-${c.estado}`;
       div.style.position   = 'absolute';
@@ -1268,34 +1516,35 @@ function renderAgenda(lista) {
       div.style.width      = `calc(${anchoPct}% - 6px)`;
       div.style.left       = `calc(${leftPct}% + 3px)`;
       div.style.zIndex     = 5 + colIndex;
-
-      const urgenteBadge  = c.prioridad === 'URGENTE' ? '<span class="urgente-badge">Urgente</span>' : '';
+ 
+      const urgenteBadge   = c.prioridad === 'URGENTE' ? '<span class="urgente-badge">Urgente</span>' : '';
       const adicionalBadge = c.es_adicional ? '<span class="urgente-badge" style="background:var(--color-pendiente);">Adicional</span>' : '';
-      const mostrarMedico = duracion >= 20;
-      const mostrarEstado = duracion >= 30;
-
+      const mostrarMedico  = duracion >= 20;
+      const mostrarEstado  = duracion >= 30;
+ 
       div.innerHTML = `
         <div class="cita-paciente">${urgenteBadge}${adicionalBadge}${c.paciente_nombre || "Paciente"}</div>
         ${mostrarMedico ? `<div class="cita-meta">${c.medico_nombre || "-"} · ${duracion}min</div>` : ''}
         ${mostrarEstado ? `<div class="cita-meta">${c.estado}</div>` : ''}
         <div class="cita-actions">
-          ${c.estado === 'PENDIENTE'   ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'CONFIRMADA',event)"  title="Confirmar"><i class="fa-solid fa-check"></i></button>`           : ''}
-          ${c.estado === 'CONFIRMADA'  ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'EN_ATENCION',event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>`             : ''}
+          ${c.estado === 'PENDIENTE'   ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'CONFIRMADA',event)"  title="Confirmar"><i class="fa-solid fa-check"></i></button>` : ''}
+          ${c.estado === 'CONFIRMADA'  ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'EN_ATENCION',event)" title="Iniciar"><i class="fa-solid fa-play"></i></button>` : ''}
           ${c.estado === 'EN_ATENCION' ? `<button class="cita-action-btn" onclick="cambiarEstado(${c.id},'FINALIZADA',event)"  title="Finalizar"><i class="fa-solid fa-flag-checkered"></i></button>` : ''}
           <button class="cita-action-btn danger" onclick="cancelarCita(${c.id},event)" title="Cancelar">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
       `;
-
+ 
       div.addEventListener('click', (e) => {
         if (!e.target.closest('.cita-action-btn')) abrirDetalleCita(c);
       });
-
+ 
       layer.appendChild(div);
     });
   });
 }
+
 function actualizarResumen(citas) {
   document.getElementById('statTotal').textContent = citas.length;
   document.getElementById('statPendientes').textContent = citas.filter(c => c.estado === 'PENDIENTE').length;
@@ -1907,91 +2156,73 @@ async function onMedicoChange() {
 }
 
 async function buscarSiguienteDisponible(medicoId) {
+  if (abortControllerDisponibilidad) {
+    abortControllerDisponibilidad.abort();
+  }
+  abortControllerDisponibilidad = new AbortController();
+  const signal = abortControllerDisponibilidad.signal;
+
   const inputFecha     = document.getElementById('fecha_modal');
   const selectHora     = document.getElementById('hora_inicio');
   const infoDisp       = document.getElementById('infoHorarioMedico');
   const duracionActual = parseInt(document.getElementById('duracion').value) || 20;
 
-  infoDisp.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando próxima disponibilidad...';
+  infoDisp.innerHTML   = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando próxima disponibilidad...';
   selectHora.innerHTML = '<option value="">Buscando...</option>';
 
-  const hoy   = new Date();
-  let fecha   = new Date(hoy);
-  let encontrado = false;
-  let intentos   = 0;
-  const maxDias  = 90; // buscar hasta 3 meses
+  const hoy = new Date().toISOString().split("T")[0];
 
-  while (!encontrado && intentos < maxDias) {
-    const fechaStr = fecha.toISOString().split("T")[0];
+  try {
+    const res = await fetch(
+      `/hc/configuracion/profesionales/${medicoId}/siguiente-disponible?fecha=${hoy}&duracion=${duracionActual}`,
+      { signal }
+    );
+    const data = await res.json();
 
-    // Saltar domingos (opcional — descomenta si no trabajan domingos)
-    // if (fecha.getDay() === 0) { fecha.setDate(fecha.getDate() + 1); intentos++; continue; }
+    if (signal.aborted) return;
 
-    try {
-      const res  = await fetch(`/citas/api/agenda?fecha=${fechaStr}&medico_id=${medicoId}`);
-      const data = await res.json();
-      const citas = data.data || [];
-
-      // Calcular hora mínima si es hoy
-      const esHoy = fechaStr === hoy.toISOString().split("T")[0];
-      let minMinutos = 6 * 60;
-      if (esHoy) {
-        minMinutos = Math.ceil((hoy.getHours() * 60 + hoy.getMinutes() + 1) / 5) * 5;
-      }
-
-      // Buscar primer slot libre
-      for (let h = 6; h < 20; h++) {
-        for (let m = 0; m < 60; m += 5) {
-          const slotMin = h * 60 + m;
-          if (slotMin < minMinutos) continue;
-
-          const finSlot = slotMin + duracionActual;
-
-          const ocupado = citas.some(c => {
-            if (c.estado === 'CANCELADA') return false;
-            const [ch, cm] = c.hora_inicio.split(':').map(Number);
-            const inicioC  = ch * 60 + cm;
-            const finC     = inicioC + (c.duracion || 20);
-            return slotMin < finC && finSlot > inicioC;
-          });
-
-          if (!ocupado) {
-            // Encontramos el primer slot libre
-            inputFecha.value = fechaStr;
-            citaForm.fecha   = fechaStr;
-            encontrado = true;
-
-            // Cargar todos los slots de ese día
-            await cargarHorariosMedico();
-
-            // Pre-seleccionar la hora encontrada
-            const horaStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-            selectHora.value     = horaStr;
-            citaForm.hora_inicio = horaStr;
-            actualizarHoraFin();
-
-            // Mensaje de éxito
-            const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
-            const fechaHumana = new Date(fechaStr + 'T12:00:00').toLocaleDateString('es-ES', opciones);
-            infoDisp.innerHTML += `<br><small style="color:var(--color-atencion);">
-              <i class="fa-solid fa-magic"></i> Próximo disponible: ${fechaHumana} a las ${horaStr}
-            </small>`;
-
-            return;
-          }
-        }
-      }
-    } catch (e) {
-      console.error(`Error buscando disponibilidad ${fechaStr}:`, e);
+    if (!data.ok || !data.data) {
+      infoDisp.innerHTML = '<span style="color:var(--color-cancelada);">No se encontró disponibilidad en los próximos 90 días</span>';
+      selectHora.innerHTML = '<option value="">Sin disponibilidad</option>';
+      return;
     }
 
-    fecha.setDate(fecha.getDate() + 1);
-    intentos++;
-  }
+    inputFecha.value = data.data.fecha;
+    citaForm.fecha   = data.data.fecha;
 
-  if (!encontrado) {
-    infoDisp.innerHTML = '<span style="color:var(--color-cancelada);">No se encontró disponibilidad en los próximos 90 días</span>';
-    selectHora.innerHTML = '<option value="">Sin disponibilidad</option>';
+    await cargarHorariosMedico();
+
+    // Esperar un tick para que el DOM refleje las opciones
+    await new Promise(r => setTimeout(r, 50));
+
+    const horaDisponible = data.data.hora;
+    const opcionExiste = Array.from(selectHora.options).some(o => o.value === horaDisponible);
+    
+    let horaFinal;
+    if (opcionExiste) {
+      horaFinal = horaDisponible;
+    } else {
+      // Tomar la primera opción con valor (saltar el placeholder)
+      const primeraDisponible = Array.from(selectHora.options).find(o => o.value);
+      horaFinal = primeraDisponible ? primeraDisponible.value : null;
+    }
+
+    if (horaFinal) {
+      selectHora.value     = horaFinal;
+      citaForm.hora_inicio = horaFinal;
+      actualizarHoraFin();
+    }
+
+    const opciones    = { weekday: 'long', day: 'numeric', month: 'long' };
+    const fechaHumana = new Date(data.data.fecha + 'T12:00:00').toLocaleDateString('es-ES', opciones);
+    infoDisp.innerHTML += `<br><small style="color:var(--color-atencion);">
+      <i class="fa-solid fa-magic"></i> Próximo disponible: ${fechaHumana} a las ${data.data.hora}
+    </small>`;
+
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    console.error('Error buscando disponibilidad:', e);
+    infoDisp.innerHTML = '<span style="color:var(--color-cancelada);">Error buscando disponibilidad</span>';
   }
 }
 
@@ -2283,9 +2514,9 @@ function seleccionarPaciente(id, nombre) {
 async function cargarHorariosMedico() {
   const medicoId = document.getElementById('medico_id_modal').value;
   const fecha    = document.getElementById('fecha_modal').value;
-
+ 
   if (!medicoId || !fecha) return;
-
+ 
   // No permitir fechas pasadas
   const hoy = new Date().toISOString().split("T")[0];
   if (fecha < hoy) {
@@ -2293,42 +2524,65 @@ async function cargarHorariosMedico() {
     document.getElementById('fecha_modal').value = hoy;
     return;
   }
-
+ 
   citaForm.medico_id     = medicoId;
   citaForm.medico_nombre = medicosData.find(m => m.id == medicoId)?.nombre_completo || '';
   citaForm.fecha         = fecha;
-
-  const selectHora = document.getElementById('hora_inicio');
+ 
+  const selectHora     = document.getElementById('hora_inicio');
+  const infoDisp       = document.getElementById('infoHorarioMedico');
   selectHora.innerHTML = '<option value="">Cargando...</option>';
-
+ 
   try {
-    const res             = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
-    const data            = await res.json();
-    const citasExistentes = data.data || [];
+    // ── NUEVO: Consultar disponibilidad real del profesional ──
+    const resDisp = await fetch(`/hc/configuracion/profesionales/${medicoId}/disponibilidad?fecha=${fecha}`);
+    const dataDisp = await resDisp.json();
+ 
+    const rangos = (dataDisp.ok && dataDisp.data) ? dataDisp.data : [];
+ 
+    // Si no hay programación configurada, NO mostrar slots
+    if (!rangos.length) {
+      selectHora.innerHTML = '<option value="">Sin horario configurado para este día</option>';
+      infoDisp.innerHTML = `
+        <span style="color:var(--color-cancelada);">
+          <i class="fa-solid fa-calendar-xmark"></i>
+          Este profesional no tiene horario configurado para este día.
+        </span>
+        <br><small style="color:var(--text-muted);">
+          Configúrelo en Configuración → Profesionales → Programación.
+        </small>
+      `;
+      return;
+    }
+ 
+    // ── Obtener citas existentes ──
+    const resCitas       = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
+    const dataCitas      = await resCitas.json();
+    const citasExistentes = dataCitas.data || [];
     const duracionActual  = parseInt(document.getElementById('duracion').value) || 20;
-
-    // Calcular hora mínima: si es hoy, redondear al siguiente slot de 5 min
+ 
+    // Calcular hora mínima si es hoy
     const ahora    = new Date();
     const esHoy    = fecha === hoy;
-    let minMinutos = 6 * 60; // 06:00 por defecto
-
+    let minMinutos = 0;
     if (esHoy) {
-      const minActual = ahora.getHours() * 60 + ahora.getMinutes();
-      // Redondear al siguiente múltiplo de 5
-      minMinutos = Math.ceil((minActual + 1) / 5) * 5;
+      minMinutos = Math.ceil((ahora.getHours() * 60 + ahora.getMinutes() + 1) / 5) * 5;
     }
-
+ 
+    // ── Generar slots SOLO dentro de los rangos configurados ──
     const slots = [];
-    for (let h = 6; h < 20; h++) {
-      for (let m = 0; m < 60; m += 5) {
-        const slotMin = h * 60 + m;
-
+    for (const rango of rangos) {
+      const [ri_h, ri_m] = rango.hora_inicio.split(':').map(Number);
+      const [rf_h, rf_m] = rango.hora_fin.split(':').map(Number);
+      const rangoInicio   = ri_h * 60 + ri_m;
+      const rangoFin      = rf_h * 60 + rf_m;
+ 
+      for (let slotMin = rangoInicio; slotMin + duracionActual <= rangoFin; slotMin += 5) {
         // Saltar slots en el pasado
         if (slotMin < minMinutos) continue;
-
+ 
         const finSlot = slotMin + duracionActual;
-        const hora    = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-
+ 
         const ocupado = citasExistentes.some(c => {
           if (c.estado === 'CANCELADA') return false;
           const [ch, cm] = c.hora_inicio.split(':').map(Number);
@@ -2336,28 +2590,36 @@ async function cargarHorariosMedico() {
           const finC     = inicioC + (c.duracion || 20);
           return slotMin < finC && finSlot > inicioC;
         });
-
-        if (!ocupado || citaForm.es_adicional) slots.push(hora);
+ 
+        if (!ocupado || citaForm.es_adicional) {
+          const h = Math.floor(slotMin / 60);
+          const m = slotMin % 60;
+          slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+        }
       }
     }
-
+ 
     selectHora.innerHTML =
       '<option value="">Seleccionar hora...</option>' +
       slots.map(h => `<option value="${h}">${h}</option>`).join('');
-
+ 
     const citasActivas = citasExistentes.filter(c => c.estado !== 'CANCELADA').length;
-    document.getElementById('infoHorarioMedico').innerHTML = `
+    const rangosTexto  = rangos.map(r => `${r.hora_inicio} - ${r.hora_fin}`).join(' · ');
+    infoDisp.innerHTML = `
+      <i class="fa-solid fa-clock" style="color:var(--color-confirmada);"></i>
+      Horario: <strong>${rangosTexto}</strong><br>
       <strong>${citasActivas}</strong> citas agendadas ·
       <strong>${slots.length}</strong> slots disponibles para ${duracionActual} min
       ${esHoy ? '<br><small style="color:var(--color-pendiente);">Solo se muestran horarios futuros</small>' : ''}
     `;
-
+ 
     selectHora.onchange = () => {
       citaForm.hora_inicio = selectHora.value;
       actualizarHoraFin();
     };
-
-  } catch {
+ 
+  } catch (e) {
+    console.error('Error cargando horarios:', e);
     selectHora.innerHTML = '<option value="">Error cargando horarios</option>';
   }
 }

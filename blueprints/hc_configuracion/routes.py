@@ -17,6 +17,7 @@ from repositories import hc_cups_repo as repo_cups
 import repositories.prof_procedimientos_repository as prof_proc_repo
 import repositories.rec_procedimientos_repository  as rec_proc_repo
 import repositories.hc_medicos_remitentes_repo as repo_mr
+import repositories.hc_prof_programacion_repo as repo_prog
 import io
 import csv
 import repositories.hc_clientes_repo as repo_clientes
@@ -461,6 +462,107 @@ def profesional_toggle(item_id):
     flash(f"Profesional {'inactivado' if nuevo_estado == 'INACTIVO' else 'activado'} correctamente.", "success")
     return redirect(url_for("hc_configuracion.profesionales"))
 
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/programacion", methods=["GET"])
+def prof_programacion_listar(prof_id):
+    data = repo_prog.listar_por_profesional(prof_id)
+    return jsonify(data)
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/programacion/agregar", methods=["POST"])
+def prof_programacion_agregar(prof_id):
+    body = request.get_json()
+    try:
+        resultado = repo_prog.agregar_bloque(
+            profesional_id=prof_id,
+            dia_semana=int(body["dia_semana"]),
+            hora_inicio=body["hora_inicio"],
+            hora_fin=body["hora_fin"],
+        )
+        return jsonify({"ok": True, "data": resultado})
+    except ValueError as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+    
+
+    
+@bp_hc_configuracion.route("/profesionales/programacion/<int:bloque_id>/eliminar", methods=["POST"])
+def prof_programacion_eliminar(bloque_id):
+    repo_prog.eliminar_bloque(bloque_id)
+    return jsonify({"ok": True})
+
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/bloqueos", methods=["GET"])
+def prof_bloqueos_listar(prof_id):
+    data = repo_prog.listar_bloqueos(prof_id)
+    return jsonify(data)
+ 
+ 
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/bloqueos/agregar", methods=["POST"])
+def prof_bloqueos_agregar(prof_id):
+    body = request.get_json()
+    try:
+        resultado = repo_prog.agregar_bloqueo(
+            profesional_id=prof_id,
+            fecha_inicio=body["fecha_inicio"],
+            fecha_fin=body["fecha_fin"],
+            motivo=body.get("motivo"),
+            hora_inicio=body.get("hora_inicio"),  # NUEVO — puede ser null
+            hora_fin=body.get("hora_fin"),         # NUEVO — puede ser null
+        )
+        return jsonify({"ok": True, "data": resultado})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+ 
+ 
+@bp_hc_configuracion.route("/profesionales/bloqueos/<int:bloqueo_id>/eliminar", methods=["POST"])
+def prof_bloqueos_eliminar(bloqueo_id):
+    repo_prog.eliminar_bloqueo(bloqueo_id)
+    return jsonify({"ok": True})
+
+
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/disponibilidad", methods=["GET"])
+def prof_disponibilidad(prof_id):
+    """
+    GET /hc/configuracion/profesionales/<id>/disponibilidad?fecha=2026-05-15
+    Retorna los rangos horarios donde el profesional puede atender.
+    """
+    fecha = request.args.get("fecha")
+    if not fecha:
+        return jsonify({"ok": False, "msg": "Falta el parámetro fecha"}), 400
+    try:
+        rangos = repo_prog.obtener_disponibilidad(prof_id, fecha)
+        return jsonify({"ok": True, "data": rangos})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/alertas", methods=["GET"])
+def prof_alertas(prof_id):
+    """
+    GET /hc/configuracion/profesionales/<id>/alertas?fecha=2026-05-15
+    Retorna bloqueos parciales y totales para mostrar en la agenda.
+    """
+    fecha = request.args.get("fecha")
+    if not fecha:
+        return jsonify({"ok": False, "msg": "Falta el parámetro fecha"}), 400
+    try:
+        alertas = repo_prog.obtener_alertas_fecha(prof_id, fecha)
+        return jsonify({"ok": True, "data": alertas})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+@bp_hc_configuracion.route("/profesionales/<int:prof_id>/siguiente-disponible", methods=["GET"])
+def prof_siguiente_disponible(prof_id):
+    fecha = request.args.get("fecha")
+    duracion = int(request.args.get("duracion", 20))
+    if not fecha:
+        return jsonify({"ok": False, "msg": "Falta fecha"}), 400
+    try:
+        resultado = repo_prog.buscar_siguiente_disponible(prof_id, fecha, duracion)
+        return jsonify({"ok": True, "data": resultado})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
 
 # ══════════════════════════════════════════════════════════════════
 #  SERVICIOS

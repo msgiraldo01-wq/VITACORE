@@ -1581,25 +1581,46 @@ async function guardarCita() {
   }
 }
 
+let rangosDisponibilidad = [];
 // ===== AGENDA (igual que antes, resumido) =====
 async function cargarAgenda() {
-  const fecha = document.getElementById("filtroFecha").value;
+  const fecha     = document.getElementById("filtroFecha").value;
   const medico_id = document.getElementById("filtroMedico").value;
-  const sede_id = document.getElementById("filtroSede").value;
-
+  const sede_id   = document.getElementById("filtroSede").value;
+ 
   actualizarTituloFecha(fecha);
-  
+ 
+  if (!medico_id) {
+    // Mostrar mensaje si no hay médico seleccionado
+    document.getElementById("agendaList").innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  height:300px; color:var(--text-muted); gap:12px;">
+        <i class="fa-solid fa-user-doctor" style="font-size:2.5rem; opacity:.4;"></i>
+        <span style="font-size:.95rem;">Selecciona un médico para ver su agenda</span>
+      </div>
+    `;
+    actualizarResumen([]);
+    rangosDisponibilidad = [];
+    return;
+  }
+ 
   try {
-    let url = `/citas/api/agenda?fecha=${fecha}`;
-    if (medico_id) url += `&medico_id=${medico_id}`;
+    // ── Consultar disponibilidad del profesional ──
+    const resDisp = await fetch(`/hc/configuracion/profesionales/${medico_id}/disponibilidad?fecha=${fecha}`);
+    const dataDisp = await resDisp.json();
+    rangosDisponibilidad = (dataDisp.ok && dataDisp.data) ? dataDisp.data : [];
+ 
+    // ── Consultar citas ──
+    let url = `/citas/api/agenda?fecha=${fecha}&medico_id=${medico_id}`;
     if (sede_id) url += `&sede_id=${sede_id}`;
-
-    const res = await fetch(url);
+ 
+    const res  = await fetch(url);
     const data = await res.json();
-    
+ 
     citasData = data.data || [];
     renderAgenda(citasData);
     actualizarResumen(citasData);
+ 
   } catch (error) {
     mostrarToast('Error al cargar la agenda', 'error');
   }
