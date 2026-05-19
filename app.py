@@ -22,7 +22,7 @@ from blueprints.bp_financiero.cartera.cartera import bp_financiero_cartera
 from blueprints.bp_financiero.conciliaciones.conciliaciones import bp_financiero_conciliaciones
 from blueprints.bp_financiero.radicacion import bp_financiero_radicacion
 from blueprints.bp_financiero.tesoreria import bp_financiero_tesoreria
-
+from blueprints.bp_financiero.facturacion.facturacion import bp_financiero_facturacion
 
 
 
@@ -54,6 +54,7 @@ app.register_blueprint(bp_financiero_cartera)
 app.register_blueprint(bp_financiero_conciliaciones)
 app.register_blueprint(bp_financiero_radicacion)
 app.register_blueprint(bp_financiero_tesoreria)
+
 
 
 
