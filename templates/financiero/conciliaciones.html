@@ -1,0 +1,543 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Conciliaciones financieras{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.conc-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+
+.conc-kpi{
+    background:#fff;
+    border:1px solid #dbe4ee;
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.conc-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+}
+
+.conc-kpi-icon.success{background:#10b981;}
+.conc-kpi-icon.warning{background:#f59e0b;}
+.conc-kpi-icon.danger{background:#ef4444;}
+.conc-kpi-icon.info{background:#0284c7;}
+
+.conc-kpi-value{
+    font-size:34px;
+    font-weight:800;
+    color:#0f172a;
+    line-height:1;
+    margin-bottom:8px;
+}
+
+.conc-kpi-label{
+    font-size:14px;
+    color:#64748b;
+}
+
+.conc-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+.conc-side{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+}
+
+.conc-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.conc-group label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#475569;
+}
+
+.conc-group input,
+.conc-group select{
+    width:100%;
+    height:46px;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    padding:0 14px;
+    font-size:14px;
+}
+
+.conc-alerts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.conc-alert{
+    padding:18px;
+    border-radius:18px;
+    display:flex;
+    gap:14px;
+}
+
+.conc-alert.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.conc-alert.danger{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.conc-alert.info{
+    background:#eff6ff;
+    color:#1d4ed8;
+}
+
+.conc-alert.success{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.conc-alert i{
+    margin-top:4px;
+}
+
+.conc-alert p{
+    margin-top:4px;
+    font-size:13px;
+}
+
+.timeline-conc{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.timeline-item-conc{
+    display:flex;
+    gap:14px;
+}
+
+.timeline-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:6px;
+}
+
+.timeline-dot.success{background:#10b981;}
+.timeline-dot.warning{background:#f59e0b;}
+.timeline-dot.danger{background:#ef4444;}
+.timeline-dot.info{background:#0284c7;}
+
+.timeline-item-conc p{
+    margin:4px 0;
+    color:#475569;
+}
+
+.timeline-item-conc small{
+    color:#94a3b8;
+}
+
+@media(max-width:1200px){
+
+    .conc-layout{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <div class="page-tag">
+            <i class="fa-solid fa-money-check-dollar"></i>
+            FINANCIERO
+        </div>
+
+        <h1 class="page-title">
+            Conciliaciones financieras
+        </h1>
+
+        <p class="page-subtitle">
+            Cruce de recaudos, pagos y movimientos bancarios
+        </p>
+
+    </div>
+
+    <div class="page-actions">
+
+        <button class="btn-ax btn-ax-light">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Exportar
+        </button>
+
+        <button class="btn-ax btn-ax-primary">
+            <i class="fa-solid fa-plus"></i>
+            Nueva conciliación
+        </button>
+
+    </div>
+
+</div>
+
+<!-- KPIS -->
+<div class="conc-kpis">
+
+    <div class="conc-kpi">
+
+        <div class="conc-kpi-icon warning">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+
+        <div>
+            <div class="conc-kpi-value">24</div>
+            <div class="conc-kpi-label">
+                Pendientes
+            </div>
+        </div>
+
+    </div>
+
+    <div class="conc-kpi">
+
+        <div class="conc-kpi-icon info">
+            <i class="fa-solid fa-building-columns"></i>
+        </div>
+
+        <div>
+            <div class="conc-kpi-value">$1.2B</div>
+            <div class="conc-kpi-label">
+                Valor conciliación
+            </div>
+        </div>
+
+    </div>
+
+    <div class="conc-kpi">
+
+        <div class="conc-kpi-icon danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <div>
+            <div class="conc-kpi-value">$82M</div>
+            <div class="conc-kpi-label">
+                Diferencias
+            </div>
+        </div>
+
+    </div>
+
+    <div class="conc-kpi">
+
+        <div class="conc-kpi-icon.success">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+
+        <div>
+            <div class="conc-kpi-value">184</div>
+            <div class="conc-kpi-label">
+                Conciliadas
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="conc-layout">
+
+    <!-- TABLA -->
+    <div class="content-card">
+
+        <div class="card-header">
+
+            <div>
+                <h3 class="card-title">
+                    Bandeja de conciliaciones
+                </h3>
+
+                <p class="card-subtitle">
+                    Gestión financiera y bancaria
+                </p>
+            </div>
+
+        </div>
+
+        <!-- FILTROS -->
+        <div class="conc-filters">
+
+            <div class="conc-group">
+                <label>Banco</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Bancolombia</option>
+                    <option>Banco Bogotá</option>
+                </select>
+            </div>
+
+            <div class="conc-group">
+                <label>Estado</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Pendiente</option>
+                    <option>Aplicada</option>
+                    <option>Conciliada</option>
+                </select>
+            </div>
+
+            <div class="conc-group">
+                <label>EPS</label>
+
+                <input type="text" placeholder="Buscar EPS...">
+            </div>
+
+        </div>
+
+        <!-- TABLA -->
+        <div class="table-responsive">
+
+            <table class="table-ax">
+
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>EPS</th>
+                        <th>Valor</th>
+                        <th>Diferencia</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>Bancolombia</td>
+                        <td>NUEVA EPS</td>
+                        <td>$120.000.000</td>
+                        <td>$2.000.000</td>
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <span class="status-pill warning">
+                                Parcial
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>Banco Bogotá</td>
+                        <td>SURA</td>
+                        <td>$80.000.000</td>
+                        <td>$0</td>
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Conciliada
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>Davivienda</td>
+                        <td>COOMEVA</td>
+                        <td>$42.000.000</td>
+                        <td>$8.000.000</td>
+                        <td>17/05/2026</td>
+
+                        <td>
+                            <span class="status-pill danger">
+                                Diferencia
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="conc-side">
+
+        <!-- ALERTAS -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Alertas financieras
+                    </h3>
+                </div>
+            </div>
+
+            <div class="conc-alerts">
+
+                <div class="conc-alert danger">
+
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+
+                    <div>
+                        <strong>Diferencia bancaria</strong>
+                        <p>Davivienda presenta diferencia</p>
+                    </div>
+
+                </div>
+
+                <div class="conc-alert warning">
+
+                    <i class="fa-solid fa-clock"></i>
+
+                    <div>
+                        <strong>Conciliación pendiente</strong>
+                        <p>24 movimientos sin aplicar</p>
+                    </div>
+
+                </div>
+
+                <div class="conc-alert success">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <div>
+                        <strong>Pago conciliado</strong>
+                        <p>SURA conciliación completada</p>
+                    </div>
+
+                </div>
+
+                <div class="conc-alert info">
+
+                    <i class="fa-solid fa-folder-open"></i>
+
+                    <div>
+                        <strong>Recaudo detectado</strong>
+                        <p>Nuevo ingreso bancario</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Actividad reciente
+                    </h3>
+                </div>
+            </div>
+
+            <div class="timeline-conc">
+
+                <div class="timeline-item-conc">
+
+                    <div class="timeline-dot success"></div>
+
+                    <div>
+                        <strong>Conciliación aplicada</strong>
+                        <p>SURA · Bancolombia</p>
+                        <small>Hace 10 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-conc">
+
+                    <div class="timeline-dot warning"></div>
+
+                    <div>
+                        <strong>Diferencia detectada</strong>
+                        <p>COOMEVA</p>
+                        <small>Hace 35 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-conc">
+
+                    <div class="timeline-dot info"></div>
+
+                    <div>
+                        <strong>Pago recibido</strong>
+                        <p>NUEVA EPS</p>
+                        <small>Hace 1 hora</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,476 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Facturación hospitalaria{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.fact-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+
+.fact-kpi{
+    background:#fff;
+    border:1px solid #dbe4ee;
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.fact-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+}
+
+.fact-kpi-icon.success{background:#10b981;}
+.fact-kpi-icon.warning{background:#f59e0b;}
+.fact-kpi-icon.danger{background:#ef4444;}
+.fact-kpi-icon.info{background:#0284c7;}
+
+.fact-kpi-value{
+    font-size:34px;
+    font-weight:800;
+    color:#0f172a;
+    line-height:1;
+    margin-bottom:8px;
+}
+
+.fact-kpi-label{
+    color:#64748b;
+    font-size:14px;
+}
+
+.fact-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+.fact-side{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+}
+
+.fact-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.fact-group label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#475569;
+}
+
+.fact-group input,
+.fact-group select{
+    width:100%;
+    height:46px;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    padding:0 14px;
+    font-size:14px;
+}
+
+.fact-alerts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.fact-alert{
+    padding:18px;
+    border-radius:18px;
+    display:flex;
+    gap:14px;
+}
+
+.fact-alert.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.fact-alert.danger{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.fact-alert.info{
+    background:#eff6ff;
+    color:#1d4ed8;
+}
+
+.fact-alert i{
+    margin-top:4px;
+}
+
+.fact-alert p{
+    margin-top:4px;
+    font-size:13px;
+}
+
+.status-pill.dark{
+    background:#e2e8f0;
+    color:#334155;
+}
+
+@media(max-width:1200px){
+
+    .fact-layout{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <div class="page-tag">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            FINANCIERO
+        </div>
+
+        <h1 class="page-title">
+            Facturación hospitalaria
+        </h1>
+
+        <p class="page-subtitle">
+            Gestión RIPS, DIAN, CUFE y radicación electrónica
+        </p>
+
+    </div>
+
+    <div class="page-actions">
+
+        <button class="btn-ax btn-ax-light">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Exportar
+        </button>
+
+        <button class="btn-ax btn-ax-primary">
+            <i class="fa-solid fa-plus"></i>
+            Nueva factura
+        </button>
+
+    </div>
+
+</div>
+
+<!-- KPIS -->
+<div class="fact-kpis">
+
+    <div class="fact-kpi">
+
+        <div class="fact-kpi-icon success">
+            <i class="fa-solid fa-file-circle-check"></i>
+        </div>
+
+        <div>
+            <div class="fact-kpi-value">184</div>
+            <div class="fact-kpi-label">
+                Facturas emitidas
+            </div>
+        </div>
+
+    </div>
+
+    <div class="fact-kpi">
+
+        <div class="fact-kpi-icon warning">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+
+        <div>
+            <div class="fact-kpi-value">12</div>
+            <div class="fact-kpi-label">
+                Pendientes DIAN
+            </div>
+        </div>
+
+    </div>
+
+    <div class="fact-kpi">
+
+        <div class="fact-kpi-icon info">
+            <i class="fa-solid fa-folder-open"></i>
+        </div>
+
+        <div>
+            <div class="fact-kpi-value">140</div>
+            <div class="fact-kpi-label">
+                Radicadas
+            </div>
+        </div>
+
+    </div>
+
+    <div class="fact-kpi">
+
+        <div class="fact-kpi-icon danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <div>
+            <div class="fact-kpi-value">18</div>
+            <div class="fact-kpi-label">
+                Glosadas
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="fact-layout">
+
+    <!-- TABLA -->
+    <div class="content-card">
+
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">
+                    Bandeja de facturación
+                </h3>
+
+                <p class="card-subtitle">
+                    Gestión operativa hospitalaria
+                </p>
+            </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="fact-filters">
+
+            <div class="fact-group">
+                <label>EPS</label>
+
+                <select>
+                    <option>Todas</option>
+                    <option>NUEVA EPS</option>
+                    <option>SURA</option>
+                </select>
+            </div>
+
+            <div class="fact-group">
+                <label>Estado</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Validada</option>
+                    <option>Glosada</option>
+                </select>
+            </div>
+
+            <div class="fact-group">
+                <label>Factura</label>
+
+                <input type="text" placeholder="Buscar factura...">
+            </div>
+
+            <div class="fact-group">
+                <label>CUFE</label>
+
+                <input type="text" placeholder="Buscar CUFE...">
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table-ax">
+
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Paciente</th>
+                        <th>EPS</th>
+                        <th>Valor</th>
+                        <th>DIAN</th>
+                        <th>RIPS</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td><strong>FE-2025-000124</strong></td>
+                        <td>Juan Pérez</td>
+                        <td>NUEVA EPS</td>
+                        <td>$18.400.000</td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Validada
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill info">
+                                Generado
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Radicada
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>FE-2025-000125</strong></td>
+                        <td>Laura Gómez</td>
+                        <td>SURA</td>
+                        <td>$7.200.000</td>
+
+                        <td>
+                            <span class="status-pill warning">
+                                Pendiente
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill dark">
+                                Sin generar
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill warning">
+                                Observación
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>FE-2025-000126</strong></td>
+                        <td>Carlos Ruiz</td>
+                        <td>COOMEVA</td>
+                        <td>$12.600.000</td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Validada
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Generado
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-pill danger">
+                                Glosada
+                            </span>
+                        </td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ALERTAS -->
+    <div class="fact-side">
+
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Alertas operativas
+                    </h3>
+                </div>
+            </div>
+
+            <div class="fact-alerts">
+
+                <div class="fact-alert warning">
+
+                    <i class="fa-solid fa-clock"></i>
+
+                    <div>
+                        <strong>12 pendientes DIAN</strong>
+                        <p>Facturas sin validación electrónica</p>
+                    </div>
+
+                </div>
+
+                <div class="fact-alert danger">
+
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+
+                    <div>
+                        <strong>Factura glosada</strong>
+                        <p>COOMEVA devolvió FE-2025-000126</p>
+                    </div>
+
+                </div>
+
+                <div class="fact-alert info">
+
+                    <i class="fa-solid fa-folder-open"></i>
+
+                    <div>
+                        <strong>RIPS pendientes</strong>
+                        <p>8 documentos pendientes generación</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

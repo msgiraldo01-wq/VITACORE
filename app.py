@@ -14,6 +14,17 @@ from blueprints.hc_historia_clinica.routes import bp_hc_historia
 from blueprints.hc_medicamentos._ini_ import bp_hc_medicamentos
 from blueprints.citas.routes import bp_citas
 from blueprints.hc_empresa.routes import bp_hc_empresa
+from blueprints.bp_financiero.contratos import bp_financiero_contratos
+from blueprints.bp_financiero.dashboard import bp_financiero_dashboard
+from blueprints.bp_financiero.facturacion import bp_financiero_facturacion
+from blueprints.bp_financiero.glosas import bp_financiero_glosas
+from blueprints.bp_financiero.cartera import bp_financiero_cartera
+from blueprints.bp_financiero.conciliaciones import bp_financiero_conciliaciones
+from blueprints.bp_financiero.radicacion import bp_financiero_radicacion
+from blueprints.bp_financiero.tesoreria import bp_financiero_tesoreria
+
+
+
 
 
 
@@ -35,6 +46,14 @@ app.register_blueprint(bp_hc_historia)
 app.register_blueprint(bp_hc_medicamentos)
 app.register_blueprint(bp_citas)
 app.register_blueprint(bp_hc_empresa)
+app.register_blueprint(bp_financiero_contratos)
+app.register_blueprint(bp_financiero_dashboard)
+app.register_blueprint(bp_financiero_facturacion)
+app.register_blueprint(bp_financiero_glosas)
+app.register_blueprint(bp_financiero_cartera)
+app.register_blueprint(bp_financiero_conciliaciones)
+app.register_blueprint(bp_financiero_radicacion)
+app.register_blueprint(bp_financiero_tesoreria)
 
 
 

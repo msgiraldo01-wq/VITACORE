@@ -1361,13 +1361,13 @@ def medico_remitente_buscar():
 @bp_hc_configuracion.route("/clientes")
 def clientes():
     data = repo_clientes.listar()
-    return render_template("hc/configuracion/clientes_lista.html", data=data)
+    return render_template("financiero/contratos/clientes_lista.html", data=data)
 
 
 @bp_hc_configuracion.route("/clientes/nuevo", methods=["GET", "POST"])
 def cliente_nuevo():
     if request.method == "GET":
-        return render_template("hc/configuracion/cliente_form.html", modo="crear", cliente={})
+        return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente={})
     form = request.form
     data = {
         "codigo":        (form.get("codigo") or "").strip().upper(),
@@ -1385,20 +1385,20 @@ def cliente_nuevo():
     }
     if not data["codigo"]:
         flash("El código es obligatorio.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="crear", cliente=form)
+        return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente=form)
     if not data["nombre"]:
         flash("El nombre es obligatorio.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="crear", cliente=form)
+        return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente=form)
     if repo_clientes.existe_codigo(data["codigo"]):
         flash("Ya existe un cliente con ese código.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="crear", cliente=form)
+        return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente=form)
     try:
         repo_clientes.crear(data)
         flash("Cliente creado correctamente.", "success")
         return redirect(url_for("hc_configuracion.clientes"))
     except Exception as e:
         flash(f"Error al guardar el cliente: {e}", "danger")
-        return render_template("hc/configuracion/cliente_form.html", modo="crear", cliente=form)
+        return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente=form)
 
 
 @bp_hc_configuracion.route("/clientes/ver/<int:cliente_id>")
@@ -1407,7 +1407,7 @@ def cliente_ver(cliente_id):
     if not cliente:
         flash("El cliente no existe.", "error")
         return redirect(url_for("hc_configuracion.clientes"))
-    return render_template("hc/configuracion/cliente_detalle.html", cliente=cliente)
+    return render_template("financiero/contratos/cliente_detalle.html", cliente=cliente)
 
 
 @bp_hc_configuracion.route("/clientes/conteos")
@@ -1445,7 +1445,7 @@ def cliente_editar(cliente_id):
         flash("El cliente no existe.", "error")
         return redirect(url_for("hc_configuracion.clientes"))
     if request.method == "GET":
-        return render_template("hc/configuracion/cliente_form.html", modo="editar", cliente=cliente)
+        return render_template("financiero/contratos/cliente_form.html", modo="editar", cliente=cliente)
     form = request.form
     data = {
         "codigo":        (form.get("codigo") or "").strip().upper(),
@@ -1463,20 +1463,20 @@ def cliente_editar(cliente_id):
     }
     if not data["codigo"]:
         flash("El código es obligatorio.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="editar", cliente={**cliente, **form})
+        return render_template("financiero/contratos/cliente_form.html", modo="editar", cliente={**cliente, **form})
     if not data["nombre"]:
         flash("El nombre es obligatorio.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="editar", cliente={**cliente, **form})
+        return render_template("financiero/contratos/cliente_form.html", modo="editar", cliente={**cliente, **form})
     if repo_clientes.existe_codigo(data["codigo"], exclude_id=cliente_id):
         flash("Ya existe otro cliente con ese código.", "warning")
-        return render_template("hc/configuracion/cliente_form.html", modo="editar", cliente={**cliente, **form})
+        return render_template("financiero/contratos/cliente_form.html", modo="editar", cliente={**cliente, **form})
     try:
         repo_clientes.actualizar(cliente_id, data)
         flash("Cliente actualizado correctamente.", "success")
         return redirect(url_for("hc_configuracion.cliente_editar", cliente_id=cliente_id))
     except Exception as e:
         flash(f"Error al actualizar el cliente: {e}", "danger")
-        return render_template("hc/configuracion/cliente_form.html", modo="editar", cliente={**cliente, **form})
+        return render_template("financiero/contratos/cliente_form.html", modo="editar", cliente={**cliente, **form})
 
 
 @bp_hc_configuracion.route("/clientes/toggle/<int:cliente_id>", methods=["POST"])
@@ -1513,7 +1513,7 @@ def contrato_nuevo():
         flash("Cliente no encontrado.", "warning")
         return redirect(url_for("hc_configuracion.clientes"))
     if request.method == "GET":
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="crear", contrato={}, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
@@ -1521,13 +1521,13 @@ def contrato_nuevo():
     data = _contrato_payload(form, cliente_id)
     if not data["nro_contrato"]:
         flash("El número de contrato es obligatorio.", "warning")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
     if repo_contratos.existe_nro(data["nro_contrato"]):
         flash("Ya existe un contrato con ese número.", "warning")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
@@ -1537,7 +1537,7 @@ def contrato_nuevo():
         return redirect(url_for("hc_configuracion.cliente_editar", cliente_id=cliente_id))
     except Exception as e:
         flash(f"Error al guardar el contrato: {e}", "danger")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="crear", contrato=form, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
@@ -1551,7 +1551,7 @@ def contrato_editar(contrato_id):
         return redirect(url_for("hc_configuracion.clientes"))
     cliente = repo_clientes.obtener(contrato["cliente_id"])
     if request.method == "GET":
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="editar", contrato=contrato, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
@@ -1559,13 +1559,13 @@ def contrato_editar(contrato_id):
     data = _contrato_payload(form, contrato["cliente_id"])
     if not data["nro_contrato"]:
         flash("El número de contrato es obligatorio.", "warning")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
     if repo_contratos.existe_nro(data["nro_contrato"], exclude_id=contrato_id):
         flash("Ya existe otro contrato con ese número.", "warning")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())
@@ -1575,7 +1575,7 @@ def contrato_editar(contrato_id):
         return redirect(url_for("hc_configuracion.contrato_editar", contrato_id=contrato_id))
     except Exception as e:
         flash(f"Error al actualizar el contrato: {e}", "danger")
-        return render_template("hc/configuracion/contrato_form.html",
+        return render_template("financiero/contratos/contrato_form.html",
                                modo="editar", contrato={**contrato, **form}, cliente=cliente,
                                sedes=repo_sedes.listar(),
                                manuales_tarifarios=repo_manuales.listar_activos())

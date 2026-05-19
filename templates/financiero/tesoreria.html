@@ -1,0 +1,546 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Tesorería{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.tes-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+
+.tes-kpi{
+    background:#fff;
+    border:1px solid #dbe4ee;
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.tes-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+}
+
+.tes-kpi-icon.success{background:#10b981;}
+.tes-kpi-icon.warning{background:#f59e0b;}
+.tes-kpi-icon.danger{background:#ef4444;}
+.tes-kpi-icon.info{background:#0284c7;}
+
+.tes-kpi-value{
+    font-size:34px;
+    font-weight:800;
+    color:#0f172a;
+    line-height:1;
+    margin-bottom:8px;
+}
+
+.tes-kpi-label{
+    font-size:14px;
+    color:#64748b;
+}
+
+.tes-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+.tes-side{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+}
+
+.tes-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.tes-group label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#475569;
+}
+
+.tes-group input,
+.tes-group select{
+    width:100%;
+    height:46px;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    padding:0 14px;
+    font-size:14px;
+}
+
+.tes-alerts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.tes-alert{
+    padding:18px;
+    border-radius:18px;
+    display:flex;
+    gap:14px;
+}
+
+.tes-alert.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.tes-alert.danger{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.tes-alert.info{
+    background:#eff6ff;
+    color:#1d4ed8;
+}
+
+.tes-alert.success{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.tes-alert i{
+    margin-top:4px;
+}
+
+.tes-alert p{
+    margin-top:4px;
+    font-size:13px;
+}
+
+.timeline-tes{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.timeline-item-tes{
+    display:flex;
+    gap:14px;
+}
+
+.timeline-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:6px;
+}
+
+.timeline-dot.success{background:#10b981;}
+.timeline-dot.warning{background:#f59e0b;}
+.timeline-dot.danger{background:#ef4444;}
+.timeline-dot.info{background:#0284c7;}
+
+.timeline-item-tes p{
+    margin:4px 0;
+    color:#475569;
+}
+
+.timeline-item-tes small{
+    color:#94a3b8;
+}
+
+@media(max-width:1200px){
+
+    .tes-layout{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <div class="page-tag">
+            <i class="fa-solid fa-building-columns"></i>
+            FINANCIERO
+        </div>
+
+        <h1 class="page-title">
+            Tesorería
+        </h1>
+
+        <p class="page-subtitle">
+            Gestión de recaudos, bancos y flujo financiero
+        </p>
+
+    </div>
+
+    <div class="page-actions">
+
+        <button class="btn-ax btn-ax-light">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Exportar
+        </button>
+
+        <button class="btn-ax btn-ax-primary">
+            <i class="fa-solid fa-plus"></i>
+            Nuevo movimiento
+        </button>
+
+    </div>
+
+</div>
+
+<!-- KPIS -->
+<div class="tes-kpis">
+
+    <div class="tes-kpi">
+
+        <div class="tes-kpi-icon info">
+            <i class="fa-solid fa-building-columns"></i>
+        </div>
+
+        <div>
+            <div class="tes-kpi-value">$2.8B</div>
+            <div class="tes-kpi-label">
+                Saldo bancos
+            </div>
+        </div>
+
+    </div>
+
+    <div class="tes-kpi">
+
+        <div class="tes-kpi-icon success">
+            <i class="fa-solid fa-money-bill-transfer"></i>
+        </div>
+
+        <div>
+            <div class="tes-kpi-value">$120M</div>
+            <div class="tes-kpi-label">
+                Recaudo día
+            </div>
+        </div>
+
+    </div>
+
+    <div class="tes-kpi">
+
+        <div class="tes-kpi-icon danger">
+            <i class="fa-solid fa-arrow-up-right-dots"></i>
+        </div>
+
+        <div>
+            <div class="tes-kpi-value">$42M</div>
+            <div class="tes-kpi-label">
+                Egresos
+            </div>
+        </div>
+
+    </div>
+
+    <div class="tes-kpi">
+
+        <div class="tes-kpi-icon warning">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+
+        <div>
+            <div class="tes-kpi-value">+$78M</div>
+            <div class="tes-kpi-label">
+                Flujo neto
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="tes-layout">
+
+    <!-- TABLA -->
+    <div class="content-card">
+
+        <div class="card-header">
+
+            <div>
+                <h3 class="card-title">
+                    Movimientos financieros
+                </h3>
+
+                <p class="card-subtitle">
+                    Control de ingresos y egresos
+                </p>
+            </div>
+
+        </div>
+
+        <!-- FILTROS -->
+        <div class="tes-filters">
+
+            <div class="tes-group">
+                <label>Banco</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Bancolombia</option>
+                    <option>Banco Bogotá</option>
+                </select>
+            </div>
+
+            <div class="tes-group">
+                <label>Tipo</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Ingreso</option>
+                    <option>Egreso</option>
+                    <option>Transferencia</option>
+                </select>
+            </div>
+
+            <div class="tes-group">
+                <label>Referencia</label>
+
+                <input type="text" placeholder="Buscar movimiento...">
+            </div>
+
+        </div>
+
+        <!-- TABLA -->
+        <div class="table-responsive">
+
+            <table class="table-ax">
+
+                <thead>
+                    <tr>
+                        <th>Movimiento</th>
+                        <th>Banco</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>RC-2025-00012</td>
+                        <td>Bancolombia</td>
+                        <td>Ingreso</td>
+                        <td>$120.000.000</td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Aplicado
+                            </span>
+                        </td>
+
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>EG-2025-00008</td>
+                        <td>Banco Bogotá</td>
+                        <td>Egreso</td>
+                        <td>$18.000.000</td>
+
+                        <td>
+                            <span class="status-pill warning">
+                                Pendiente
+                            </span>
+                        </td>
+
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>TR-2025-00002</td>
+                        <td>Davivienda</td>
+                        <td>Transferencia</td>
+                        <td>$42.000.000</td>
+
+                        <td>
+                            <span class="status-pill info">
+                                Procesando
+                            </span>
+                        </td>
+
+                        <td>17/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="tes-side">
+
+        <!-- ALERTAS -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Alertas financieras
+                    </h3>
+                </div>
+            </div>
+
+            <div class="tes-alerts">
+
+                <div class="tes-alert danger">
+
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+
+                    <div>
+                        <strong>Egreso elevado</strong>
+                        <p>Transferencia superior al promedio</p>
+                    </div>
+
+                </div>
+
+                <div class="tes-alert warning">
+
+                    <i class="fa-solid fa-clock"></i>
+
+                    <div>
+                        <strong>Movimiento pendiente</strong>
+                        <p>Comprobante sin aplicar</p>
+                    </div>
+
+                </div>
+
+                <div class="tes-alert success">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <div>
+                        <strong>Recaudo aplicado</strong>
+                        <p>Ingreso bancario conciliado</p>
+                    </div>
+
+                </div>
+
+                <div class="tes-alert info">
+
+                    <i class="fa-solid fa-folder-open"></i>
+
+                    <div>
+                        <strong>Cierre diario</strong>
+                        <p>Proceso financiero completado</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Actividad reciente
+                    </h3>
+                </div>
+            </div>
+
+            <div class="timeline-tes">
+
+                <div class="timeline-item-tes">
+
+                    <div class="timeline-dot success"></div>
+
+                    <div>
+                        <strong>Pago recibido</strong>
+                        <p>NUEVA EPS</p>
+                        <small>Hace 8 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-tes">
+
+                    <div class="timeline-dot warning"></div>
+
+                    <div>
+                        <strong>Transferencia iniciada</strong>
+                        <p>Banco Bogotá</p>
+                        <small>Hace 30 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-tes">
+
+                    <div class="timeline-dot info"></div>
+
+                    <div>
+                        <strong>Cierre financiero</strong>
+                        <p>Proceso completado</p>
+                        <small>Hace 1 hora</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

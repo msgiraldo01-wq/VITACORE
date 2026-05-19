@@ -1,0 +1,523 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Dashboard Financiero{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.fin-dashboard-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+    margin-top:24px;
+}
+
+.fin-kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:18px;
+    margin-top:24px;
+}
+
+.fin-kpi-card{
+    background:#fff;
+    border:1px solid #dbe7f0;
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    transition:.2s;
+}
+
+.fin-kpi-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 24px rgba(15,23,42,.06);
+}
+
+.fin-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+}
+
+.fin-kpi-icon.green{background:#10b981;}
+.fin-kpi-icon.red{background:#ef4444;}
+.fin-kpi-icon.orange{background:#f59e0b;}
+.fin-kpi-icon.blue{background:#0284c7;}
+
+.fin-kpi-value{
+    font-size:38px;
+    font-weight:800;
+    color:#0f172a;
+    line-height:1;
+}
+
+.fin-kpi-label{
+    color:#64748b;
+    margin-top:6px;
+    font-size:14px;
+}
+
+.fin-section{
+    background:#fff;
+    border:1px solid #dbe7f0;
+    border-radius:24px;
+    padding:24px;
+}
+
+.fin-section-title{
+    font-size:24px;
+    font-weight:800;
+    color:#0f172a;
+    margin-bottom:8px;
+}
+
+.fin-section-subtitle{
+    color:#64748b;
+    margin-bottom:22px;
+}
+
+.aging-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:14px;
+}
+
+.aging-card{
+    color:#fff;
+    border-radius:18px;
+    padding:20px;
+    min-height:110px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
+
+.aging-card h4{
+    margin:0;
+    font-size:14px;
+}
+
+.aging-card strong{
+    font-size:34px;
+}
+
+.ag-green{background:#10b981;}
+.ag-blue{background:#0284c7;}
+.ag-yellow{background:#d97706;}
+.ag-orange{background:#ea580c;}
+.ag-red{background:#dc2626;}
+
+.fin-alerts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.fin-alert{
+    border-radius:18px;
+    padding:18px;
+}
+
+.fin-alert.red{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.fin-alert.orange{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.fin-alert.green{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.fin-alert.blue{
+    background:#eff6ff;
+    color:#1d4ed8;
+}
+
+.fin-alert strong{
+    display:block;
+    margin-bottom:6px;
+}
+
+.fin-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.fin-table th{
+    text-align:left;
+    font-size:13px;
+    color:#64748b;
+    padding-bottom:14px;
+}
+
+.fin-table td{
+    padding:14px 0;
+    border-top:1px solid #edf2f7;
+    color:#0f172a;
+    font-size:14px;
+}
+
+.fin-chip{
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.fin-chip.green{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.fin-chip.orange{
+    background:#ffedd5;
+    color:#9a3412;
+}
+
+.fin-chip.red{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.fin-activity{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.fin-activity-item{
+    display:flex;
+    gap:14px;
+}
+
+.fin-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:6px;
+}
+
+.dot-green{background:#10b981;}
+.dot-orange{background:#f59e0b;}
+.dot-red{background:#dc2626;}
+
+.fin-activity-item small{
+    color:#94a3b8;
+}
+
+@media(max-width:1200px){
+
+    .fin-dashboard-grid{
+        grid-template-columns:1fr;
+    }
+
+    .fin-kpi-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .aging-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <div class="page-tag">
+            <i class="fa-solid fa-building-columns"></i>
+            FINANCIERO
+        </div>
+
+        <h1 class="page-title">
+            Dashboard Financiero
+        </h1>
+
+        <p class="page-subtitle">
+            Gestión integral de facturación, cartera, glosas y recaudo
+        </p>
+    </div>
+
+    <div class="page-actions">
+
+        <button class="btn-ax btn-ax-light">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Exportar
+        </button>
+
+        <button class="btn-ax btn-ax-primary">
+            <i class="fa-solid fa-plus"></i>
+            Nueva factura
+        </button>
+
+    </div>
+
+</div>
+
+<div class="fin-kpi-grid">
+
+    <div class="fin-kpi-card">
+        <div class="fin-kpi-icon green">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+        </div>
+
+        <div>
+            <div class="fin-kpi-value">$1.2B</div>
+            <div class="fin-kpi-label">
+                Facturación mensual
+            </div>
+        </div>
+    </div>
+
+    <div class="fin-kpi-card">
+        <div class="fin-kpi-icon red">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+
+        <div>
+            <div class="fin-kpi-value">$4.8B</div>
+            <div class="fin-kpi-label">
+                Cartera total
+            </div>
+        </div>
+    </div>
+
+    <div class="fin-kpi-card">
+        <div class="fin-kpi-icon orange">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <div>
+            <div class="fin-kpi-value">$820M</div>
+            <div class="fin-kpi-label">
+                Glosas activas
+            </div>
+        </div>
+    </div>
+
+    <div class="fin-kpi-card">
+        <div class="fin-kpi-icon blue">
+            <i class="fa-solid fa-building-columns"></i>
+        </div>
+
+        <div>
+            <div class="fin-kpi-value">$120M</div>
+            <div class="fin-kpi-label">
+                Recaudo diario
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="fin-dashboard-grid">
+
+    <div>
+
+        <div class="fin-section">
+
+            <div class="fin-section-title">
+                Aging de cartera
+            </div>
+
+            <div class="fin-section-subtitle">
+                Clasificación financiera por antigüedad
+            </div>
+
+            <div class="aging-grid">
+
+                <div class="aging-card ag-green">
+                    <h4>0 - 30</h4>
+                    <strong>$820M</strong>
+                </div>
+
+                <div class="aging-card ag-blue">
+                    <h4>31 - 60</h4>
+                    <strong>$1.2B</strong>
+                </div>
+
+                <div class="aging-card ag-yellow">
+                    <h4>61 - 90</h4>
+                    <strong>$980M</strong>
+                </div>
+
+                <div class="aging-card ag-orange">
+                    <h4>91 - 180</h4>
+                    <strong>$610M</strong>
+                </div>
+
+                <div class="aging-card ag-red">
+                    <h4>180+</h4>
+                    <strong>$720M</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div style="height:24px;"></div>
+
+        <div class="fin-section">
+
+            <div class="fin-section-title">
+                Principales EPS
+            </div>
+
+            <div class="fin-section-subtitle">
+                Seguimiento financiero institucional
+            </div>
+
+            <table class="fin-table">
+
+                <thead>
+                    <tr>
+                        <th>EPS</th>
+                        <th>Cartera</th>
+                        <th>Glosas</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>NUEVA EPS</td>
+                        <td>$1.2B</td>
+                        <td>$320M</td>
+                        <td>
+                            <span class="fin-chip red">
+                                Crítica
+                            </span>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>SURA</td>
+                        <td>$820M</td>
+                        <td>$110M</td>
+                        <td>
+                            <span class="fin-chip green">
+                                Estable
+                            </span>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>COOMEVA</td>
+                        <td>$610M</td>
+                        <td>$220M</td>
+                        <td>
+                            <span class="fin-chip orange">
+                                Riesgo
+                            </span>
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <div>
+
+        <div class="fin-section">
+
+            <div class="fin-section-title">
+                Alertas financieras
+            </div>
+
+            <div class="fin-alerts">
+
+                <div class="fin-alert red">
+                    <strong>Cartera crítica</strong>
+                    NUEVA EPS supera 180 días
+                </div>
+
+                <div class="fin-alert orange">
+                    <strong>Glosas vencidas</strong>
+                    18 respuestas pendientes
+                </div>
+
+                <div class="fin-alert green">
+                    <strong>Pago recibido</strong>
+                    SURA realizó recaudo parcial
+                </div>
+
+                <div class="fin-alert blue">
+                    <strong>Conciliación</strong>
+                    Bancolombia conciliado
+                </div>
+
+            </div>
+
+        </div>
+
+        <div style="height:24px;"></div>
+
+        <div class="fin-section">
+
+            <div class="fin-section-title">
+                Actividad reciente
+            </div>
+
+            <div class="fin-activity">
+
+                <div class="fin-activity-item">
+                    <div class="fin-dot dot-green"></div>
+
+                    <div>
+                        <strong>Factura radicada</strong>
+                        <p>FE-2025-000124</p>
+                        <small>Hace 10 minutos</small>
+                    </div>
+                </div>
+
+                <div class="fin-activity-item">
+                    <div class="fin-dot dot-orange"></div>
+
+                    <div>
+                        <strong>Glosa recibida</strong>
+                        <p>NUEVA EPS</p>
+                        <small>Hace 34 minutos</small>
+                    </div>
+                </div>
+
+                <div class="fin-activity-item">
+                    <div class="fin-dot dot-red"></div>
+
+                    <div>
+                        <strong>Factura vencida</strong>
+                        <p>FE-2025-000098</p>
+                        <small>Hace 1 hora</small>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,546 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Radicación electrónica{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.rad-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+
+.rad-kpi{
+    background:#fff;
+    border:1px solid #dbe4ee;
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.rad-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+}
+
+.rad-kpi-icon.success{background:#10b981;}
+.rad-kpi-icon.warning{background:#f59e0b;}
+.rad-kpi-icon.danger{background:#ef4444;}
+.rad-kpi-icon.info{background:#0284c7;}
+
+.rad-kpi-value{
+    font-size:34px;
+    font-weight:800;
+    color:#0f172a;
+    line-height:1;
+    margin-bottom:8px;
+}
+
+.rad-kpi-label{
+    font-size:14px;
+    color:#64748b;
+}
+
+.rad-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+.rad-side{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+}
+
+.rad-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.rad-group label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#475569;
+}
+
+.rad-group input,
+.rad-group select{
+    width:100%;
+    height:46px;
+    border:1px solid #dbe2ea;
+    border-radius:12px;
+    padding:0 14px;
+    font-size:14px;
+}
+
+.rad-alerts{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.rad-alert{
+    padding:18px;
+    border-radius:18px;
+    display:flex;
+    gap:14px;
+}
+
+.rad-alert.warning{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.rad-alert.danger{
+    background:#fef2f2;
+    color:#b91c1c;
+}
+
+.rad-alert.info{
+    background:#eff6ff;
+    color:#1d4ed8;
+}
+
+.rad-alert.success{
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.rad-alert i{
+    margin-top:4px;
+}
+
+.rad-alert p{
+    margin-top:4px;
+    font-size:13px;
+}
+
+.timeline-rad{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.timeline-item-rad{
+    display:flex;
+    gap:14px;
+}
+
+.timeline-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:6px;
+}
+
+.timeline-dot.success{background:#10b981;}
+.timeline-dot.warning{background:#f59e0b;}
+.timeline-dot.danger{background:#ef4444;}
+.timeline-dot.info{background:#0284c7;}
+
+.timeline-item-rad p{
+    margin:4px 0;
+    color:#475569;
+}
+
+.timeline-item-rad small{
+    color:#94a3b8;
+}
+
+@media(max-width:1200px){
+
+    .rad-layout{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <div class="page-tag">
+            <i class="fa-solid fa-folder-open"></i>
+            FINANCIERO
+        </div>
+
+        <h1 class="page-title">
+            Radicación electrónica
+        </h1>
+
+        <p class="page-subtitle">
+            Gestión de RIPS, CUFE y envío electrónico EPS
+        </p>
+
+    </div>
+
+    <div class="page-actions">
+
+        <button class="btn-ax btn-ax-light">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Exportar
+        </button>
+
+        <button class="btn-ax btn-ax-primary">
+            <i class="fa-solid fa-paper-plane"></i>
+            Nueva radicación
+        </button>
+
+    </div>
+
+</div>
+
+<!-- KPIS -->
+<div class="rad-kpis">
+
+    <div class="rad-kpi">
+
+        <div class="rad-kpi-icon success">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+
+        <div>
+            <div class="rad-kpi-value">184</div>
+            <div class="rad-kpi-label">
+                Radicadas
+            </div>
+        </div>
+
+    </div>
+
+    <div class="rad-kpi">
+
+        <div class="rad-kpi-icon warning">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+
+        <div>
+            <div class="rad-kpi-value">22</div>
+            <div class="rad-kpi-label">
+                Pendientes
+            </div>
+        </div>
+
+    </div>
+
+    <div class="rad-kpi">
+
+        <div class="rad-kpi-icon danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <div>
+            <div class="rad-kpi-value">8</div>
+            <div class="rad-kpi-label">
+                Devueltas
+            </div>
+        </div>
+
+    </div>
+
+    <div class="rad-kpi">
+
+        <div class="rad-kpi-icon info">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+        </div>
+
+        <div>
+            <div class="rad-kpi-value">$2.4B</div>
+            <div class="rad-kpi-label">
+                Valor radicado
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="rad-layout">
+
+    <!-- TABLA -->
+    <div class="content-card">
+
+        <div class="card-header">
+
+            <div>
+                <h3 class="card-title">
+                    Bandeja de radicación
+                </h3>
+
+                <p class="card-subtitle">
+                    Gestión documental electrónica
+                </p>
+            </div>
+
+        </div>
+
+        <!-- FILTROS -->
+        <div class="rad-filters">
+
+            <div class="rad-group">
+                <label>EPS</label>
+
+                <select>
+                    <option>Todas</option>
+                    <option>NUEVA EPS</option>
+                    <option>SURA</option>
+                </select>
+            </div>
+
+            <div class="rad-group">
+                <label>Estado</label>
+
+                <select>
+                    <option>Todos</option>
+                    <option>Radicada</option>
+                    <option>Pendiente</option>
+                    <option>Devuelta</option>
+                </select>
+            </div>
+
+            <div class="rad-group">
+                <label>Factura</label>
+
+                <input type="text" placeholder="Buscar factura...">
+            </div>
+
+        </div>
+
+        <!-- TABLA -->
+        <div class="table-responsive">
+
+            <table class="table-ax">
+
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>EPS</th>
+                        <th>CUFE</th>
+                        <th>RIPS</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>FE-2025-000124</td>
+                        <td>NUEVA EPS</td>
+                        <td>CUFE-00124</td>
+                        <td>Generado</td>
+
+                        <td>
+                            <span class="status-pill success">
+                                Radicada
+                            </span>
+                        </td>
+
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>FE-2025-000125</td>
+                        <td>SURA</td>
+                        <td>CUFE-00125</td>
+                        <td>Pendiente</td>
+
+                        <td>
+                            <span class="status-pill warning">
+                                En auditoría
+                            </span>
+                        </td>
+
+                        <td>18/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>FE-2025-000126</td>
+                        <td>COOMEVA</td>
+                        <td>CUFE-00126</td>
+                        <td>Error</td>
+
+                        <td>
+                            <span class="status-pill danger">
+                                Devuelta
+                            </span>
+                        </td>
+
+                        <td>17/05/2026</td>
+
+                        <td>
+                            <button class="btn-table">
+                                Ver detalle
+                            </button>
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="rad-side">
+
+        <!-- ALERTAS -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Alertas operativas
+                    </h3>
+                </div>
+            </div>
+
+            <div class="rad-alerts">
+
+                <div class="rad-alert danger">
+
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+
+                    <div>
+                        <strong>Error RIPS</strong>
+                        <p>COOMEVA devolvió paquete</p>
+                    </div>
+
+                </div>
+
+                <div class="rad-alert warning">
+
+                    <i class="fa-solid fa-clock"></i>
+
+                    <div>
+                        <strong>CUFE pendiente</strong>
+                        <p>22 facturas sin validación</p>
+                    </div>
+
+                </div>
+
+                <div class="rad-alert success">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <div>
+                        <strong>Radicación aceptada</strong>
+                        <p>SURA confirmó recepción</p>
+                    </div>
+
+                </div>
+
+                <div class="rad-alert info">
+
+                    <i class="fa-solid fa-folder-open"></i>
+
+                    <div>
+                        <strong>Soporte faltante</strong>
+                        <p>PDF clínico pendiente</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="content-card">
+
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">
+                        Actividad reciente
+                    </h3>
+                </div>
+            </div>
+
+            <div class="timeline-rad">
+
+                <div class="timeline-item-rad">
+
+                    <div class="timeline-dot success"></div>
+
+                    <div>
+                        <strong>RIPS generado</strong>
+                        <p>NUEVA EPS</p>
+                        <small>Hace 8 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-rad">
+
+                    <div class="timeline-dot warning"></div>
+
+                    <div>
+                        <strong>Factura enviada</strong>
+                        <p>SURA</p>
+                        <small>Hace 25 minutos</small>
+                    </div>
+
+                </div>
+
+                <div class="timeline-item-rad">
+
+                    <div class="timeline-dot danger"></div>
+
+                    <div>
+                        <strong>Devolución EPS</strong>
+                        <p>COOMEVA</p>
+                        <small>Hace 1 hora</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
