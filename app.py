@@ -14,12 +14,12 @@ from blueprints.hc_historia_clinica.routes import bp_hc_historia
 from blueprints.hc_medicamentos._ini_ import bp_hc_medicamentos
 from blueprints.citas.routes import bp_citas
 from blueprints.hc_empresa.routes import bp_hc_empresa
-from blueprints.bp_financiero.contratos import bp_financiero_contratos
-from blueprints.bp_financiero.dashboard import bp_financiero_dashboard
-from blueprints.bp_financiero.facturacion import bp_financiero_facturacion
-from blueprints.bp_financiero.glosas import bp_financiero_glosas
-from blueprints.bp_financiero.cartera import bp_financiero_cartera
-from blueprints.bp_financiero.conciliaciones import bp_financiero_conciliaciones
+from blueprints.bp_financiero.contratos.contratos import bp_financiero_contratos
+from blueprints.bp_financiero.dashborad.dashboard import bp_financiero_dashboard
+from blueprints.bp_financiero.facturacion.facturacion import bp_financiero_facturacion
+from blueprints.bp_financiero.glosas.glosas import bp_financiero_glosas
+from blueprints.bp_financiero.cartera.cartera import bp_financiero_cartera
+from blueprints.bp_financiero.conciliaciones.conciliaciones import bp_financiero_conciliaciones
 from blueprints.bp_financiero.radicacion import bp_financiero_radicacion
 from blueprints.bp_financiero.tesoreria import bp_financiero_tesoreria
 
