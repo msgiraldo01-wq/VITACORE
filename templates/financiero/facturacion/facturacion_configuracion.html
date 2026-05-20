@@ -1,0 +1,776 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Configuración de Facturación{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-gear"></i>{% endblock %}
+{% block header_title %}Configuración de Facturación{% endblock %}
+{% block header_subtitle %}Gestiona consecutivos, prefijos y resoluciones DIAN para la emisión de facturas.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
+  <i class="fa-solid fa-arrow-left"></i> Volver a facturación
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+/* ===== LAYOUT ===== */
+.cfg-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cfg-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cfg-toolbar h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg-toolbar h3 i {
+  color: var(--brand);
+}
+
+.cfg-btn-nuevo {
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform .15s, background .15s;
+}
+
+.cfg-btn-nuevo:hover {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
+/* ===== TABLA ===== */
+.cfg-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.cfg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cfg-table th {
+  background: var(--surface-3);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.cfg-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.cfg-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cfg-table tr:hover td {
+  background: rgba(13,92,99,.03);
+}
+
+.cfg-prefijo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: .04em;
+}
+
+.cfg-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.cfg-estado.ACTIVO {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cfg-estado.AGOTADO {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.cfg-estado.VENCIDO {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.cfg-estado.INACTIVO {
+  background: var(--surface-3);
+  color: var(--text-faint);
+}
+
+.cfg-estado-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cfg-consecutivo {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cfg-rango {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
+
+.cfg-principal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.cfg-dian-info {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.cfg-dian-info strong {
+  color: var(--text);
+}
+
+.cfg-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-faint);
+  gap: 14px;
+}
+
+.cfg-empty i {
+  font-size: 3rem;
+  opacity: .3;
+}
+
+.cfg-empty p {
+  font-size: 15px;
+  margin: 0;
+}
+
+/* ===== MODAL ===== */
+.cfg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+
+.cfg-modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.cfg-modal {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);
+  transform: translateY(20px) scale(0.98);
+  transition: transform .3s;
+}
+
+.cfg-modal-overlay.active .cfg-modal {
+  transform: translateY(0) scale(1);
+}
+
+.cfg-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cfg-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg-modal-header h2 i {
+  color: var(--brand);
+}
+
+.cfg-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-faint);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+}
+
+.cfg-modal-close:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.cfg-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cfg-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.cfg-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cfg-form-group.full {
+  grid-column: 1 / -1;
+}
+
+.cfg-form-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.cfg-form-input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color .15s;
+}
+
+.cfg-form-input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.cfg-form-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.cfg-divider {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 4px 0;
+}
+
+.cfg-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cfg-section-label i {
+  color: var(--warn);
+}
+
+.cfg-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.cfg-btn-cancel {
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.cfg-btn-cancel:hover {
+  background: var(--surface-3);
+}
+
+.cfg-btn-save {
+  height: 44px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .15s;
+}
+
+.cfg-btn-save:hover {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
+.cfg-btn-save:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== TOGGLE SWITCH ===== */
+.cfg-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.cfg-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cfg-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 24px;
+  transition: background .2s;
+}
+
+.cfg-toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+
+.cfg-toggle input:checked + .cfg-toggle-slider {
+  background: var(--brand);
+}
+
+.cfg-toggle input:checked + .cfg-toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.cfg-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .cfg-form-row {
+    grid-template-columns: 1fr;
+  }
+  .cfg-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+</style>
+
+<div class="cfg-container">
+
+  <!-- TOOLBAR -->
+  <div class="cfg-toolbar">
+    <h3><i class="fa-solid fa-hashtag"></i> Consecutivos de facturación</h3>
+    <button class="cfg-btn-nuevo" onclick="abrirModalConsecutivo()">
+      <i class="fa-solid fa-plus"></i> Nuevo consecutivo
+    </button>
+  </div>
+
+  <!-- TABLA DE CONSECUTIVOS -->
+  <div id="consecutivosContenido">
+    <div class="cfg-empty" id="emptyConsecutivos">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <p>Cargando consecutivos...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CREAR/EDITAR CONSECUTIVO -->
+<div class="cfg-modal-overlay" id="modalConsecutivo">
+  <div class="cfg-modal">
+    <div class="cfg-modal-header">
+      <h2><i class="fa-solid fa-hashtag"></i> Nuevo consecutivo</h2>
+      <button class="cfg-modal-close" onclick="cerrarModalConsecutivo()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="cfg-modal-body">
+      <!-- Prefijo y consecutivo inicial -->
+      <div class="cfg-form-row">
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Prefijo</span>
+          <input type="text" id="cfgPrefijo" class="cfg-form-input" value="FV" maxlength="10" placeholder="FV">
+          <span class="cfg-form-hint">Ej: FV, FVPS, FE</span>
+        </div>
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Consecutivo inicial</span>
+          <input type="number" id="cfgConsecutivoInicial" class="cfg-form-input" value="0" min="0" placeholder="0">
+          <span class="cfg-form-hint">La primera factura será el siguiente número</span>
+        </div>
+      </div>
+
+      <!-- Rango -->
+      <div class="cfg-form-row">
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Rango desde</span>
+          <input type="number" id="cfgRangoDesde" class="cfg-form-input" value="1" min="1" placeholder="1">
+        </div>
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Rango hasta</span>
+          <input type="number" id="cfgRangoHasta" class="cfg-form-input" value="999999" min="1" placeholder="999999">
+        </div>
+      </div>
+
+      <!-- Sede -->
+      <div class="cfg-form-group full">
+        <span class="cfg-form-label">Sede (opcional)</span>
+        <select id="cfgSede" class="cfg-form-input" style="cursor:pointer;">
+          <option value="">Todas las sedes (principal)</option>
+        </select>
+        <span class="cfg-form-hint">Si no selecciona sede, será el consecutivo principal</span>
+      </div>
+
+      <!-- Toggle principal -->
+      <div class="cfg-toggle-wrap">
+        <label class="cfg-toggle">
+          <input type="checkbox" id="cfgEsPrincipal" checked>
+          <span class="cfg-toggle-slider"></span>
+        </label>
+        <span class="cfg-toggle-label">Consecutivo principal</span>
+      </div>
+
+      <hr class="cfg-divider">
+
+      <!-- Sección DIAN (futuro) -->
+      <div class="cfg-section-label">
+        <i class="fa-solid fa-clock"></i> Resolución DIAN (opcional — para uso futuro)
+      </div>
+
+      <div class="cfg-form-row">
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Nro. resolución DIAN</span>
+          <input type="text" id="cfgResolucion" class="cfg-form-input" placeholder="Ej: 18764012345678">
+        </div>
+        <div class="cfg-form-group">
+          <span class="cfg-form-label">Fecha resolución</span>
+          <input type="date" id="cfgFechaResolucion" class="cfg-form-input">
+        </div>
+      </div>
+
+      <div class="cfg-form-group">
+        <span class="cfg-form-label">Fecha vencimiento</span>
+        <input type="date" id="cfgFechaVencimiento" class="cfg-form-input">
+      </div>
+    </div>
+
+    <div class="cfg-modal-footer">
+      <button class="cfg-btn-cancel" onclick="cerrarModalConsecutivo()">Cancelar</button>
+      <button class="cfg-btn-save" id="btnGuardarConsecutivo" onclick="guardarConsecutivo()">
+        <i class="fa-solid fa-check"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ESTADO =====
+let consecutivosData = [];
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  cargarConsecutivos();
+  cargarSedesConfig();
+
+  document.getElementById('modalConsecutivo').addEventListener('click', (e) => {
+    if (e.target.id === 'modalConsecutivo') cerrarModalConsecutivo();
+  });
+});
+
+// ===== CARGAR CONSECUTIVOS =====
+async function cargarConsecutivos() {
+  try {
+    const res = await fetch('/facturacion/api/consecutivos');
+    const data = await res.json();
+    consecutivosData = data.data || [];
+    renderConsecutivos();
+  } catch (e) {
+    document.getElementById('emptyConsecutivos').innerHTML = `
+      <i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i>
+      <p>Error al cargar consecutivos</p>
+    `;
+  }
+}
+
+function renderConsecutivos() {
+  const container = document.getElementById('consecutivosContenido');
+
+  if (!consecutivosData.length) {
+    container.innerHTML = `
+      <div class="cfg-empty">
+        <i class="fa-solid fa-hashtag"></i>
+        <p>No hay consecutivos configurados</p>
+        <p style="font-size:13px; color:var(--text-faint);">Crea el primer consecutivo para empezar a facturar</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div class="cfg-table-wrap">
+      <table class="cfg-table">
+        <thead>
+          <tr>
+            <th>Prefijo</th>
+            <th>Consecutivo actual</th>
+            <th>Rango</th>
+            <th>Sede</th>
+            <th>Estado</th>
+            <th>Resolución DIAN</th>
+            <th>Tipo</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  consecutivosData.forEach(c => {
+    const rangoDesde = c.rango_desde || '—';
+    const rangoHasta = c.rango_hasta || '—';
+    const porcentaje = c.rango_hasta
+      ? Math.round((c.consecutivo_actual / c.rango_hasta) * 100)
+      : 0;
+    
+    const dianInfo = c.resolucion_dian
+      ? `<strong>Res. ${c.resolucion_dian}</strong><br>
+         ${c.fecha_resolucion || ''} ${c.fecha_vencimiento ? '→ ' + c.fecha_vencimiento : ''}`
+      : '<span style="color:var(--text-faint);">Sin resolución</span>';
+
+    html += `
+      <tr>
+        <td><span class="cfg-prefijo">${c.prefijo}</span></td>
+        <td>
+          <div class="cfg-consecutivo">${c.consecutivo_actual}</div>
+          ${c.rango_hasta ? `
+            <div style="margin-top:6px; height:4px; border-radius:2px; background:var(--surface-3); overflow:hidden;">
+              <div style="height:100%; width:${Math.min(porcentaje, 100)}%; background:${porcentaje > 90 ? 'var(--danger)' : 'var(--brand)'}; border-radius:2px; transition:width .3s;"></div>
+            </div>
+            <div class="cfg-rango" style="margin-top:2px;">${porcentaje}% utilizado</div>
+          ` : ''}
+        </td>
+        <td>
+          <div style="font-size:13px; color:var(--text-soft);">${rangoDesde} — ${rangoHasta}</div>
+        </td>
+        <td style="font-size:13px;">${c.sede_nombre || 'Todas'}</td>
+        <td><span class="cfg-estado ${c.estado}"><span class="cfg-estado-dot"></span> ${c.estado}</span></td>
+        <td><div class="cfg-dian-info">${dianInfo}</div></td>
+        <td>
+          ${c.es_principal ? '<span class="cfg-principal"><i class="fa-solid fa-star" style="font-size:10px;"></i> Principal</span>' : '<span style="font-size:12px; color:var(--text-faint);">Secundario</span>'}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// ===== CARGAR SEDES =====
+async function cargarSedesConfig() {
+  try {
+    const res = await fetch('/citas/api/sedes');
+    const data = await res.json();
+    const sedes = data.data || [];
+    const select = document.getElementById('cfgSede');
+    sedes.forEach(s => {
+      select.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+    });
+  } catch (e) {
+    console.error('Error cargando sedes:', e);
+  }
+}
+
+// ===== MODAL =====
+function abrirModalConsecutivo() {
+  document.getElementById('cfgPrefijo').value = 'FV';
+  document.getElementById('cfgConsecutivoInicial').value = 0;
+  document.getElementById('cfgRangoDesde').value = 1;
+  document.getElementById('cfgRangoHasta').value = 999999;
+  document.getElementById('cfgSede').value = '';
+  document.getElementById('cfgEsPrincipal').checked = true;
+  document.getElementById('cfgResolucion').value = '';
+  document.getElementById('cfgFechaResolucion').value = '';
+  document.getElementById('cfgFechaVencimiento').value = '';
+
+  document.getElementById('modalConsecutivo').classList.add('active');
+}
+
+function cerrarModalConsecutivo() {
+  document.getElementById('modalConsecutivo').classList.remove('active');
+}
+
+// ===== GUARDAR =====
+async function guardarConsecutivo() {
+  const prefijo = document.getElementById('cfgPrefijo').value.trim();
+  if (!prefijo) {
+    Toast.show('Ingrese un prefijo', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btnGuardarConsecutivo');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+  try {
+    const payload = {
+      prefijo,
+      consecutivo_inicial: parseInt(document.getElementById('cfgConsecutivoInicial').value) || 0,
+      rango_desde: parseInt(document.getElementById('cfgRangoDesde').value) || null,
+      rango_hasta: parseInt(document.getElementById('cfgRangoHasta').value) || null,
+      sede_id: document.getElementById('cfgSede').value || null,
+      es_principal: document.getElementById('cfgEsPrincipal').checked,
+      resolucion_dian: document.getElementById('cfgResolucion').value || null,
+      fecha_resolucion: document.getElementById('cfgFechaResolucion').value || null,
+      fecha_vencimiento: document.getElementById('cfgFechaVencimiento').value || null,
+    };
+
+    const res = await fetch('/facturacion/api/consecutivos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      Toast.show('Consecutivo creado correctamente', 'success');
+      cerrarModalConsecutivo();
+      cargarConsecutivos();
+    } else {
+      Toast.show(data.error || 'Error al crear consecutivo', 'error');
+    }
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Guardar';
+  }
+}
+</script>
+{% endblock %}

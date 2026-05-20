@@ -1,0 +1,662 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Factura {{ factura_id }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice-dollar"></i>{% endblock %}
+{% block header_title %}Vista de Factura{% endblock %}
+{% block header_subtitle %}Vista previa e impresión de factura de venta en salud.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
+  <i class="fa-solid fa-arrow-left"></i> Volver
+</a>
+<button class="btn-ax primary" onclick="descargarPDF()" id="btnDescargar" style="gap:8px;">
+  <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+</button>
+{% endblock %}
+
+{% block content %}
+<style>
+.fv-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.fv {
+  width: 210mm;
+  background: #fff;
+  padding: 12mm 14mm;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 9px;
+  color: #1a1a1a;
+  line-height: 1.5;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 24px rgba(0,0,0,.08);
+}
+
+/* ── Encabezado ── */
+.fv-head {
+  display: flex;
+  border: 2px solid #222;
+}
+
+.fv-head-left {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 2px solid #222;
+}
+
+.fv-empresa-nombre {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: .3px;
+  margin-bottom: 6px;
+}
+
+.fv-empresa-info {
+  font-size: 8.5px;
+  color: #555;
+  line-height: 1.7;
+}
+
+.fv-head-right {
+  width: 230px;
+  flex-shrink: 0;
+}
+
+.fv-fev-label {
+  background: #111;
+  color: #fff;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 7px 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.fv-fev-num {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  padding: 8px 0;
+  color: #111;
+  letter-spacing: 1.5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.fv-fev-rows {
+  font-size: 8px;
+}
+
+.fv-fev-row {
+  display: flex;
+  border-bottom: 1px solid #eee;
+}
+
+.fv-fev-row:last-child {
+  border-bottom: none;
+}
+
+.fv-fev-row .k {
+  width: 120px;
+  font-weight: 700;
+  color: #555;
+  padding: 4px 8px;
+  background: #fafafa;
+  border-right: 1px solid #eee;
+}
+
+.fv-fev-row .v {
+  flex: 1;
+  padding: 4px 8px;
+  color: #222;
+  font-weight: 600;
+}
+
+/* ── Partes: Emisor + Cliente ── */
+.fv-parties {
+  display: flex;
+  border: 2px solid #222;
+  border-top: none;
+}
+
+.fv-party {
+  flex: 1;
+}
+
+.fv-party + .fv-party {
+  border-left: 2px solid #222;
+}
+
+.fv-party-head {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 5px 12px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+  color: #444;
+}
+
+.fv-party-body {
+  padding: 8px 12px;
+}
+
+.fv-pname {
+  font-size: 11px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.fv-prow {
+  display: flex;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 8.5px;
+}
+
+.fv-prow .k {
+  font-weight: 700;
+  color: #666;
+  min-width: 75px;
+}
+
+.fv-prow .v {
+  color: #222;
+}
+
+/* ── Barra de contrato ── */
+.fv-contract-bar {
+  border: 2px solid #222;
+  border-top: none;
+  padding: 6px 12px;
+  font-size: 8px;
+  color: #444;
+  background: #fafafa;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.fv-contract-bar span {
+  white-space: nowrap;
+}
+
+.fv-contract-bar strong {
+  color: #222;
+}
+
+/* ── Tabla de servicios ── */
+.fv-items-wrap {
+  border: 2px solid #222;
+  border-top: none;
+}
+
+.fv-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fv-items-table thead th {
+  background: #222;
+  color: #fff;
+  font-size: 7.5px;
+  font-weight: 700;
+  padding: 7px 8px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.fv-items-table thead th.al {
+  text-align: left;
+}
+
+.fv-items-table tbody td {
+  padding: 7px 8px;
+  font-size: 8.5px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.fv-items-table tbody tr:nth-child(even) td {
+  background: #f9f9f9;
+}
+
+.fv-items-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tc { text-align: center; }
+.tr { text-align: right; }
+.tl { text-align: left; }
+.tb { font-weight: 700; }
+
+/* ── Totales ── */
+.fv-totals-wrap {
+  border: 2px solid #222;
+  border-top: none;
+  display: flex;
+  min-height: 120px;
+}
+
+.fv-totals-left {
+  flex: 1;
+  padding: 10px 14px;
+  border-right: 2px solid #222;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.fv-letras-label {
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.fv-letras-value {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.5;
+}
+
+.fv-totals-right {
+  width: 230px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fv-tot-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.fv-tot-row .k {
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  font-size: 7.5px;
+  letter-spacing: .4px;
+}
+
+.fv-tot-row .v {
+  font-weight: 700;
+  color: #222;
+  font-size: 9px;
+}
+
+.fv-tot-row.fv-grand {
+  background: #222;
+  border-bottom: none;
+  padding: 8px 12px;
+  margin-top: auto;
+}
+
+.fv-tot-row.fv-grand .k {
+  color: #ccc;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.fv-tot-row.fv-grand .v {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+/* ── DIAN / CUFE ── */
+.fv-dian-box {
+  border: 2px solid #222;
+  border-top: none;
+  padding: 8px 12px;
+  font-size: 7.5px;
+  color: #555;
+  line-height: 1.8;
+}
+
+.fv-dian-line {
+  display: flex;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.fv-dian-line .k {
+  font-weight: 800;
+  color: #222;
+  min-width: 120px;
+  text-transform: uppercase;
+  font-size: 7px;
+  letter-spacing: .5px;
+}
+
+.fv-dian-line .v {
+  word-break: break-all;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 7px;
+  color: #444;
+}
+
+/* ── Legal ── */
+.fv-legal-box {
+  border: 2px solid #222;
+  border-top: none;
+  padding: 8px 12px;
+  font-size: 7px;
+  color: #777;
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ── Firmas ── */
+.fv-firmas {
+  border: 2px solid #222;
+  border-top: none;
+  display: flex;
+}
+
+.fv-firma-cell {
+  flex: 1;
+  text-align: center;
+  padding: 40px 16px 10px;
+  position: relative;
+}
+
+.fv-firma-cell + .fv-firma-cell {
+  border-left: 1px solid #ddd;
+}
+
+.fv-firma-line {
+  border-top: 1px solid #999;
+  padding-top: 6px;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+/* ── Footer ── */
+.fv-foot {
+  border: 2px solid #222;
+  border-top: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 7.5px;
+  color: #aaa;
+  background: #fafafa;
+}
+
+.fv-foot-gen {
+  font-style: italic;
+}
+
+.fv-foot-page {
+  font-weight: 700;
+  color: #888;
+}
+
+/* ── Print ── */
+@media print {
+  body { background: white !important; }
+  .page-header, .sidebar, .mobile-menu-btn, .page-topbar-actions { display: none !important; }
+  .main { margin: 0 !important; padding: 0 !important; }
+  .content-card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+  .fv { box-shadow: none; border: none; padding: 10mm; }
+}
+</style>
+
+<div class="fv-wrapper">
+  <div id="facLoading" style="padding:60px; text-align:center; color:var(--text-faint);">
+    <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+    Cargando factura...
+  </div>
+  <div class="fv" id="facturaVista" style="display:none;"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+let facturaData = null;
+let detalleData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  const match = window.location.pathname.match(/\/factura\/(\d+)\/vista/);
+  if (match) cargarFactura(parseInt(match[1]));
+});
+
+async function cargarFactura(id) {
+  try {
+    const res = await fetch(`/facturacion/api/factura/${id}`);
+    const data = await res.json();
+    if (!data.ok) {
+      document.getElementById('facLoading').innerHTML = `<i class="fa-solid fa-circle-xmark" style="font-size:2rem; color:var(--danger); margin-bottom:12px; display:block;"></i>${data.error || 'Factura no encontrada'}`;
+      return;
+    }
+    facturaData = data.data;
+    detalleData = data.detalle || [];
+    renderFactura();
+  } catch (e) {
+    document.getElementById('facLoading').innerHTML = 'Error de conexión';
+  }
+}
+
+function renderFactura() {
+  const f = facturaData;
+  const pac = f.hc_pacientes || {};
+  const cli = f.hc_clientes || {};
+  const con = f.hc_contratos || {};
+  const sede = f.hc_sedes || {};
+  const consec = f.fin_consecutivos_facturacion || {};
+
+  const pacNombre = [pac.primer_nombre, pac.segundo_nombre, pac.primer_apellido, pac.segundo_apellido].filter(Boolean).join(' ');
+  const fecha = (f.fecha_expedicion || '').split('T')[0];
+  const subtotal = parseFloat(f.subtotal || 0);
+  const copago = parseFloat(f.copago || 0);
+  const cuotaMod = parseFloat(f.cuota_moderadora || 0);
+  const descuento = parseFloat(f.descuento || 0);
+  const total = parseFloat(f.total || 0);
+
+  const itemsHTML = detalleData.map(d => `
+    <tr>
+      <td class="tc tb">${d.codigo_cups}</td>
+      <td class="tl">${d.descripcion}</td>
+      <td class="tc">UND</td>
+      <td class="tc">${d.cantidad}</td>
+      <td class="tr">${fm(d.valor_unitario)}</td>
+      <td class="tr">${fm(d.iva_valor || 0)}</td>
+      <td class="tr tb">${fm(d.valor_total)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" style="text-align:center; padding:20px; color:#aaa;">Sin ítems registrados</td></tr>';
+
+  let dianHTML = '';
+  const resol = consec.resolucion_dian || '';
+  if (resol || f.cufe) {
+    dianHTML = `<div class="fv-dian-box">
+      ${resol ? `<div class="fv-dian-line"><span class="k">Resolución DIAN:</span><span class="v">No. ${resol} ${consec.fecha_resolucion ? '· Fecha ' + consec.fecha_resolucion : ''} ${consec.fecha_vencimiento ? '· Hasta ' + consec.fecha_vencimiento : ''}</span></div>
+      <div class="fv-dian-line"><span class="k">Rango autorizado:</span><span class="v">${f.prefijo}-${consec.rango_desde || ''} a ${f.prefijo}-${consec.rango_hasta || ''}</span></div>` : ''}
+      ${f.cufe ? `<div class="fv-dian-line"><span class="k">CUFE:</span><span class="v">${f.cufe}</span></div>` : ''}
+    </div>`;
+  }
+
+  document.getElementById('facturaVista').innerHTML = `
+    <!-- ENCABEZADO -->
+    <div class="fv-head">
+      <div class="fv-head-left">
+        <div class="fv-empresa-nombre">IPS VITACORE S.A.S</div>
+        <div class="fv-empresa-info">
+          NIT: 000.000.000-0<br>
+          ${sede.direccion || ''} — ${sede.nombre || ''}<br>
+          No Responsable de IVA
+        </div>
+      </div>
+      <div class="fv-head-right">
+        <div class="fv-fev-label">Factura de Venta</div>
+        <div class="fv-fev-num">${f.numero_factura}</div>
+        <div class="fv-fev-rows">
+          <div class="fv-fev-row"><span class="k">Número de factura:</span><span class="v">${f.numero_factura}</span></div>
+          <div class="fv-fev-row"><span class="k">Fecha factura:</span><span class="v">${fecha}</span></div>
+          <div class="fv-fev-row"><span class="k">Fecha vencimiento:</span><span class="v">${f.fecha_vencimiento || fecha}</span></div>
+          <div class="fv-fev-row"><span class="k">Modalidad de pago:</span><span class="v">${(f.modalidad_pago || '').replace(/_/g, ' ')}</span></div>
+          <div class="fv-fev-row"><span class="k">Condición de pago:</span><span class="v">${con.tipo_contrato || 'CONTADO'}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMISOR + CLIENTE -->
+    <div class="fv-parties">
+      <div class="fv-party">
+        <div class="fv-party-head">Emisor / Prestador</div>
+        <div class="fv-party-body">
+          <div class="fv-pname">IPS VITACORE S.A.S</div>
+          <div class="fv-prow"><span class="k">NIT:</span><span class="v">000.000.000-0</span></div>
+          <div class="fv-prow"><span class="k">Dirección:</span><span class="v">${sede.direccion || '—'}</span></div>
+          <div class="fv-prow"><span class="k">Sede:</span><span class="v">${sede.nombre || '—'}</span></div>
+          <div class="fv-prow"><span class="k">Cód. Prestador:</span><span class="v">${f.codigo_prestador || '—'}</span></div>
+        </div>
+      </div>
+      <div class="fv-party">
+        <div class="fv-party-head">Cliente / Paciente</div>
+        <div class="fv-party-body">
+          <div class="fv-pname">${pacNombre || '—'}</div>
+          <div class="fv-prow"><span class="k">Identificación:</span><span class="v">${pac.tipo_documento_id || 'CC'} ${pac.numero_documento || ''}</span></div>
+          <div class="fv-prow"><span class="k">Fecha Nac.:</span><span class="v">${pac.fecha_nacimiento || '—'}</span></div>
+          <div class="fv-prow"><span class="k">Sexo:</span><span class="v">${pac.sexo || '—'}</span></div>
+          <div class="fv-prow"><span class="k">Entidad:</span><span class="v">${cli.nombre || '—'}</span></div>
+          <div class="fv-prow"><span class="k">NIT Entidad:</span><span class="v">${cli.nit || '—'}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTRATO -->
+    <div class="fv-contract-bar">
+      <span><strong>Contrato:</strong> ${con.nro_contrato || '—'}</span>
+      <span><strong>Manual tarifario:</strong> ${con.manual_tarifario || '—'}</span>
+      <span><strong>Cobertura:</strong> ${(f.cobertura_plan_beneficios || '').replace(/_/g, ' ') || '—'}</span>
+      <span><strong>Nro. Póliza:</strong> ${f.numero_poliza || 'N/A'}</span>
+    </div>
+
+    <!-- SERVICIOS -->
+    <div class="fv-items-wrap">
+      <table class="fv-items-table">
+        <thead>
+          <tr>
+            <th style="width:65px;">CÓDIGO</th>
+            <th class="al">DESCRIPCIÓN</th>
+            <th style="width:38px;">UM</th>
+            <th style="width:38px;">CANT.</th>
+            <th style="width:85px;">VLR. UNITARIO</th>
+            <th style="width:55px;">IVA</th>
+            <th style="width:90px;">VALOR TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>${itemsHTML}</tbody>
+      </table>
+    </div>
+
+    <!-- TOTALES -->
+    <div class="fv-totals-wrap">
+      <div class="fv-totals-left">
+        <div class="fv-letras-label">Valor en letras</div>
+        <div class="fv-letras-value">${numeroALetras(total)}</div>
+      </div>
+      <div class="fv-totals-right">
+        <div class="fv-tot-row"><span class="k">Valor bruto</span><span class="v">${fm(subtotal)}</span></div>
+        <div class="fv-tot-row"><span class="k">Descuento</span><span class="v">${fm(descuento)}</span></div>
+        <div class="fv-tot-row"><span class="k">Subtotal</span><span class="v">${fm(subtotal - descuento)}</span></div>
+        <div class="fv-tot-row"><span class="k">Copago</span><span class="v">${fm(copago)}</span></div>
+        <div class="fv-tot-row"><span class="k">Cuota moderadora</span><span class="v">${fm(cuotaMod)}</span></div>
+        <div class="fv-tot-row fv-grand"><span class="k">TOTAL</span><span class="v">${fm(total)}</span></div>
+      </div>
+    </div>
+
+    ${dianHTML}
+
+    <!-- LEGAL -->
+    <div class="fv-legal-box">
+      <strong>NOTA:</strong> Esta factura se asimila en todos sus efectos legales a la Letra de Cambio
+      (según el Artículo 774 del código de Comercio), con esta el Comprador declara haber recibido
+      real y materialmente las mercancías y/o servicios descritos en este Título Valor.
+      Después de Vencida causará intereses a la tasa máxima legal vigente.
+    </div>
+
+    <!-- FIRMAS -->
+    <div class="fv-firmas">
+      <div class="fv-firma-cell"><div class="fv-firma-line">Elaborado por</div></div>
+      <div class="fv-firma-cell"><div class="fv-firma-line">Recibido por</div></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="fv-foot">
+      <span class="fv-foot-gen">Factura generada por software VITACORE · Sistema de Historia Clínica Integral</span>
+      <span class="fv-foot-page">Página 1 de 1</span>
+    </div>
+  `;
+
+  document.getElementById('facLoading').style.display = 'none';
+  document.getElementById('facturaVista').style.display = 'block';
+}
+
+// ===== PDF =====
+async function descargarPDF() {
+  const el = document.getElementById('facturaVista');
+  if (!el || !facturaData) return;
+
+  const btn = document.getElementById('btnDescargar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando PDF...';
+
+  try {
+    await html2pdf().set({
+      margin:      [4, 4, 4, 4],
+      filename:    `factura_${facturaData.numero_factura}.pdf`,
+      image:       { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2.5, useCORS: true, letterRendering: true },
+      jsPDF:       { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    }).from(el).save();
+  } catch (e) {
+    Toast.show('Error generando PDF', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> Descargar PDF';
+  }
+}
+
+// ===== UTILIDADES =====
+function fm(v) {
+  return '$' + (parseFloat(v)||0).toLocaleString('es-CO', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function numeroALetras(n) {
+  const u=['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'];
+  const d=['','DIEZ','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+  const e={11:'ONCE',12:'DOCE',13:'TRECE',14:'CATORCE',15:'QUINCE',16:'DIECISEIS',17:'DIECISIETE',18:'DIECIOCHO',19:'DIECINUEVE',21:'VEINTIUN',22:'VEINTIDOS',23:'VEINTITRES',24:'VEINTICUATRO',25:'VEINTICINCO',26:'VEINTISEIS',27:'VEINTISIETE',28:'VEINTIOCHO',29:'VEINTINUEVE'};
+  const c=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+  function g(n){let r='';if(n>=100){if(n===100)return'CIEN';r+=c[~~(n/100)]+' ';n%=100;}if(e[n])r+=e[n];else if(n>=10){r+=d[~~(n/10)];if(n%10>0)r+=' Y '+u[n%10];}else if(n>0)r+=u[n];return r.trim();}
+  let num=Math.round(parseFloat(n)||0);if(num===0)return'CERO PESOS M/CTE';let r='';
+  if(num>=1000000){const m=~~(num/1000000);r+=(m===1?'UN MILLON ':g(m)+' MILLONES ');num%=1000000;}
+  if(num>=1000){const k=~~(num/1000);r+=(k===1?'MIL ':g(k)+' MIL ');num%=1000;}
+  if(num>0)r+=g(num);
+  return r.trim()+' PESOS M/CTE';
+}
+</script>
+{% endblock %}

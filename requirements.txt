@@ -2,3 +2,4 @@ flask
 supabase 
 python-dotenv
 playwright
+xhtml2pdf

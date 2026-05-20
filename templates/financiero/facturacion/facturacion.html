@@ -1,0 +1,1300 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Facturación{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice-dollar"></i>{% endblock %}
+{% block header_title %}Facturación{% endblock %}
+{% block header_subtitle %}Genera facturas desde citas atendidas o de forma libre. Cumple con los campos del sector salud (FEV).{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
+  <i class="fa-solid fa-list"></i> Ver facturas
+</a>
+<a class="btn-ax ghost" href="/facturacion/configuracion" style="gap:8px;">
+  <i class="fa-solid fa-gear"></i> Configuración
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+/* ===== FACTURACIÓN LAYOUT ===== */
+.fac-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== BÚSQUEDA ===== */
+.fac-search-bar {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.fac-search-input {
+  flex: 1;
+  position: relative;
+}
+
+.fac-search-input i {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: 16px;
+}
+
+.fac-search-input input {
+  width: 100%;
+  height: 52px;
+  padding: 0 18px 0 46px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.fac-search-input input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(13,92,99,.1);
+}
+
+.fac-search-input input::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.fac-search-btn {
+  height: 52px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: transform .15s, background .15s;
+  white-space: nowrap;
+}
+
+.fac-search-btn:hover {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
+.fac-search-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== TABS ===== */
+.fac-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-3);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+.fac-tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all .2s;
+}
+
+.fac-tab:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.fac-tab.active {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* ===== PACIENTE INFO ===== */
+.fac-paciente-info {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--brand-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.fac-paciente-info.visible {
+  display: flex;
+}
+
+.fac-pac-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  background: var(--brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.fac-pac-data {
+  flex: 1;
+  min-width: 0;
+}
+
+.fac-pac-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.fac-pac-doc {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
+
+.fac-pac-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-citas {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+/* ===== PANEL CONTENIDO ===== */
+.fac-panel {
+  display: none;
+}
+
+.fac-panel.active {
+  display: block;
+}
+
+/* ===== TABLA DE CITAS ===== */
+.fac-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.fac-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fac-table th {
+  background: var(--surface-3);
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.fac-table th:first-child {
+  width: 40px;
+  text-align: center;
+}
+
+.fac-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.fac-table tr:last-child td {
+  border-bottom: none;
+}
+
+.fac-table tr:hover td {
+  background: rgba(13,92,99,.03);
+}
+
+.fac-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--brand);
+}
+
+.fac-estado {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.fac-estado.CONFIRMADA {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.fac-estado.EN_ATENCION {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.fac-estado.FINALIZADA {
+  background: var(--surface-3);
+  color: var(--text-soft);
+}
+
+.fac-valor {
+  font-weight: 700;
+  color: var(--brand);
+  white-space: nowrap;
+}
+
+/* ===== FACTURACIÓN LIBRE — ÍTEMS ===== */
+.fac-libre-search {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.fac-libre-search i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+}
+
+.fac-libre-search input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.fac-libre-search input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.fac-sugerencias {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+}
+
+.fac-sug-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  transition: background .15s;
+}
+
+.fac-sug-item:hover {
+  background: var(--brand-soft);
+}
+
+.fac-sug-item:last-child {
+  border-bottom: none;
+}
+
+/* ===== RESUMEN LATERAL ===== */
+.fac-resumen {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.fac-resumen-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-faint);
+  margin: 0 0 14px;
+}
+
+.fac-resumen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.fac-resumen-row:last-child {
+  border-bottom: none;
+}
+
+.fac-resumen-label {
+  color: var(--text-soft);
+}
+
+.fac-resumen-value {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fac-resumen-total {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.fac-copago-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.fac-copago-grid label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+
+.fac-copago-grid input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fac-copago-grid input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+/* ===== BOTÓN FACTURAR ===== */
+.fac-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fac-btn-facturar {
+  flex: 1;
+  height: 52px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform .15s, background .15s;
+}
+
+.fac-btn-facturar:hover {
+  background: #256d28;
+  transform: translateY(-1px);
+}
+
+.fac-btn-facturar:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.fac-btn-secondary {
+  height: 52px;
+  padding: 0 24px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .15s;
+}
+
+.fac-btn-secondary:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* ===== EMPTY STATE ===== */
+.fac-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-faint);
+  gap: 14px;
+}
+
+.fac-empty i {
+  font-size: 3rem;
+  opacity: .3;
+}
+
+.fac-empty p {
+  font-size: 15px;
+  margin: 0;
+}
+
+/* ===== FACTURA EXITOSA ===== */
+.fac-success {
+  display: none;
+  text-align: center;
+  padding: 40px;
+}
+
+.fac-success.visible {
+  display: block;
+}
+
+.fac-success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  margin: 0 auto 16px;
+}
+
+.fac-success h3 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: var(--text);
+}
+
+.fac-success p {
+  color: var(--text-soft);
+  font-size: 15px;
+  margin: 0 0 20px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .fac-search-bar {
+    flex-direction: column;
+  }
+  .fac-copago-grid {
+    grid-template-columns: 1fr;
+  }
+  .fac-paciente-info {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+</style>
+
+<div class="fac-container">
+
+  <!-- BÚSQUEDA POR CÉDULA -->
+  <div class="fac-search-bar">
+    <div class="fac-search-input">
+      <i class="fa-solid fa-id-card"></i>
+      <input type="text" id="inputCedula" placeholder="Número de cédula del paciente..."
+             onkeydown="if(event.key==='Enter') buscarPaciente()" autofocus>
+    </div>
+    <button class="fac-search-btn" onclick="buscarPaciente()" id="btnBuscar">
+      <i class="fa-solid fa-magnifying-glass"></i> Buscar paciente
+    </button>
+  </div>
+
+  <!-- INFO PACIENTE -->
+  <div class="fac-paciente-info" id="pacienteInfo">
+    <div class="fac-pac-avatar" id="pacAvatar">--</div>
+    <div class="fac-pac-data">
+      <div class="fac-pac-name" id="pacNombre">—</div>
+      <div class="fac-pac-doc" id="pacDocumento">—</div>
+    </div>
+    <span class="fac-pac-badge badge-citas" id="pacBadge">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span id="pacCitasCount">0 citas facturables</span>
+    </span>
+  </div>
+
+  <!-- TABS: Desde citas / Libre -->
+  <div class="fac-tabs" id="facTabs" style="display:none;">
+    <button class="fac-tab active" onclick="cambiarTab('citas')" id="tabCitas">
+      <i class="fa-solid fa-calendar-check"></i> Desde citas
+    </button>
+    <button class="fac-tab" onclick="cambiarTab('libre')" id="tabLibre">
+      <i class="fa-solid fa-plus-circle"></i> Facturación libre
+    </button>
+  </div>
+
+  <!-- PANEL: DESDE CITAS -->
+  <div class="fac-panel active" id="panelCitas">
+    <div class="fac-empty" id="emptyCitas">
+      <i class="fa-solid fa-file-invoice"></i>
+      <p>Busca un paciente por cédula para ver sus citas facturables</p>
+    </div>
+
+    <div id="contenidoCitas" style="display:none;">
+      <div class="fac-table-wrap">
+        <table class="fac-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Médico</th>
+              <th>Estado</th>
+              <th>Procedimientos</th>
+              <th>Entidad</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCitas"></tbody>
+        </table>
+      </div>
+
+      <!-- RESUMEN -->
+      <div class="fac-resumen" id="resumenCitas">
+        <p class="fac-resumen-title">Resumen de facturación</p>
+        <div class="fac-resumen-row">
+          <span class="fac-resumen-label">Citas seleccionadas</span>
+          <span class="fac-resumen-value" id="resCitasCount">0</span>
+        </div>
+        <div class="fac-resumen-row">
+          <span class="fac-resumen-label">Subtotal</span>
+          <span class="fac-resumen-value" id="resSubtotal">$0</span>
+        </div>
+
+        <div class="fac-copago-grid">
+          <div>
+            <label>Copago</label>
+            <input type="number" id="inputCopago" value="0" min="0" oninput="recalcularTotal()">
+          </div>
+          <div>
+            <label>Cuota moderadora</label>
+            <input type="number" id="inputCuotaMod" value="0" min="0" oninput="recalcularTotal()">
+          </div>
+          <div>
+            <label>Cuota recuperación</label>
+            <input type="number" id="inputCuotaRec" value="0" min="0" oninput="recalcularTotal()">
+          </div>
+          <div>
+            <label>Descuento</label>
+            <input type="number" id="inputDescuento" value="0" min="0" oninput="recalcularTotal()">
+          </div>
+        </div>
+
+        <div class="fac-resumen-row" style="padding-top:14px; border-top:2px solid var(--border); margin-top:14px;">
+          <span class="fac-resumen-label" style="font-weight:800;">Total a facturar</span>
+          <span class="fac-resumen-total" id="resTotal">$0</span>
+        </div>
+      </div>
+
+      <div class="fac-actions">
+        <button class="fac-btn-facturar" id="btnFacturar" onclick="generarFactura('citas')" disabled>
+          <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: FACTURACIÓN LIBRE -->
+  <div class="fac-panel" id="panelLibre">
+    <div class="fac-empty" id="emptyLibre">
+      <i class="fa-solid fa-file-circle-plus"></i>
+      <p>Busca un paciente por cédula y agrega procedimientos manualmente</p>
+    </div>
+
+    <div id="contenidoLibre" style="display:none;">
+      <!-- Selección de cliente/contrato -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+            Cliente / Entidad
+          </label>
+          <select id="libreCliente" class="fac-copago-grid input"
+                  style="width:100%; height:42px; padding:0 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); color:var(--text); font-size:14px;"
+                  onchange="onLibreClienteChange()">
+            <option value="">Seleccionar cliente...</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+            Contrato
+          </label>
+          <select id="libreContrato"
+                  style="width:100%; height:42px; padding:0 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); color:var(--text); font-size:14px;"
+                  onchange="onLibreContratoChange()">
+            <option value="">Primero seleccione cliente...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Buscar CUPS -->
+      <div class="fac-libre-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="buscarCupsLibre" placeholder="Buscar procedimiento por código o nombre..."
+               oninput="filtrarCupsLibre(this.value)">
+        <div class="fac-sugerencias" id="sugerenciasLibre"></div>
+      </div>
+
+      <!-- Tabla de ítems agregados -->
+      <div class="fac-table-wrap" id="tablaLibreWrap" style="display:none;">
+        <table class="fac-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th>Cant.</th>
+              <th>Valor unit.</th>
+              <th>Valor total</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tablaLibre"></tbody>
+        </table>
+      </div>
+
+      <!-- Resumen libre -->
+      <div class="fac-resumen" id="resumenLibre">
+        <p class="fac-resumen-title">Resumen de facturación</p>
+        <div class="fac-resumen-row">
+          <span class="fac-resumen-label">Ítems</span>
+          <span class="fac-resumen-value" id="resLibreItems">0</span>
+        </div>
+        <div class="fac-resumen-row">
+          <span class="fac-resumen-label">Subtotal</span>
+          <span class="fac-resumen-value" id="resLibreSubtotal">$0</span>
+        </div>
+
+        <div class="fac-copago-grid">
+          <div>
+            <label>Copago</label>
+            <input type="number" id="libreInputCopago" value="0" min="0" oninput="recalcularTotalLibre()">
+          </div>
+          <div>
+            <label>Cuota moderadora</label>
+            <input type="number" id="libreInputCuotaMod" value="0" min="0" oninput="recalcularTotalLibre()">
+          </div>
+        </div>
+
+        <div class="fac-resumen-row" style="padding-top:14px; border-top:2px solid var(--border); margin-top:14px;">
+          <span class="fac-resumen-label" style="font-weight:800;">Total a facturar</span>
+          <span class="fac-resumen-total" id="resLibreTotal">$0</span>
+        </div>
+      </div>
+
+      <div class="fac-actions">
+        <button class="fac-btn-facturar" id="btnFacturarLibre" onclick="generarFactura('libre')" disabled>
+          <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTURA EXITOSA -->
+  <div class="fac-success" id="facturaExitosa">
+    <div class="fac-success-icon">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h3>Factura generada exitosamente</h3>
+    <p id="facturaExitosaMsg">—</p>
+    <div style="display:flex; gap:12px; justify-content:center;">
+      <button class="fac-btn-secondary" onclick="nuevaFactura()">
+        <i class="fa-solid fa-plus"></i> Nueva factura
+      </button>
+      <a class="fac-btn-secondary" id="linkVerFactura" href="#">
+        <i class="fa-solid fa-eye"></i> Ver factura
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ESTADO =====
+let pacienteActual = null;
+let citasFacturables = [];
+let itemsLibre = [];
+let clientesCache = [];
+let contratosCache = [];
+let contratoSeleccionadoLibre = null;
+let timeoutCups = null;
+
+// ===== BUSCAR PACIENTE =====
+async function buscarPaciente() {
+  const cedula = document.getElementById('inputCedula').value.trim();
+  if (!cedula) {
+    Toast.show('Ingrese un número de cédula', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btnBuscar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
+
+  try {
+    const res = await fetch(`/facturacion/api/buscar-paciente?cedula=${encodeURIComponent(cedula)}`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      Toast.show(data.error || 'Paciente no encontrado', 'error');
+      ocultarPaciente();
+      return;
+    }
+
+    pacienteActual = data.paciente;
+    citasFacturables = data.citas || [];
+
+    mostrarPaciente();
+    renderCitas();
+
+    // Cargar clientes para facturación libre
+    await cargarClientes();
+
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Buscar paciente';
+  }
+}
+
+// ===== MOSTRAR/OCULTAR PACIENTE =====
+function mostrarPaciente() {
+  const info = document.getElementById('pacienteInfo');
+  info.classList.add('visible');
+
+  const nombre = pacienteActual.nombre_completo || '—';
+  const iniciales = nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+  document.getElementById('pacAvatar').textContent = iniciales;
+  document.getElementById('pacNombre').textContent = nombre;
+  document.getElementById('pacDocumento').textContent =
+    `${pacienteActual.tipo_documento_id || 'CC'} ${pacienteActual.numero_documento}`;
+  document.getElementById('pacCitasCount').textContent =
+    `${citasFacturables.length} cita${citasFacturables.length !== 1 ? 's' : ''} facturable${citasFacturables.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('facTabs').style.display = 'flex';
+  document.getElementById('facturaExitosa').classList.remove('visible');
+  document.getElementById('facturaExitosa').style.display = 'none';
+}
+
+function ocultarPaciente() {
+  document.getElementById('pacienteInfo').classList.remove('visible');
+  document.getElementById('facTabs').style.display = 'none';
+  document.getElementById('contenidoCitas').style.display = 'none';
+  document.getElementById('emptyCitas').style.display = 'flex';
+  pacienteActual = null;
+  citasFacturables = [];
+}
+
+// ===== TABS =====
+function cambiarTab(tab) {
+  document.getElementById('tabCitas').classList.toggle('active', tab === 'citas');
+  document.getElementById('tabLibre').classList.toggle('active', tab === 'libre');
+  document.getElementById('panelCitas').classList.toggle('active', tab === 'citas');
+  document.getElementById('panelLibre').classList.toggle('active', tab === 'libre');
+
+  if (tab === 'libre' && pacienteActual) {
+    document.getElementById('emptyLibre').style.display = 'none';
+    document.getElementById('contenidoLibre').style.display = 'block';
+  }
+}
+
+// ===== RENDER CITAS =====
+function renderCitas() {
+  const tbody = document.getElementById('tablaCitas');
+  const empty = document.getElementById('emptyCitas');
+  const contenido = document.getElementById('contenidoCitas');
+
+  if (!citasFacturables.length) {
+    empty.style.display = 'flex';
+    contenido.style.display = 'none';
+    empty.querySelector('p').textContent = 'Este paciente no tiene citas facturables';
+    return;
+  }
+
+  empty.style.display = 'none';
+  contenido.style.display = 'block';
+
+  tbody.innerHTML = citasFacturables.map((c, i) => {
+    const fecha = c.fecha || '—';
+    const hora = (c.hora_inicio || '').slice(0, 5);
+    const procs = (c.procedimientos || []).map(p => p.codigo).join(', ') || '—';
+    const valor = parseFloat(c.valor_tarifa || 0);
+
+    return `
+      <tr>
+        <td style="text-align:center;">
+          <input type="checkbox" class="cita-check" data-index="${i}" onchange="onCitaCheck()">
+        </td>
+        <td><strong>${fecha}</strong></td>
+        <td>${hora}</td>
+        <td>${c.medico_nombre || '—'}</td>
+        <td><span class="fac-estado ${c.estado}">${c.estado.replace('_', ' ')}</span></td>
+        <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${procs}">${procs}</td>
+        <td style="font-size:12px;">${c.cliente_nombre || '—'}</td>
+        <td class="fac-valor">$${formatMoney(valor)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  recalcularTotal();
+}
+
+// ===== CHECKBOX =====
+function toggleAll(el) {
+  document.querySelectorAll('.cita-check').forEach(cb => {
+    cb.checked = el.checked;
+  });
+  onCitaCheck();
+}
+
+function onCitaCheck() {
+  recalcularTotal();
+  const seleccionadas = document.querySelectorAll('.cita-check:checked').length;
+  document.getElementById('btnFacturar').disabled = seleccionadas === 0;
+}
+
+// ===== RECALCULAR TOTAL (CITAS) =====
+function recalcularTotal() {
+  const checks = document.querySelectorAll('.cita-check:checked');
+  let subtotal = 0;
+  const count = checks.length;
+
+  checks.forEach(cb => {
+    const idx = parseInt(cb.dataset.index);
+    subtotal += parseFloat(citasFacturables[idx]?.valor_tarifa || 0);
+  });
+
+  const copago = parseFloat(document.getElementById('inputCopago').value) || 0;
+  const cuotaMod = parseFloat(document.getElementById('inputCuotaMod').value) || 0;
+  const cuotaRec = parseFloat(document.getElementById('inputCuotaRec').value) || 0;
+  const descuento = parseFloat(document.getElementById('inputDescuento').value) || 0;
+
+  const total = Math.max(0, subtotal - copago - cuotaMod - cuotaRec - descuento);
+
+  document.getElementById('resCitasCount').textContent = count;
+  document.getElementById('resSubtotal').textContent = `$${formatMoney(subtotal)}`;
+  document.getElementById('resTotal').textContent = `$${formatMoney(total)}`;
+}
+
+// ===== CARGAR CLIENTES =====
+async function cargarClientes() {
+  try {
+    const res = await fetch('/citas/api/clientes');
+    const data = await res.json();
+    clientesCache = data.data || [];
+
+    const select = document.getElementById('libreCliente');
+    select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+    clientesCache.forEach(c => {
+      select.innerHTML += `<option value="${c.id}">${c.nombre} (${c.nit || c.codigo || ''})</option>`;
+    });
+  } catch (e) {
+    console.error('Error cargando clientes:', e);
+  }
+}
+
+async function onLibreClienteChange() {
+  const clienteId = document.getElementById('libreCliente').value;
+  const select = document.getElementById('libreContrato');
+
+  if (!clienteId) {
+    select.innerHTML = '<option value="">Primero seleccione cliente...</option>';
+    return;
+  }
+
+  select.innerHTML = '<option value="">Cargando...</option>';
+
+  try {
+    const res = await fetch(`/citas/api/cliente/${clienteId}/contratos`);
+    const data = await res.json();
+    contratosCache = data.ok ? data.data : [];
+
+    select.innerHTML = '<option value="">Seleccionar contrato...</option>';
+    contratosCache.forEach(c => {
+      select.innerHTML += `<option value="${c.id}">${c.nro_contrato} — ${c.manual_tarifario || 'Sin manual'}</option>`;
+    });
+  } catch (e) {
+    select.innerHTML = '<option value="">Error al cargar</option>';
+  }
+}
+
+function onLibreContratoChange() {
+  const id = document.getElementById('libreContrato').value;
+  contratoSeleccionadoLibre = contratosCache.find(c => c.id == id) || null;
+}
+
+// ===== BUSCAR CUPS (LIBRE) =====
+function filtrarCupsLibre(query) {
+  const box = document.getElementById('sugerenciasLibre');
+  if (timeoutCups) clearTimeout(timeoutCups);
+
+  if (query.trim().length < 2) {
+    box.style.display = 'none';
+    return;
+  }
+
+  timeoutCups = setTimeout(async () => {
+    try {
+      const res = await fetch(`/facturacion/api/buscar-cups?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      const cups = data.data || [];
+
+      if (!cups.length) {
+        box.innerHTML = '<div class="fac-sug-item" style="justify-content:center; color:var(--text-faint);">Sin resultados</div>';
+        box.style.display = 'block';
+        return;
+      }
+
+      box.innerHTML = cups.map(c => `
+        <div class="fac-sug-item" onclick="agregarItemLibre(${c.id}, '${c.codigo}', '${c.descripcion.replace(/'/g, "\\'")}')">
+          <div>
+            <strong>${c.codigo}</strong>
+            <span style="margin-left:8px; color:var(--text-soft);">${c.descripcion}</span>
+          </div>
+          <i class="fa-solid fa-plus" style="color:var(--brand);"></i>
+        </div>
+      `).join('');
+      box.style.display = 'block';
+    } catch (e) {
+      console.error('Error buscando CUPS:', e);
+    }
+  }, 300);
+}
+
+async function agregarItemLibre(cupsId, codigo, descripcion) {
+  document.getElementById('buscarCupsLibre').value = '';
+  document.getElementById('sugerenciasLibre').style.display = 'none';
+
+  if (itemsLibre.find(i => i.cups_id === cupsId)) {
+    Toast.show('Este procedimiento ya está agregado', 'warning');
+    return;
+  }
+
+  // Buscar tarifa si hay contrato
+  let valorUnitario = 0;
+  const contratoId = document.getElementById('libreContrato').value;
+  if (contratoId) {
+    try {
+      const res = await fetch(`/facturacion/api/tarifa-cups?contrato_id=${contratoId}&cups_id=${cupsId}`);
+      const data = await res.json();
+      if (data.ok && data.data) {
+        valorUnitario = parseFloat(data.data.valor_total) || 0;
+      }
+    } catch (e) {}
+  }
+
+  itemsLibre.push({ cups_id: cupsId, codigo_cups: codigo, descripcion, cantidad: 1, valor_unitario: valorUnitario });
+  renderItemsLibre();
+}
+
+function quitarItemLibre(idx) {
+  itemsLibre.splice(idx, 1);
+  renderItemsLibre();
+}
+
+function actualizarCantidadLibre(idx, val) {
+  itemsLibre[idx].cantidad = Math.max(1, parseInt(val) || 1);
+  renderItemsLibre();
+}
+
+function renderItemsLibre() {
+  const tbody = document.getElementById('tablaLibre');
+  const wrap = document.getElementById('tablaLibreWrap');
+
+  if (!itemsLibre.length) {
+    wrap.style.display = 'none';
+    document.getElementById('btnFacturarLibre').disabled = true;
+    recalcularTotalLibre();
+    return;
+  }
+
+  wrap.style.display = 'block';
+  document.getElementById('btnFacturarLibre').disabled = false;
+
+  tbody.innerHTML = itemsLibre.map((item, i) => {
+    const total = item.valor_unitario * item.cantidad;
+    return `
+      <tr>
+        <td><strong>${item.codigo_cups}</strong></td>
+        <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.descripcion}">${item.descripcion}</td>
+        <td style="width:70px;">
+          <input type="number" value="${item.cantidad}" min="1" style="width:60px; height:32px; padding:0 8px; border:1px solid var(--border); border-radius:6px; text-align:center; font-size:13px; background:var(--surface); color:var(--text);"
+                 onchange="actualizarCantidadLibre(${i}, this.value)">
+        </td>
+        <td class="fac-valor">$${formatMoney(item.valor_unitario)}</td>
+        <td class="fac-valor">$${formatMoney(total)}</td>
+        <td>
+          <button onclick="quitarItemLibre(${i})" style="background:none; border:none; cursor:pointer; color:var(--danger); font-size:14px;" title="Quitar">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  recalcularTotalLibre();
+}
+
+function recalcularTotalLibre() {
+  let subtotal = 0;
+  itemsLibre.forEach(item => {
+    subtotal += item.valor_unitario * item.cantidad;
+  });
+
+  const copago = parseFloat(document.getElementById('libreInputCopago').value) || 0;
+  const cuotaMod = parseFloat(document.getElementById('libreInputCuotaMod').value) || 0;
+  const total = Math.max(0, subtotal - copago - cuotaMod);
+
+  document.getElementById('resLibreItems').textContent = itemsLibre.length;
+  document.getElementById('resLibreSubtotal').textContent = `$${formatMoney(subtotal)}`;
+  document.getElementById('resLibreTotal').textContent = `$${formatMoney(total)}`;
+}
+
+// ===== GENERAR FACTURA =====
+async function generarFactura(modo) {
+  const btnId = modo === 'citas' ? 'btnFacturar' : 'btnFacturarLibre';
+  const btn = document.getElementById(btnId);
+
+  // Confirmar
+  const result = await Swal.fire({
+    title: '¿Generar factura?',
+    text: 'Se creará una factura con los ítems seleccionados.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, facturar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#2f7d32',
+  });
+
+  if (!result.isConfirmed) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
+
+  try {
+    let prefacturaRes;
+
+    if (modo === 'citas') {
+      // Obtener citas seleccionadas
+      const checks = document.querySelectorAll('.cita-check:checked');
+      const citaIds = Array.from(checks).map(cb => citasFacturables[parseInt(cb.dataset.index)].id);
+      const primeraCita = citasFacturables[parseInt(checks[0].dataset.index)];
+
+      prefacturaRes = await fetch('/facturacion/api/prefactura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paciente_id: pacienteActual.id,
+          cliente_id: primeraCita.cliente_id,
+          contrato_id: primeraCita.contrato_id,
+          sede_id: primeraCita.sede_id,
+          cita_ids: citaIds,
+        }),
+      });
+    } else {
+      // Facturación libre
+      const clienteId = document.getElementById('libreCliente').value;
+      const contratoId = document.getElementById('libreContrato').value;
+
+      if (!clienteId || !contratoId) {
+        Toast.show('Seleccione cliente y contrato', 'warning');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Generar factura';
+        return;
+      }
+
+      prefacturaRes = await fetch('/facturacion/api/prefactura-libre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paciente_id: pacienteActual.id,
+          cliente_id: parseInt(clienteId),
+          contrato_id: parseInt(contratoId),
+          items: itemsLibre.map(i => ({
+            cups_id: i.cups_id,
+            codigo_cups: i.codigo_cups,
+            descripcion: i.descripcion,
+            cantidad: i.cantidad,
+            valor_unitario: i.valor_unitario,
+          })),
+        }),
+      });
+    }
+
+    const prefData = await prefacturaRes.json();
+    if (!prefData.ok) {
+      Toast.show(prefData.error || 'Error al crear prefactura', 'error');
+      return;
+    }
+
+    // Ajustar copagos en la prefactura
+    const copago = modo === 'citas'
+      ? parseFloat(document.getElementById('inputCopago').value) || 0
+      : parseFloat(document.getElementById('libreInputCopago').value) || 0;
+    const cuotaMod = modo === 'citas'
+      ? parseFloat(document.getElementById('inputCuotaMod').value) || 0
+      : parseFloat(document.getElementById('libreInputCuotaMod').value) || 0;
+
+    await fetch(`/facturacion/api/prefactura/${prefData.prefactura_id}/ajustar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        valor_copago: copago,
+        valor_cuota_moderadora: cuotaMod,
+        valor_cuota_recuperacion: modo === 'citas' ? (parseFloat(document.getElementById('inputCuotaRec').value) || 0) : 0,
+        descuento: modo === 'citas' ? (parseFloat(document.getElementById('inputDescuento').value) || 0) : 0,
+      }),
+    });
+
+    // Generar factura
+    const facturaRes = await fetch('/facturacion/api/facturar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prefactura_id: prefData.prefactura_id,
+        copago,
+        cuota_moderadora: cuotaMod,
+      }),
+    });
+
+    const factData = await facturaRes.json();
+
+    if (factData.ok) {
+      mostrarExito(factData.numero_factura, factData.total, factData.factura_id);
+    } else {
+      Toast.show(factData.error || 'Error al generar factura', 'error');
+    }
+
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Generar factura';
+  }
+}
+
+// ===== ÉXITO =====
+function mostrarExito(numero, total, facturaId) {
+  document.getElementById('panelCitas').classList.remove('active');
+  document.getElementById('panelLibre').classList.remove('active');
+  document.getElementById('facTabs').style.display = 'none';
+
+  const exito = document.getElementById('facturaExitosa');
+  exito.style.display = 'block';
+  exito.classList.add('visible');
+
+  document.getElementById('facturaExitosaMsg').textContent =
+    `Factura ${numero} por $${formatMoney(total)} generada correctamente.`;
+  document.getElementById('linkVerFactura').href = `/facturacion/factura/${facturaId}/vista`;
+}
+
+function nuevaFactura() {
+  document.getElementById('facturaExitosa').style.display = 'none';
+  document.getElementById('facturaExitosa').classList.remove('visible');
+
+  pacienteActual = null;
+  citasFacturables = [];
+  itemsLibre = [];
+
+  document.getElementById('inputCedula').value = '';
+  document.getElementById('pacienteInfo').classList.remove('visible');
+  document.getElementById('facTabs').style.display = 'none';
+  document.getElementById('panelCitas').classList.add('active');
+  document.getElementById('panelLibre').classList.remove('active');
+  document.getElementById('emptyCitas').style.display = 'flex';
+  document.getElementById('contenidoCitas').style.display = 'none';
+  document.getElementById('contenidoLibre').style.display = 'none';
+  document.getElementById('emptyLibre').style.display = 'flex';
+  document.getElementById('tabCitas').classList.add('active');
+  document.getElementById('tabLibre').classList.remove('active');
+
+  document.getElementById('inputCedula').focus();
+}
+
+// ===== UTILIDADES =====
+function formatMoney(value) {
+  const num = parseFloat(value) || 0;
+  return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// Cerrar sugerencias al hacer clic fuera
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.fac-libre-search')) {
+    document.getElementById('sugerenciasLibre').style.display = 'none';
+  }
+});
+</script>
+{% endblock %}
