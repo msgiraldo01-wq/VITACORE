@@ -3,11 +3,7 @@ Rutas del módulo de facturación — Vitacore
 Blueprint: bp_facturacion  →  /facturacion/...
 """
 
-<<<<<<< HEAD
 from flask import Blueprint, render_template, request, jsonify, Response
-=======
-from flask import Blueprint, render_template, request, jsonify
->>>>>>> c45db97414042162be17426967359046b0746b38
 from repositories import fin_facturacion_repo as repo
 
 bp_facturacion = Blueprint(
@@ -34,7 +30,6 @@ def lista_facturas():
     return render_template("financiero/facturacion/facturas_lista.html")
 
 
-<<<<<<< HEAD
 @bp_facturacion.route("/configuracion")
 def configuracion():
     """Configuración de consecutivos y resoluciones."""
@@ -47,8 +42,6 @@ def vista_factura(factura_id):
     return render_template("financiero/facturacion/factura_vista.html", factura_id=factura_id)
 
 
-=======
->>>>>>> c45db97414042162be17426967359046b0746b38
 # =============================================================
 # API — BUSCAR CITAS FACTURABLES
 # =============================================================
@@ -318,11 +311,7 @@ def api_facturar():
         sede_data = (
             repo._sb()
             .table("hc_sedes")
-<<<<<<< HEAD
             .select("codigo")
-=======
-            .select("codigo_habilitacion")
->>>>>>> c45db97414042162be17426967359046b0746b38
             .eq("id", prefactura["sede_id"])
             .single()
             .execute()
@@ -363,11 +352,7 @@ def api_facturar():
             "descuento": descuento,
             "total": total,
             # 11 campos sector salud
-<<<<<<< HEAD
             "codigo_prestador": (sede_data or {}).get("codigo", ""),
-=======
-            "codigo_prestador": (sede_data or {}).get("codigo_habilitacion", ""),
->>>>>>> c45db97414042162be17426967359046b0746b38
             "modalidad_pago": modalidad_pago,
             "cobertura_plan_beneficios": data.get("cobertura_plan_beneficios", "PBS_CONTRIBUTIVO"),
             "numero_contrato": contrato.get("nro_contrato", ""),
@@ -486,51 +471,7 @@ def api_detalle_factura(factura_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# =============================================================
-<<<<<<< HEAD
-# API — DESCARGAR PDF DE FACTURA
-# =============================================================
 
-@bp_facturacion.route("/api/factura/<int:factura_id>/pdf", methods=["GET"])
-def api_factura_pdf(factura_id):
-    """Genera y descarga el PDF de una factura."""
-    try:
-        from services.fin_factura_pdf import generar_factura_pdf
-
-        factura = repo.obtener_factura(factura_id)
-        if not factura:
-            return jsonify({"ok": False, "error": "Factura no encontrada"}), 404
-
-        detalle = repo.obtener_detalle_factura(factura_id)
-
-        # Datos de empresa — ajusta según tu configuración
-        empresa = {
-            "nombre": "IPS VITACORE S.A.S",
-            "nit": "NIT: 000.000.000-0",
-            "direccion": "",
-            "telefono": "",
-            "ciudad": "",
-        }
-
-        pdf_bytes = generar_factura_pdf(factura, detalle, empresa)
-        numero = factura.get("numero_factura", "factura")
-
-        return Response(
-            pdf_bytes,
-            mimetype="application/pdf",
-            headers={
-                "Content-Disposition": f"inline; filename=factura_{numero}.pdf"
-            }
-        )
-
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-=======
-# API — ANULAR FACTURA
-# =============================================================
-
->>>>>>> c45db97414042162be17426967359046b0746b38
 @bp_facturacion.route("/api/factura/<int:factura_id>/anular", methods=["POST"])
 def api_anular_factura(factura_id):
     try:
