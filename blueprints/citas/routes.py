@@ -209,7 +209,7 @@ def api_estado():
             return {"ok": False, "error": "cita_id y estado son requeridos"}, 400
 
         # Validar estado permitido
-        estados_validos = {"PENDIENTE", "CONFIRMADA", "EN_ATENCION", "FINALIZADA", "CANCELADA"}
+        estados_validos = {"PENDIENTE", "CONFIRMADA", "EN_ATENCION", "FINALIZADA", "CANCELADA", "FACTURADA"}
         if estado not in estados_validos:
             return {"ok": False, "error": f"Estado inválido. Use: {', '.join(estados_validos)}"}, 400
 
