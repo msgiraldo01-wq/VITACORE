@@ -2,8 +2,8 @@
 
 {% block title %}HC · Configuración{% endblock %}
 {% block header_icon %}<i class="fa-solid fa-gear"></i>{% endblock %}
-{% block header_title %}Configuración{% endblock %}
-{% block header_subtitle %}Maestros base, seguridad y parámetros generales del sistema{% endblock %}
+{% block header_title %}Configuración clínica{% endblock %}
+{% block header_subtitle %}Maestros base, seguridad y parámetros generales del sistema asistencial{% endblock %}
 
 {% block header_actions %}
 <a class="btn-ax ghost" href="/hc/">
@@ -14,14 +14,12 @@
 
 {% block extra_css %}
 <style>
-  /* ── Layout general ────────────────────────── */
   .cfg-info-row {
     display: grid;
     grid-template-columns: 1.6fr 1fr;
     gap: 14px;
     margin-bottom: 28px;
   }
-
   .cfg-info-panel {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -30,32 +28,27 @@
     position: relative;
     overflow: hidden;
   }
-
   .cfg-info-panel.primary {
     border-left: 4px solid var(--brand);
   }
-
   .cfg-info-panel h3 {
     margin: 0 0 8px;
     font-size: .95rem;
     font-weight: 800;
     color: var(--text);
   }
-
   .cfg-info-panel p {
     margin: 0;
     font-size: .88rem;
     color: var(--text-soft);
     line-height: 1.65;
   }
-
   .cfg-badge-list {
     display: flex;
     flex-direction: column;
     gap: 7px;
     margin-top: 14px;
   }
-
   .cfg-badge-item {
     display: flex;
     align-items: center;
@@ -64,7 +57,6 @@
     font-weight: 700;
     color: var(--text);
   }
-
   .cfg-badge-dot {
     width: 7px;
     height: 7px;
@@ -72,23 +64,15 @@
     background: var(--brand);
     flex-shrink: 0;
   }
+  .cfg-badge-dot.gold { background: #b8860b; }
 
-  .cfg-badge-dot.gold {
-    background: #b8860b;
-  }
-
-  /* ── Sección ───────────────────────────────── */
-  .cfg-section {
-    margin-bottom: 32px;
-  }
-
+  .cfg-section { margin-bottom: 32px; }
   .cfg-section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 6px;
   }
-
   .cfg-section-title {
     font-size: 1.05rem;
     font-weight: 800;
@@ -96,7 +80,6 @@
     letter-spacing: -.01em;
     margin: 0;
   }
-
   .cfg-section-count {
     font-size: .78rem;
     font-weight: 700;
@@ -106,26 +89,22 @@
     padding: 3px 10px;
     border-radius: var(--radius-pill);
   }
-
   .cfg-section-sub {
     margin: 0 0 16px;
     font-size: .88rem;
     color: var(--text-soft);
   }
-
   .cfg-divider {
     height: 1px;
     background: var(--border);
     margin-bottom: 18px;
   }
 
-  /* ── Cards clínicas ────────────────────────── */
   .cfg-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
     gap: 12px;
   }
-
   .cfg-card {
     display: block;
     text-decoration: none;
@@ -138,7 +117,6 @@
     position: relative;
     overflow: hidden;
   }
-
   .cfg-card::after {
     content: '';
     position: absolute;
@@ -148,31 +126,22 @@
     background: rgba(0,0,0,.025);
     transition: .2s;
   }
-
-  body.dark-mode .cfg-card::after {
-    background: rgba(255,255,255,.03);
-  }
-
+  body.dark-mode .cfg-card::after { background: rgba(255,255,255,.03); }
   .cfg-card:hover {
     border-color: var(--border-strong);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
   }
-
-  .cfg-card:hover::after {
-    width: 72px; height: 72px;
-  }
+  .cfg-card:hover::after { width: 72px; height: 72px; }
 
   .cfg-icon {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
     font-size: 16px;
     margin-bottom: 13px;
   }
-
   .cfg-icon.green  { background: var(--accent-soft);  color: var(--accent); }
   .cfg-icon.teal   { background: var(--brand-soft);   color: var(--brand); }
   .cfg-icon.warn   { background: var(--warn-soft);    color: var(--warn); }
@@ -186,13 +155,11 @@
     color: var(--text);
     margin-bottom: 4px;
   }
-
   .cfg-text {
     font-size: .79rem;
     color: var(--text-soft);
     line-height: 1.5;
   }
-
   .cfg-arrow {
     position: absolute;
     top: 16px; right: 16px;
@@ -200,19 +167,16 @@
     color: var(--text-faint);
     transition: .18s;
   }
-
   .cfg-card:hover .cfg-arrow {
     color: var(--text-soft);
     transform: translate(2px, -2px);
   }
 
-  /* ── Cards de seguridad ────────────────────── */
   .cfg-sec-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
   }
-
   .cfg-sec-card {
     display: block;
     text-decoration: none;
@@ -225,7 +189,6 @@
     overflow: hidden;
     border: 1px solid transparent;
   }
-
   .cfg-sec-card::before {
     content: '';
     position: absolute;
@@ -235,17 +198,11 @@
     background: rgba(255,255,255,.06);
     transition: .2s;
   }
-
   .cfg-sec-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
-
-  .cfg-sec-card:hover::before {
-    top: -20px; right: -20px;
-    width: 140px; height: 140px;
-  }
-
+  .cfg-sec-card:hover::before { top: -20px; right: -20px; width: 140px; height: 140px; }
   .cfg-sec-icon {
     width: 38px; height: 38px;
     border-radius: var(--radius-sm);
@@ -256,150 +213,25 @@
     color: rgba(255,255,255,.9);
     margin-bottom: 14px;
   }
-
-  .cfg-sec-title {
-    font-size: .9rem;
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 5px;
-  }
-
-  .cfg-sec-text {
-    font-size: .79rem;
-    color: rgba(255,255,255,.55);
-    line-height: 1.5;
-  }
-
-  /* ── Cards de facturación (estilo propio) ── */
-  .cfg-biz-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .cfg-biz-card {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 20px 20px 18px;
-    transition: .18s ease;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .cfg-biz-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg,
-      rgba(139,92,246,.04) 0%,
-      rgba(244,63,94,.04) 100%);
-    opacity: 0;
-    transition: .2s;
-  }
-
-  .cfg-biz-card:hover {
-    border-color: rgba(139,92,246,.35);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .cfg-biz-card:hover::before { opacity: 1; }
-
-  .cfg-biz-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-
-  .cfg-biz-icon {
-    width: 44px; height: 44px;
-    border-radius: var(--radius-sm);
-    display: grid;
-    place-items: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-
-  .cfg-biz-icon.client {
-    background: linear-gradient(135deg, rgba(139,92,246,.15), rgba(139,92,246,.06));
-    color: #7c3aed;
-  }
-
-  .cfg-biz-icon.contract {
-    background: linear-gradient(135deg, rgba(244,63,94,.15), rgba(244,63,94,.06));
-    color: #be123c;
-  }
-
-  .cfg-biz-label {
-    font-size: .95rem;
-    font-weight: 800;
-    color: var(--text);
-    margin-bottom: 2px;
-  }
-
-  .cfg-biz-sub {
-    font-size: .78rem;
-    color: var(--text-soft);
-  }
-
-  .cfg-biz-desc {
-    font-size: .82rem;
-    color: var(--text-soft);
-    line-height: 1.55;
-    margin-bottom: 12px;
-  }
-
-  .cfg-biz-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .cfg-biz-tag {
-    font-size: .73rem;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: var(--radius-pill);
-    background: var(--surface-3);
-    color: var(--text-faint);
-    border: 1px solid var(--border);
-  }
-
-  .cfg-biz-arrow {
-    position: absolute;
-    top: 18px; right: 18px;
-    font-size: 10px;
-    color: var(--text-faint);
-    transition: .18s;
-  }
-
-  .cfg-biz-card:hover .cfg-biz-arrow {
-    color: var(--text-soft);
-    transform: translate(2px, -2px);
-  }
+  .cfg-sec-title { font-size: .9rem; font-weight: 800; color: #fff; margin-bottom: 5px; }
+  .cfg-sec-text  { font-size: .79rem; color: rgba(255,255,255,.55); line-height: 1.5; }
 
   @media (max-width: 900px) {
-    .cfg-info-row   { grid-template-columns: 1fr; }
-    .cfg-sec-grid   { grid-template-columns: 1fr; }
-    .cfg-biz-grid   { grid-template-columns: 1fr; }
+    .cfg-info-row { grid-template-columns: 1fr; }
+    .cfg-sec-grid { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Paneles informativos -->
 <div class="cfg-info-row">
   <div class="cfg-info-panel primary">
     <h3>Base de configuración clínica</h3>
     <p>
-      Este módulo define los maestros principales del sistema. Todo lo que creemos aquí
-      servirá como base para pacientes, citas, admisiones, historia clínica, facturación y farmacia.
+      Este módulo define los maestros principales del sistema asistencial.
+      Todo lo que creemos aquí servirá como base para pacientes, citas,
+      admisiones, historia clínica y farmacia.
     </p>
     <div class="cfg-badge-list">
       <div class="cfg-badge-item"><div class="cfg-badge-dot"></div> Maestros iniciales del proyecto</div>
@@ -410,105 +242,16 @@
 
   <div class="cfg-info-panel">
     <h3>Orden recomendado</h3>
-    <p>
-      Primero configuramos maestros clínicos y luego consolidamos seguridad:
-      usuarios, roles, permisos por ruta y parámetros generales del sistema.
-    </p>
-    <div class="cfg-badge-list" style="margin-top: 18px;">
+    <p>Primero configuramos maestros clínicos y luego consolidamos seguridad.</p>
+    <div class="cfg-badge-list" style="margin-top:18px;">
       <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 1. Maestros clínicos y territoriales</div>
       <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 2. Catálogos médicos (CIE10, CUPS)</div>
-      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 3. Clientes y contratos</div>
-      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 4. Seguridad, usuarios y roles</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 3. Seguridad, usuarios y roles</div>
     </div>
   </div>
 </div>
 
-<!-- ── Clientes y Contratos ─────────────────────────── -->
-<div class="cfg-section">
-  <div class="cfg-section-head">
-    <h3 class="cfg-section-title">Clientes y contratos</h3>
-    <span class="cfg-section-count">2 módulos</span>
-  </div>
-  <p class="cfg-section-sub">Gestión de clientes institucionales y sus contratos de prestación de servicios.</p>
-  <div class="cfg-divider"></div>
-
-  <div class="cfg-biz-grid">
-
-    <a class="cfg-biz-card" href="/hc/configuracion/clientes">
-      <i class="fa-solid fa-arrow-up-right-from-square cfg-biz-arrow"></i>
-      <div class="cfg-biz-head">
-        <div class="cfg-biz-icon client">
-          <i class="fa-solid fa-building-user"></i>
-        </div>
-        <div>
-          <div class="cfg-biz-label">Clientes</div>
-          <div class="cfg-biz-sub">Entidades e instituciones</div>
-        </div>
-      </div>
-      <p class="cfg-biz-desc">
-        Registro de clientes institucionales con su información básica, NIT,
-        datos de contacto y códigos de facturación.
-      </p>
-      <div class="cfg-biz-tags">
-        <span class="cfg-biz-tag">NIT</span>
-        <span class="cfg-biz-tag">Contacto</span>
-        <span class="cfg-biz-tag">Cod. Prestador</span>
-        <span class="cfg-biz-tag">Estado</span>
-      </div>
-    </a>
-
-    <a class="cfg-biz-card" href="/hc/configuracion/clientes">
-      <i class="fa-solid fa-arrow-up-right-from-square cfg-biz-arrow"></i>
-      <div class="cfg-biz-head">
-        <div class="cfg-biz-icon contract">
-          <i class="fa-solid fa-file-contract"></i>
-        </div>
-        <div>
-          <div class="cfg-biz-label">Contratos</div>
-          <div class="cfg-biz-sub">Administración desde clientes</div>
-        </div>
-      </div>
-      <p class="cfg-biz-desc">
-        Los contratos se gestionan desde cada cliente. Define tipo, facturación,
-        vigencia, sede y valores financieros del contrato.
-      </p>
-      <div class="cfg-biz-tags">
-        <span class="cfg-biz-tag">Por Evento / Paquete</span>
-        <span class="cfg-biz-tag">Periodicidad</span>
-        <span class="cfg-biz-tag">Valores</span>
-        <span class="cfg-biz-tag">Vigencia</span>
-      </div>
-    </a>
-
-    <a class="cfg-biz-card" href="/hc/configuracion/manuales-tarifarios"
-       style="grid-column: 1 / -1;">
-      <i class="fa-solid fa-arrow-up-right-from-square cfg-biz-arrow"></i>
-      <div class="cfg-biz-head">
-        <div class="cfg-biz-icon" style="background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(14,165,233,.06));color:#0ea5e9;">
-          <i class="fa-solid fa-file-invoice-dollar"></i>
-        </div>
-        <div>
-          <div class="cfg-biz-label">Manuales Tarifarios</div>
-          <div class="cfg-biz-sub">Tarifas de procedimientos e insumos</div>
-        </div>
-      </div>
-      <p class="cfg-biz-desc">
-        Define los manuales tarifarios con sus procedimientos (CUPS) e ítems (medicamentos/insumos).
-        Soporta herencia de manual base con ajuste porcentual y cumple la normativa RIPS Colombia.
-      </p>
-      <div class="cfg-biz-tags">
-        <span class="cfg-biz-tag">Procedimientos CUPS</span>
-        <span class="cfg-biz-tag">Ítems / Insumos</span>
-        <span class="cfg-biz-tag">Manual base + % ajuste</span>
-        <span class="cfg-biz-tag">Importar CSV</span>
-        <span class="cfg-biz-tag">RIPS Colombia</span>
-      </div>
-    </a>
-
-  </div>
-</div>
-
-<!-- Maestros clínicos -->
+<!-- MAESTROS CLÍNICOS -->
 <div class="cfg-section">
   <div class="cfg-section-head">
     <h3 class="cfg-section-title">Maestros clínicos</h3>
@@ -634,35 +377,31 @@
   </div>
 </div>
 
-<!-- Seguridad y acceso -->
+<!-- SEGURIDAD -->
 <div class="cfg-section">
   <div class="cfg-section-head">
     <h3 class="cfg-section-title">Seguridad y acceso</h3>
     <span class="cfg-section-count">3 módulos</span>
   </div>
-  <p class="cfg-section-sub">Administración de usuarios, perfiles de acceso y matriz de permisos del sistema.</p>
+  <p class="cfg-section-sub">Administración de usuarios, perfiles de acceso y matriz de permisos.</p>
   <div class="cfg-divider"></div>
 
   <div class="cfg-sec-grid">
-
     <a class="cfg-sec-card" href="/hc/configuracion/usuarios">
       <div class="cfg-sec-icon"><i class="fa-solid fa-users-gear"></i></div>
       <div class="cfg-sec-title">Usuarios</div>
-      <div class="cfg-sec-text">Crea usuarios del sistema, asigna roles y administra su acceso a los módulos.</div>
+      <div class="cfg-sec-text">Crea usuarios del sistema, asigna roles y administra su acceso.</div>
     </a>
-
     <a class="cfg-sec-card" href="/hc/configuracion/roles-permisos">
       <div class="cfg-sec-icon"><i class="fa-solid fa-user-shield"></i></div>
       <div class="cfg-sec-title">Roles y permisos</div>
       <div class="cfg-sec-text">Define permisos por rol sobre módulos y acciones del sistema.</div>
     </a>
-
     <a class="cfg-sec-card" href="/hc/configuracion/permisos-rutas">
       <div class="cfg-sec-icon"><i class="fa-solid fa-shield-halved"></i></div>
       <div class="cfg-sec-title">Permisos por ruta</div>
       <div class="cfg-sec-text">Controla qué endpoints y vistas puede usar cada rol.</div>
     </a>
-
   </div>
 </div>
 
