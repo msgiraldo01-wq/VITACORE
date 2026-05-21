@@ -1,0 +1,511 @@
+{% extends "hc/base.html" %}
+{% block title %}Cartera hospitalaria · VITACORE{% endblock %}
+
+{% block extra_css %}
+<style>
+.cart-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+.cart-kpi{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    box-shadow:var(--shadow-sm);
+}
+.cart-kpi-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:22px;
+    flex-shrink:0;
+}
+.cart-kpi-icon.danger  { background:#ef4444; }
+.cart-kpi-icon.success { background:#10b981; }
+.cart-kpi-icon.warning { background:#f59e0b; }
+.cart-kpi-icon.info    { background:#0284c7; }
+
+.cart-kpi-value{
+    font-size:28px;
+    font-weight:800;
+    color:var(--text);
+    line-height:1;
+    margin-bottom:6px;
+}
+.cart-kpi-label{
+    font-size:13px;
+    color:var(--text-soft);
+}
+.cart-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+.cart-side{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+}
+.aging-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:14px;
+    margin-top:18px;
+}
+.aging-item{
+    border-radius:18px;
+    padding:18px;
+    color:#fff;
+}
+.aging-item.green  { background:#10b981; }
+.aging-item.blue   { background:#0284c7; }
+.aging-item.yellow { background:#ca8a04; }
+.aging-item.orange { background:#ea580c; }
+.aging-item.red    { background:#dc2626; }
+.aging-item h4{
+    font-size:13px;
+    margin:0 0 10px;
+    opacity:.85;
+}
+.aging-item strong{
+    font-size:20px;
+    font-weight:800;
+}
+.cart-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+.cart-group label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text-soft);
+}
+.cart-group input,
+.cart-group select{
+    width:100%;
+    height:46px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:0 14px;
+    font-size:14px;
+    background:var(--surface-2);
+    color:var(--text);
+    outline:none;
+}
+.cart-group input:focus,
+.cart-group select:focus{
+    border-color:var(--brand);
+}
+.table-responsive{ overflow-x:auto; }
+.table-ax{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+.table-ax th{
+    padding:12px 14px;
+    text-align:left;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    border-bottom:2px solid var(--border);
+}
+.table-ax td{
+    padding:14px;
+    border-bottom:1px solid var(--border);
+    color:var(--text);
+    vertical-align:middle;
+}
+.table-ax tbody tr:hover{
+    background:var(--surface-2);
+}
+.status-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+.status-pill.danger  { background:#fee2e2; color:#dc2626; }
+.status-pill.warning { background:#fef3c7; color:#d97706; }
+.status-pill.success { background:#dcfce7; color:#16a34a; }
+.status-pill.info    { background:#dbeafe; color:#2563eb; }
+
+.btn-ax-table{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 14px;
+    border-radius:10px;
+    background:var(--brand-soft);
+    color:var(--brand);
+    font-size:13px;
+    font-weight:700;
+    text-decoration:none;
+    transition:.18s ease;
+}
+.btn-ax-table:hover{
+    background:var(--brand);
+    color:#fff;
+}
+.cart-alert{
+    padding:16px 18px;
+    border-radius:16px;
+    display:flex;
+    gap:14px;
+    margin-bottom:14px;
+}
+.cart-alert.warning { background:#fff7ed; color:#c2410c; }
+.cart-alert.danger  { background:#fef2f2; color:#b91c1c; }
+.cart-alert.success { background:#ecfdf5; color:#047857; }
+.cart-alert.info    { background:#eff6ff; color:#1d4ed8; }
+.cart-alert p{ margin:4px 0 0; font-size:13px; }
+
+.timeline-cart{ display:flex; flex-direction:column; gap:18px; }
+.timeline-item-cart{ display:flex; gap:14px; }
+.tl-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:5px;
+    flex-shrink:0;
+}
+.tl-dot.success { background:#10b981; }
+.tl-dot.warning { background:#f59e0b; }
+.tl-dot.danger  { background:#ef4444; }
+.tl-dot.info    { background:#0284c7; }
+.timeline-item-cart p{ margin:4px 0 0; color:var(--text-soft); font-size:13px; }
+.timeline-item-cart small{ color:var(--text-faint); font-size:12px; }
+
+.card-title{
+    font-size:18px;
+    font-weight:800;
+    color:var(--text);
+    margin:0 0 4px;
+}
+.card-subtitle{
+    font-size:13px;
+    color:var(--text-soft);
+    margin:0 0 16px;
+}
+@media(max-width:1200px){
+    .cart-layout{ grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-wallet"></i>{% endblock %}
+{% block header_title %}Cartera hospitalaria{% endblock %}
+{% block header_subtitle %}Seguimiento financiero y recaudo institucional en tiempo real{% endblock %}
+
+{% block header_actions %}
+<a href="/financiero/cartera/exportar-excel" class="btn-ax ghost">
+    <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
+    Exportar Excel
+</a>
+<button class="btn-ax primary">
+    <i class="fa-solid fa-hand-holding-dollar"></i>
+    Registrar recaudo
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# ── KPIs ─────────────────────────────────────────── #}
+<div class="cart-kpis">
+
+    <div class="cart-kpi">
+        <div class="cart-kpi-icon danger">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div>
+            <div class="cart-kpi-value">
+                ${{ "{:,.0f}".format(kpis.cartera_total).replace(",",".") }}
+            </div>
+            <div class="cart-kpi-label">Cartera total</div>
+        </div>
+    </div>
+
+    <div class="cart-kpi">
+        <div class="cart-kpi-icon success">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+            <div class="cart-kpi-value">
+                ${{ "{:,.0f}".format(kpis.cartera_corriente).replace(",",".") }}
+            </div>
+            <div class="cart-kpi-label">Cartera corriente</div>
+        </div>
+    </div>
+
+    <div class="cart-kpi">
+        <div class="cart-kpi-icon warning">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div>
+            <div class="cart-kpi-value">
+                ${{ "{:,.0f}".format(kpis.cartera_vencida).replace(",",".") }}
+            </div>
+            <div class="cart-kpi-label">Cartera vencida</div>
+        </div>
+    </div>
+
+    <div class="cart-kpi">
+        <div class="cart-kpi-icon info">
+            <i class="fa-solid fa-money-bill-transfer"></i>
+        </div>
+        <div>
+            <div class="cart-kpi-value">
+                ${{ "{:,.0f}".format(kpis.recaudo_total).replace(",",".") }}
+            </div>
+            <div class="cart-kpi-label">Recaudo total</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="cart-layout">
+
+    {# ── PANEL PRINCIPAL ──────────────────────────── #}
+    <div>
+
+        {# AGING #}
+        <div class="content-card">
+            <p class="card-title">Aging de cartera</p>
+            <p class="card-subtitle">Clasificación financiera por antigüedad de mora</p>
+            <div class="aging-grid">
+                {% set aging = {"0-30":0, "31-60":0, "61-90":0, "91-180":0, "180+":0} %}
+                {% for f in facturas %}
+                    {% set d = f.dias_mora or 0 %}
+                    {% if d <= 30 %}
+                        {% set _ = aging.update({"0-30": aging["0-30"] + (f.saldo_pendiente or 0)}) %}
+                    {% elif d <= 60 %}
+                        {% set _ = aging.update({"31-60": aging["31-60"] + (f.saldo_pendiente or 0)}) %}
+                    {% elif d <= 90 %}
+                        {% set _ = aging.update({"61-90": aging["61-90"] + (f.saldo_pendiente or 0)}) %}
+                    {% elif d <= 180 %}
+                        {% set _ = aging.update({"91-180": aging["91-180"] + (f.saldo_pendiente or 0)}) %}
+                    {% else %}
+                        {% set _ = aging.update({"180+": aging["180+"] + (f.saldo_pendiente or 0)}) %}
+                    {% endif %}
+                {% endfor %}
+
+                <div class="aging-item green">
+                    <h4>0 – 30 días</h4>
+                    <strong>${{ "{:,.0f}".format(aging["0-30"]).replace(",",".") }}</strong>
+                </div>
+                <div class="aging-item blue">
+                    <h4>31 – 60 días</h4>
+                    <strong>${{ "{:,.0f}".format(aging["31-60"]).replace(",",".") }}</strong>
+                </div>
+                <div class="aging-item yellow">
+                    <h4>61 – 90 días</h4>
+                    <strong>${{ "{:,.0f}".format(aging["61-90"]).replace(",",".") }}</strong>
+                </div>
+                <div class="aging-item orange">
+                    <h4>91 – 180 días</h4>
+                    <strong>${{ "{:,.0f}".format(aging["91-180"]).replace(",",".") }}</strong>
+                </div>
+                <div class="aging-item red">
+                    <h4>180+ días</h4>
+                    <strong>${{ "{:,.0f}".format(aging["180+"]).replace(",",".") }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# TABLA #}
+        <div class="content-card" style="margin-top:24px;">
+            <p class="card-title">Seguimiento de cartera</p>
+            <p class="card-subtitle">Estado financiero por EPS y factura</p>
+
+            <div class="cart-filters">
+                <div class="cart-group">
+                    <label>Buscar EPS</label>
+                    <input type="text" id="filtroEps" placeholder="Nombre EPS...">
+                </div>
+                <div class="cart-group">
+                    <label>Estado</label>
+                    <select id="filtroEstado">
+                        <option value="">Todos</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_gestion">En gestión</option>
+                        <option value="vencida">Vencida</option>
+                        <option value="pagada">Pagada</option>
+                        <option value="glosa">Glosa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-ax" id="tablaCartera">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>EPS</th>
+                            <th>Saldo pendiente</th>
+                            <th>Días mora</th>
+                            <th>Glosas</th>
+                            <th>Último pago</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoTabla">
+                    {% for f in facturas %}
+                        {% if f.estado == 'vencida' %}
+                            {% set pill = 'danger' %}
+                        {% elif f.estado == 'en_gestion' %}
+                            {% set pill = 'warning' %}
+                        {% elif f.estado == 'pagada' %}
+                            {% set pill = 'success' %}
+                        {% else %}
+                            {% set pill = 'info' %}
+                        {% endif %}
+                        <tr data-eps="{{ f.eps|lower }}" data-estado="{{ f.estado }}">
+                            <td><strong>{{ f.numero_factura }}</strong></td>
+                            <td>{{ f.eps }}</td>
+                            <td><strong>${{ "{:,.0f}".format(f.saldo_pendiente or 0).replace(",",".") }}</strong></td>
+                            <td>{{ f.dias_mora or 0 }} días</td>
+                            <td>${{ "{:,.0f}".format(f.valor_glosas or 0).replace(",",".") }}</td>
+                            <td>{{ f.ultimo_pago or "—" }}</td>
+                            <td>
+                                <span class="status-pill {{ pill }}">
+                                    {{ f.estado|replace("_"," ")|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="/financiero/cartera/detalle/{{ f.numero_factura }}"
+                                   class="btn-ax-table">
+                                    <i class="fa-solid fa-eye"></i>
+                                    Ver detalle
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:32px; color:var(--text-faint);">
+                                <i class="fa-solid fa-inbox" style="font-size:28px; display:block; margin-bottom:10px;"></i>
+                                No hay facturas en cartera
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── PANEL DERECHO ────────────────────────────── #}
+    <div class="cart-side">
+
+        {# ALERTAS #}
+        <div class="content-card">
+            <p class="card-title">Alertas financieras</p>
+
+            {% set vencidas = facturas | selectattr("estado","eq","vencida") | list %}
+            {% set en_gestion = facturas | selectattr("estado","eq","en_gestion") | list %}
+
+            {% if vencidas %}
+            <div class="cart-alert danger">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>Cartera crítica</strong>
+                    <p>{{ vencidas|length }} factura(s) en estado vencida</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if en_gestion %}
+            <div class="cart-alert warning">
+                <i class="fa-solid fa-clock"></i>
+                <div>
+                    <strong>En gestión</strong>
+                    <p>{{ en_gestion|length }} factura(s) en seguimiento activo</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set mora_alta = facturas | selectattr("dias_mora") | list %}
+            {% if mora_alta %}
+            <div class="cart-alert info">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <div>
+                    <strong>Mora elevada</strong>
+                    <p>Revisar facturas con más de 90 días</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not vencidas and not en_gestion %}
+            <div class="cart-alert success">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <strong>Cartera saludable</strong>
+                    <p>No hay alertas críticas activas</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ACTIVIDAD RECIENTE #}
+        <div class="content-card">
+            <p class="card-title">Facturas recientes</p>
+            <div class="timeline-cart">
+                {% for f in facturas[:5] %}
+                <div class="timeline-item-cart">
+                    <div class="tl-dot {{ 'danger' if f.estado == 'vencida' else 'warning' if f.estado == 'en_gestion' else 'success' }}"></div>
+                    <div>
+                        <strong>{{ f.numero_factura }}</strong>
+                        <p>{{ f.eps }} · ${{ "{:,.0f}".format(f.saldo_pendiente or 0).replace(",",".") }}</p>
+                        <small>{{ f.dias_mora or 0 }} días mora</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const filtroEps    = document.getElementById("filtroEps");
+const filtroEstado = document.getElementById("filtroEstado");
+const filas        = document.querySelectorAll("#cuerpoTabla tr[data-eps]");
+
+function filtrar(){
+    const eps    = filtroEps.value.toLowerCase().trim();
+    const estado = filtroEstado.value;
+
+    filas.forEach(fila => {
+        const matchEps    = !eps    || fila.dataset.eps.includes(eps);
+        const matchEstado = !estado || fila.dataset.estado === estado;
+        fila.style.display = (matchEps && matchEstado) ? "" : "none";
+    });
+}
+
+filtroEps.addEventListener("input",  filtrar);
+filtroEstado.addEventListener("change", filtrar);
+</script>
+{% endblock %}

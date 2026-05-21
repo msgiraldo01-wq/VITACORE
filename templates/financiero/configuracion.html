@@ -1,0 +1,336 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Configuración financiera · VITACORE{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-sliders"></i>{% endblock %}
+{% block header_title %}Configuración financiera{% endblock %}
+{% block header_subtitle %}Maestros financieros, contratos y parametrización institucional{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/financiero/configuracion/">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver al dashboard
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cfg-info-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .cfg-info-panel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+  }
+  .cfg-info-panel.primary { border-left: 4px solid var(--brand); }
+  .cfg-info-panel h3 { margin: 0 0 8px; font-size: .95rem; font-weight: 800; color: var(--text); }
+  .cfg-info-panel p  { margin: 0; font-size: .88rem; color: var(--text-soft); line-height: 1.65; }
+
+  .cfg-badge-list { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+  .cfg-badge-item { display: flex; align-items: center; gap: 9px; font-size: .82rem; font-weight: 700; color: var(--text); }
+  .cfg-badge-dot  { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+  .cfg-badge-dot.gold { background: #b8860b; }
+
+  .cfg-section     { margin-bottom: 32px; }
+  .cfg-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .cfg-section-title { font-size: 1.05rem; font-weight: 800; color: var(--text); margin: 0; }
+  .cfg-section-count {
+    font-size: .78rem; font-weight: 700;
+    background: var(--surface-3); color: var(--text-faint);
+    border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: var(--radius-pill);
+  }
+  .cfg-section-sub { margin: 0 0 16px; font-size: .88rem; color: var(--text-soft); }
+  .cfg-divider     { height: 1px; background: var(--border); margin-bottom: 18px; }
+
+  /* Cards financieras grandes */
+  .cfg-fin-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .cfg-fin-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    transition: .18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .cfg-fin-card:hover {
+    border-color: var(--brand);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .cfg-fin-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .cfg-fin-icon {
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    color: #fff;
+  }
+  .cfg-fin-icon.purple { background: linear-gradient(135deg,#7c3aed,#6d28d9); }
+  .cfg-fin-icon.red    { background: linear-gradient(135deg,#dc2626,#b91c1c); }
+  .cfg-fin-icon.blue   { background: linear-gradient(135deg,#0284c7,#0369a1); }
+  .cfg-fin-icon.green  { background: linear-gradient(135deg,#16a34a,#15803d); }
+  .cfg-fin-icon.teal   { background: linear-gradient(135deg,var(--brand),var(--brand-strong)); }
+  .cfg-fin-icon.orange { background: linear-gradient(135deg,#ea580c,#c2410c); }
+
+  .cfg-fin-arrow { font-size: 11px; color: var(--text-faint); transition: .18s; }
+  .cfg-fin-card:hover .cfg-fin-arrow { color: var(--brand); transform: translate(2px,-2px); }
+
+  .cfg-fin-title    { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .cfg-fin-subtitle { font-size: .82rem; color: var(--text-soft); margin-bottom: 12px; }
+  .cfg-fin-desc     { font-size: .84rem; color: var(--text-soft); line-height: 1.6; margin-bottom: 14px; }
+
+  .cfg-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cfg-tag  {
+    font-size: .73rem; font-weight: 700;
+    padding: 3px 9px; border-radius: var(--radius-pill);
+    background: var(--surface-3); color: var(--text-faint);
+    border: 1px solid var(--border);
+  }
+
+  /* Cards de parámetros (pequeñas) */
+  .cfg-param-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .cfg-param-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    transition: .18s ease;
+    position: relative;
+  }
+  .cfg-param-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .cfg-param-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .cfg-param-icon.teal   { background: var(--brand-soft);  color: var(--brand); }
+  .cfg-param-icon.warn   { background: var(--warn-soft);   color: var(--warn); }
+  .cfg-param-icon.info   { background: var(--info-soft);   color: var(--info); }
+  .cfg-param-icon.green  { background: var(--accent-soft); color: var(--accent); }
+
+  .cfg-param-title { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .cfg-param-text  { font-size: .79rem; color: var(--text-soft); line-height: 1.5; }
+  .cfg-param-arrow {
+    position: absolute; top: 14px; right: 14px;
+    font-size: 10px; color: var(--text-faint); transition: .18s;
+  }
+  .cfg-param-card:hover .cfg-param-arrow { color: var(--text-soft); transform: translate(2px,-2px); }
+
+  @media (max-width: 900px) {
+    .cfg-info-row  { grid-template-columns: 1fr; }
+    .cfg-fin-grid  { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PANELES INFO -->
+<div class="cfg-info-row">
+  <div class="cfg-info-panel primary">
+    <h3>Configuración del módulo financiero</h3>
+    <p>
+      Define los maestros financieros del sistema ERP hospitalario.
+      Clientes, contratos, manuales tarifarios y EPS son la base
+      de la facturación, cartera y conciliaciones.
+    </p>
+    <div class="cfg-badge-list">
+      <div class="cfg-badge-item"><div class="cfg-badge-dot"></div> Base del ciclo de facturación</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot"></div> Integrado con cartera y glosas</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot"></div> Normativa colombiana (Res. 3047, DIAN)</div>
+    </div>
+  </div>
+
+  <div class="cfg-info-panel">
+    <h3>Orden recomendado</h3>
+    <p>Configura primero los maestros base antes de facturar.</p>
+    <div class="cfg-badge-list" style="margin-top:18px;">
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 1. EPS y aseguradores</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 2. Clientes institucionales</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 3. Contratos y vigencias</div>
+      <div class="cfg-badge-item"><div class="cfg-badge-dot gold"></div> 4. Manuales tarifarios</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAESTROS FINANCIEROS -->
+<div class="cfg-section">
+  <div class="cfg-section-head">
+    <h3 class="cfg-section-title">Maestros financieros</h3>
+    <span class="cfg-section-count">4 módulos</span>
+  </div>
+  <p class="cfg-section-sub">
+    Configuración financiera institucional: clientes, contratos,
+    manuales tarifarios y aseguradoras.
+  </p>
+  <div class="cfg-divider"></div>
+
+  <div class="cfg-fin-grid">
+
+    <!-- EPS -->
+    <a class="cfg-fin-card" href="/hc/configuracion/eps">
+      <div class="cfg-fin-card-top">
+        <div class="cfg-fin-icon green"><i class="fa-solid fa-hospital-user"></i></div>
+        <i class="fa-solid fa-arrow-up-right-from-square cfg-fin-arrow"></i>
+      </div>
+      <div class="cfg-fin-title">EPS y aseguradores</div>
+      <div class="cfg-fin-subtitle">Entidades responsables de pago</div>
+      <div class="cfg-fin-desc">
+        Catálogo financiero y administrativo de EPS, aseguradoras
+        y entidades pagadoras. Base de la facturación y cartera.
+      </div>
+      <div class="cfg-tags">
+        <span class="cfg-tag">Regímenes</span>
+        <span class="cfg-tag">NIT</span>
+        <span class="cfg-tag">Facturación</span>
+        <span class="cfg-tag">Cartera</span>
+      </div>
+    </a>
+
+    <!-- CLIENTES -->
+    <a class="cfg-fin-card" href="/hc/configuracion/clientes">
+      <div class="cfg-fin-card-top">
+        <div class="cfg-fin-icon purple"><i class="fa-solid fa-building-user"></i></div>
+        <i class="fa-solid fa-arrow-up-right-from-square cfg-fin-arrow"></i>
+      </div>
+      <div class="cfg-fin-title">Clientes</div>
+      <div class="cfg-fin-subtitle">Entidades contratantes</div>
+      <div class="cfg-fin-desc">
+        Administración de clientes institucionales, aseguradores,
+        entidades y empresas contratantes del sistema.
+      </div>
+      <div class="cfg-tags">
+        <span class="cfg-tag">NIT</span>
+        <span class="cfg-tag">Facturación</span>
+        <span class="cfg-tag">Contacto</span>
+        <span class="cfg-tag">Estado</span>
+      </div>
+    </a>
+
+    <!-- CONTRATOS -->
+    <a class="cfg-fin-card" href="/hc/configuracion/clientes">
+      <div class="cfg-fin-card-top">
+        <div class="cfg-fin-icon red"><i class="fa-solid fa-file-signature"></i></div>
+        <i class="fa-solid fa-arrow-up-right-from-square cfg-fin-arrow"></i>
+      </div>
+      <div class="cfg-fin-title">Contratos</div>
+      <div class="cfg-fin-subtitle">Contratación institucional</div>
+      <div class="cfg-fin-desc">
+        Gestión financiera y operativa de contratos, vigencias,
+        modalidades, manuales y valores negociados con entidades.
+      </div>
+      <div class="cfg-tags">
+        <span class="cfg-tag">Evento</span>
+        <span class="cfg-tag">Paquete</span>
+        <span class="cfg-tag">Capitado</span>
+        <span class="cfg-tag">Vigencias</span>
+      </div>
+    </a>
+
+    <!-- MANUALES TARIFARIOS -->
+    <a class="cfg-fin-card" href="/hc/configuracion/manuales-tarifarios">
+      <div class="cfg-fin-card-top">
+        <div class="cfg-fin-icon blue"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <i class="fa-solid fa-arrow-up-right-from-square cfg-fin-arrow"></i>
+      </div>
+      <div class="cfg-fin-title">Manuales tarifarios</div>
+      <div class="cfg-fin-subtitle">Tarifas y procedimientos</div>
+      <div class="cfg-fin-desc">
+        Gestión de manuales tarifarios institucionales, tarifas CUPS,
+        insumos y reglas de facturación por contrato.
+      </div>
+      <div class="cfg-tags">
+        <span class="cfg-tag">CUPS</span>
+        <span class="cfg-tag">SOAT</span>
+        <span class="cfg-tag">ISS</span>
+        <span class="cfg-tag">% Ajuste</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- PARÁMETROS FINANCIEROS -->
+<div class="cfg-section">
+  <div class="cfg-section-head">
+    <h3 class="cfg-section-title">Parámetros financieros</h3>
+    <span class="cfg-section-count">4 módulos</span>
+  </div>
+  <p class="cfg-section-sub">
+    Configuración operativa del ciclo financiero: facturación electrónica,
+    glosas, cartera y tesorería.
+  </p>
+  <div class="cfg-divider"></div>
+
+  <div class="cfg-param-grid">
+
+    <a class="cfg-param-card" href="/financiero/configuracion/facturacion-electronica">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-param-arrow"></i>
+      <div class="cfg-param-icon teal"><i class="fa-solid fa-file-invoice"></i></div>
+      <div class="cfg-param-title">Facturación electrónica</div>
+      <div class="cfg-param-text">Prefijos, resolución DIAN y configuración de numeración.</div>
+    </a>
+
+    <a class="cfg-param-card" href="/financiero/configuracion/glosas">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-param-arrow"></i>
+      <div class="cfg-param-icon warn"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="cfg-param-title">Tipos de glosa</div>
+      <div class="cfg-param-text">Catálogo de causales de glosa según normativa.</div>
+    </a>
+
+    <a class="cfg-param-card" href="/financiero/configuracion/cartera">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-param-arrow"></i>
+      <div class="cfg-param-icon info"><i class="fa-solid fa-wallet"></i></div>
+      <div class="cfg-param-title">Parámetros cartera</div>
+      <div class="cfg-param-text">Días de mora, alertas y clasificación de aging.</div>
+    </a>
+
+    <a class="cfg-param-card" href="/financiero/configuracion/tesoreria">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-param-arrow"></i>
+      <div class="cfg-param-icon green"><i class="fa-solid fa-building-columns"></i></div>
+      <div class="cfg-param-title">Cuentas bancarias</div>
+      <div class="cfg-param-text">Registro de cuentas y bancos para tesorería.</div>
+    </a>
+
+  </div>
+</div>
+
+{% endblock %}

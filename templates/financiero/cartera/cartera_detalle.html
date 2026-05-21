@@ -1,0 +1,775 @@
+{% extends "hc/base.html" %}
+{% block title %}Cartera {{ data.numero_factura }} · VITACORE{% endblock %}
+
+{% block extra_css %}
+<style>
+.cartera-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+.cartera-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:24px;
+    margin-bottom:24px;
+    box-shadow:var(--shadow-sm);
+}
+.cartera-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-top:20px;
+}
+.cartera-mini{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    transition:.2s ease;
+}
+.cartera-mini:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--shadow-sm);
+}
+.cartera-mini label{
+    display:block;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:8px;
+}
+.cartera-mini strong{
+    color:var(--text);
+    font-size:15px;
+    font-weight:700;
+}
+.cartera-section-title{
+    font-size:18px;
+    font-weight:800;
+    color:var(--text);
+    margin:0 0 4px;
+}
+.cartera-section-sub{
+    color:var(--text-soft);
+    font-size:13px;
+    margin:0 0 20px;
+}
+.cartera-total{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid var(--border);
+    color:var(--text-soft);
+    font-size:14px;
+}
+.cartera-total strong{
+    color:var(--text);
+    font-weight:700;
+}
+.cartera-total.final{
+    border-bottom:none;
+    border-top:2px solid var(--border);
+    padding-top:18px;
+    margin-top:6px;
+    font-size:18px;
+    font-weight:800;
+    color:var(--text);
+}
+.cartera-total.final strong{
+    font-size:22px;
+    color:var(--brand);
+}
+.riesgo-bar{
+    width:100%;
+    height:8px;
+    background:var(--border);
+    border-radius:999px;
+    overflow:hidden;
+    margin:16px 0 8px;
+}
+.riesgo-fill{
+    height:100%;
+    background:linear-gradient(90deg,#f59e0b,#dc2626);
+    border-radius:999px;
+}
+.riesgo-text{
+    font-size:13px;
+    color:#dc2626;
+    font-weight:600;
+    margin-bottom:4px;
+}
+.timeline-fin{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    position:relative;
+    padding-left:8px;
+}
+.timeline-item{
+    display:flex;
+    gap:14px;
+    position:relative;
+    z-index:2;
+}
+.timeline-dot{
+    width:12px;
+    height:12px;
+    border-radius:999px;
+    margin-top:5px;
+    flex-shrink:0;
+}
+.dot-green  { background:#10b981; }
+.dot-orange { background:#f59e0b; }
+.dot-red    { background:#dc2626; }
+.dot-blue   { background:#0284c7; }
+
+.timeline-content strong{
+    display:block;
+    color:var(--text);
+    font-size:14px;
+    font-weight:700;
+    margin-bottom:3px;
+}
+.timeline-content p{
+    margin:0;
+    color:var(--text-soft);
+    font-size:13px;
+}
+.timeline-content small{
+    display:block;
+    margin-top:5px;
+    color:var(--text-faint);
+    font-size:12px;
+}
+.gestion-item{
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:14px;
+    background:var(--surface-2);
+}
+.gestion-item strong{
+    display:block;
+    margin-bottom:5px;
+    color:var(--text);
+    font-size:14px;
+}
+.gestion-item p{
+    margin:0 0 4px;
+    color:var(--text-soft);
+    font-size:13px;
+}
+.gestion-item small{
+    color:var(--text-faint);
+    font-size:12px;
+}
+.badge-soft{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+.badge-soft-danger  { background:#fee2e2; color:#dc2626; }
+.badge-soft-warning { background:#fef3c7; color:#d97706; }
+.badge-soft-success { background:#dcfce7; color:#16a34a; }
+.badge-soft-primary { background:#dbeafe; color:#2563eb; }
+
+/* TABLA ESTADO DE CUENTA */
+.tabla-cartera{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+.tabla-cartera th{
+    padding:12px 14px;
+    text-align:left;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    border-bottom:2px solid var(--border);
+}
+.tabla-cartera td{
+    padding:13px 14px;
+    border-bottom:1px solid var(--border);
+    color:var(--text);
+    vertical-align:middle;
+}
+.tabla-cartera tbody tr:hover{
+    background:var(--surface-2);
+}
+
+/* MODAL */
+.modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.55);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:24px;
+}
+.modal-overlay.active{ display:flex; }
+.modal-financiero{
+    width:100%;
+    max-width:860px;
+    background:var(--surface);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 30px 80px rgba(15,23,42,.25);
+    animation:modalShow .2s ease;
+}
+@keyframes modalShow{
+    from{ transform:translateY(20px); opacity:0; }
+    to{   transform:translateY(0);    opacity:1; }
+}
+.modal-header-fin{
+    padding:26px 28px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+.modal-header-fin h2{
+    margin:0;
+    font-size:22px;
+    font-weight:800;
+    color:var(--text);
+}
+.modal-header-fin p{
+    margin:5px 0 0;
+    color:var(--text-soft);
+    font-size:13px;
+}
+.modal-close{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:12px;
+    background:var(--surface-2);
+    color:var(--text);
+    cursor:pointer;
+    font-size:16px;
+    display:grid;
+    place-items:center;
+}
+.modal-close:hover{ background:var(--surface-3); }
+.modal-body-fin{ padding:28px; }
+.form-grid-fin{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:18px;
+}
+.form-group-fin{
+    display:flex;
+    flex-direction:column;
+}
+.form-group-fin label{
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text-soft);
+}
+.form-group-fin input,
+.form-group-fin select,
+.form-group-fin textarea{
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:13px 16px;
+    font-size:14px;
+    outline:none;
+    background:var(--surface-2);
+    color:var(--text);
+    transition:.2s ease;
+    font-family:inherit;
+}
+.form-group-fin input:focus,
+.form-group-fin select:focus,
+.form-group-fin textarea:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(13,92,99,.12);
+}
+.form-group-fin input[readonly]{
+    opacity:.6;
+    cursor:not-allowed;
+}
+.form-group-fin.full{ grid-column:1 / -1; }
+.modal-footer-fin{
+    padding:22px 28px;
+    border-top:1px solid var(--border);
+    display:flex;
+    justify-content:flex-end;
+    gap:12px;
+}
+
+@media(max-width:1200px){
+    .cartera-layout{ grid-template-columns:1fr; }
+    .cartera-grid{ grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:600px){
+    .cartera-grid{ grid-template-columns:1fr; }
+    .form-grid-fin{ grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-wallet"></i>{% endblock %}
+{% block header_title %}Cartera {{ data.numero_factura }}{% endblock %}
+{% block header_subtitle %}Seguimiento financiero y recaudo institucional{% endblock %}
+
+{% block header_actions %}
+<button class="btn-ax ghost" onclick="window.print()">
+    <i class="fa-solid fa-print"></i>
+    Imprimir
+</button>
+<button class="btn-ax primary" onclick="abrirModalPago()">
+    <i class="fa-solid fa-hand-holding-dollar"></i>
+    Registrar pago
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# BARRA DE RIESGO #}
+{% if data.dias_mora > 90 %}
+<div style="margin-bottom:16px;">
+    <div class="riesgo-bar">
+        <div class="riesgo-fill" style="width:{{ [data.dias_mora, 180] | min / 180 * 100 }}%;"></div>
+    </div>
+    <p class="riesgo-text">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Riesgo financiero alto — cartera mayor a 90 días ({{ data.dias_mora }} días)
+    </p>
+</div>
+{% endif %}
+
+<div class="cartera-layout">
+
+    {# ── COLUMNA IZQUIERDA ─────────────────────── #}
+    <div>
+
+        {# INFORMACIÓN FINANCIERA #}
+        <div class="cartera-card">
+            <p class="cartera-section-title">Información financiera</p>
+            <p class="cartera-section-sub">Estado actual de la factura en cartera</p>
+
+            <div class="cartera-grid">
+                <div class="cartera-mini">
+                    <label>Factura</label>
+                    <strong>{{ data.numero_factura }}</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>EPS</label>
+                    <strong>{{ data.eps }}</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>Días mora</label>
+                    <strong>{{ data.dias_mora or 0 }} días</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>Estado</label>
+                    {% if data.estado == 'vencida' %}
+                        <span class="badge-soft badge-soft-danger">Cartera vencida</span>
+                    {% elif data.estado == 'en_gestion' %}
+                        <span class="badge-soft badge-soft-warning">En gestión</span>
+                    {% elif data.estado == 'pagada' %}
+                        <span class="badge-soft badge-soft-success">Pagada</span>
+                    {% else %}
+                        <span class="badge-soft badge-soft-primary">{{ data.estado|title }}</span>
+                    {% endif %}
+                </div>
+                <div class="cartera-mini">
+                    <label>Fecha radicación</label>
+                    <strong>{{ data.fecha_radicacion or "—" }}</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>Último pago</label>
+                    <strong>{{ data.ultimo_pago or "Sin pagos" }}</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>Responsable</label>
+                    <strong>{{ data.responsable or "Cartera central" }}</strong>
+                </div>
+                <div class="cartera-mini">
+                    <label>Glosas</label>
+                    <strong>${{ "{:,.0f}".format(data.valor_glosas or 0).replace(",",".") }}</strong>
+                </div>
+            </div>
+        </div>
+
+        {# GESTIÓN DE COBRO #}
+        <div class="cartera-card">
+            <p class="cartera-section-title">Gestión de cobro</p>
+            <p class="cartera-section-sub">Seguimiento operativo y financiero</p>
+
+            <div class="gestion-item">
+                <strong><i class="fa-solid fa-phone" style="color:var(--brand);margin-right:6px;"></i>Llamada realizada</strong>
+                <p>EPS solicita reenvío de soportes clínicos.</p>
+                <small>19/05/2026 — Juan cartera</small>
+            </div>
+            <div class="gestion-item">
+                <strong><i class="fa-solid fa-handshake" style="color:#10b981;margin-right:6px;"></i>Compromiso de pago</strong>
+                <p>Pago parcial programado para 25/05/2026.</p>
+                <small>18/05/2026 — Coordinación financiera</small>
+            </div>
+            <div class="gestion-item">
+                <strong><i class="fa-solid fa-file-medical" style="color:#f59e0b;margin-right:6px;"></i>Respuesta glosa</strong>
+                <p>Se adjuntaron soportes médicos y RIPS corregidos.</p>
+                <small>15/05/2026 — Auditoría médica</small>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── COLUMNA DERECHA ───────────────────────── #}
+    <div>
+
+        {# RESUMEN FINANCIERO #}
+        <div class="cartera-card">
+            <p class="cartera-section-title">Resumen financiero</p>
+            <div style="margin-top:16px;">
+                <div class="cartera-total">
+                    <span>Valor factura</span>
+                    <strong>${{ "{:,.0f}".format(data.valor_factura or 0).replace(",",".") }}</strong>
+                </div>
+                <div class="cartera-total">
+                    <span>Pagos aplicados</span>
+                    <strong style="color:#10b981;">— ${{ "{:,.0f}".format(data.valor_pagado or 0).replace(",",".") }}</strong>
+                </div>
+                <div class="cartera-total">
+                    <span>Glosas</span>
+                    <strong style="color:#dc2626;">— ${{ "{:,.0f}".format(data.valor_glosas or 0).replace(",",".") }}</strong>
+                </div>
+                <div class="cartera-total">
+                    <span>Notas crédito</span>
+                    <strong>— ${{ "{:,.0f}".format(data.notas_credito or 0).replace(",",".") }}</strong>
+                </div>
+                <div class="cartera-total final">
+                    <span>Saldo pendiente</span>
+                    <strong id="saldoPendiente">
+                        ${{ "{:,.0f}".format(data.saldo_pendiente or 0).replace(",",".") }}
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        {# TIMELINE #}
+        <div class="cartera-card">
+            <p class="cartera-section-title">Timeline financiero</p>
+            <div class="timeline-fin" id="timelineFinanciero">
+
+                {% if data.fecha_radicacion %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-green"></div>
+                    <div class="timeline-content">
+                        <strong>Factura radicada</strong>
+                        <p>Recepción confirmada EPS</p>
+                        <small>{{ data.fecha_radicacion }}</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if data.valor_glosas and data.valor_glosas > 0 %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-red"></div>
+                    <div class="timeline-content">
+                        <strong>Glosa aplicada</strong>
+                        <p>Valor: ${{ "{:,.0f}".format(data.valor_glosas).replace(",",".") }}</p>
+                        <small>Registrado en sistema</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% for pago in pagos %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-blue"></div>
+                    <div class="timeline-content">
+                        <strong>Pago registrado</strong>
+                        <p>{{ pago.banco or "Sin banco" }} · ${{ "{:,.0f}".format(pago.valor_pago or 0).replace(",",".") }}</p>
+                        <small>{{ pago.fecha_pago }} — {{ pago.registrado_por }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if data.saldo_pendiente and data.saldo_pendiente > 0 %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-orange"></div>
+                    <div class="timeline-content">
+                        <strong>Saldo pendiente</strong>
+                        <p>Cartera aún en seguimiento</p>
+                        <small>Actual</small>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{# ESTADO DE CUENTA #}
+<div class="cartera-card">
+    <p class="cartera-section-title">Estado de cuenta</p>
+    <p class="cartera-section-sub">Movimientos financieros aplicados a la factura</p>
+
+    <div style="overflow-x:auto;">
+        <table class="tabla-cartera">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Movimiento</th>
+                    <th>Referencia</th>
+                    <th>Banco</th>
+                    <th>Valor</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tablaMovimientos">
+
+                {# Fila inicial: la factura #}
+                <tr>
+                    <td>{{ data.fecha_radicacion or "—" }}</td>
+                    <td><strong>Factura inicial</strong></td>
+                    <td>{{ data.numero_factura }}</td>
+                    <td>—</td>
+                    <td><strong>${{ "{:,.0f}".format(data.valor_factura or 0).replace(",",".") }}</strong></td>
+                    <td><span class="badge-soft badge-soft-primary">Inicial</span></td>
+                </tr>
+
+                {# Glosa si existe #}
+                {% if data.valor_glosas and data.valor_glosas > 0 %}
+                <tr>
+                    <td>—</td>
+                    <td><strong>Glosa aplicada</strong></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td style="color:#dc2626;"><strong>— ${{ "{:,.0f}".format(data.valor_glosas).replace(",",".") }}</strong></td>
+                    <td><span class="badge-soft badge-soft-danger">Glosa</span></td>
+                </tr>
+                {% endif %}
+
+                {# Pagos reales desde Supabase #}
+                {% for pago in pagos %}
+                <tr>
+                    <td>{{ pago.fecha_pago }}</td>
+                    <td><strong>Pago aplicado</strong></td>
+                    <td>{{ pago.referencia_bancaria or "—" }}</td>
+                    <td>{{ pago.banco or "—" }}</td>
+                    <td style="color:#10b981;"><strong>+ ${{ "{:,.0f}".format(pago.valor_pago or 0).replace(",",".") }}</strong></td>
+                    <td><span class="badge-soft badge-soft-success">Pago</span></td>
+                </tr>
+                {% else %}
+                {% endfor %}
+
+                {% if not pagos %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:24px;color:var(--text-faint);">
+                        Sin pagos registrados aún
+                    </td>
+                </tr>
+                {% endif %}
+
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── MODAL REGISTRAR PAGO ──────────────────────── #}
+<div class="modal-overlay" id="modalPago">
+    <div class="modal-financiero">
+
+        <div class="modal-header-fin">
+            <div>
+                <h2><i class="fa-solid fa-hand-holding-dollar" style="color:var(--brand);margin-right:10px;"></i>Registrar pago</h2>
+                <p>Aplicar recaudo financiero a la factura {{ data.numero_factura }}</p>
+            </div>
+            <button class="modal-close" onclick="cerrarModalPago()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-body-fin">
+            <div class="form-grid-fin">
+
+                <div class="form-group-fin">
+                    <label>Factura</label>
+                    <input type="text" value="{{ data.numero_factura }}" readonly>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>EPS</label>
+                    <input type="text" value="{{ data.eps }}" readonly>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Valor pago *</label>
+                    <input type="number" id="valorPago" placeholder="Ej: 2500000" min="1">
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Fecha pago *</label>
+                    <input type="date" id="fechaPago">
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Banco</label>
+                    <select id="bancoPago">
+                        <option>Bancolombia</option>
+                        <option>Banco Bogotá</option>
+                        <option>Davivienda</option>
+                        <option>BBVA</option>
+                        <option>Nequi</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Tipo de pago</label>
+                    <select id="tipoPago">
+                        <option>Transferencia</option>
+                        <option>Consignación</option>
+                        <option>PSE</option>
+                        <option>Cheque</option>
+                    </select>
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>Referencia bancaria</label>
+                    <input type="text" id="referenciaPago" placeholder="Número de transacción / comprobante">
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>Observación</label>
+                    <textarea rows="3" id="observacionPago" placeholder="Detalle operativo del recaudo"></textarea>
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>
+                        <i class="fa-solid fa-paperclip" style="margin-right:6px;"></i>
+                        Adjuntar soporte
+                    </label>
+                    <input
+                        type="file"
+                        id="soportePago"
+                        accept=".pdf,.png,.jpg,.jpeg,.xml"
+                        style="padding:10px 16px;">
+                    <small style="color:var(--text-faint); margin-top:6px; display:block;">
+                        Formatos aceptados: PDF, PNG, JPG, XML · Máx. 5MB
+                    </small>
+                </div>
+
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="modal-footer-fin">
+            <button class="btn-ax ghost" onclick="cerrarModalPago()">
+                Cancelar
+            </button>
+            <button class="btn-ax primary" id="btnGuardarPago" onclick="guardarPago()">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Guardar pago
+            </button>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ID de la factura para enviarlo al backend
+const FACTURA_ID     = "{{ data.id }}";
+const FACTURA_NUM    = "{{ data.numero_factura }}";
+
+function abrirModalPago(){
+    // Poner fecha de hoy por defecto
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaPago").value = hoy;
+    document.getElementById("modalPago").classList.add("active");
+}
+
+function cerrarModalPago(){
+    document.getElementById("modalPago").classList.remove("active");
+}
+
+// Cerrar modal al hacer clic fuera
+window.addEventListener("click", function(e){
+    const modal = document.getElementById("modalPago");
+    if(e.target === modal) cerrarModalPago();
+});
+
+async function guardarPago(){
+    const valor      = document.getElementById("valorPago").value;
+    const fecha      = document.getElementById("fechaPago").value;
+    const banco      = document.getElementById("bancoPago").value;
+    const tipo       = document.getElementById("tipoPago").value;
+    const referencia = document.getElementById("referenciaPago").value;
+    const observacion = document.getElementById("observacionPago").value;
+    const soporte    = document.getElementById("soportePago").files[0];
+
+    if(!valor || Number(valor) <= 0){
+        Toast.show("Ingresa un valor de pago válido", "warning");
+        return;
+    }
+    if(!fecha){
+        Toast.show("Selecciona la fecha del pago", "warning");
+        return;
+    }
+
+    const btn = document.getElementById("btnGuardarPago");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    // Usar FormData para enviar archivo + campos
+    const formData = new FormData();
+    formData.append("factura_id",          FACTURA_ID);
+    formData.append("numero_factura",      FACTURA_NUM);
+    formData.append("valor_pago",          valor);
+    formData.append("fecha_pago",          fecha);
+    formData.append("banco",               banco);
+    formData.append("tipo_pago",           tipo);
+    formData.append("referencia_bancaria", referencia);
+    formData.append("observacion",         observacion);
+    if(soporte) formData.append("soporte", soporte);
+
+    try {
+        const response = await fetch("/financiero/cartera/registrar-pago", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if(result.ok){
+            Toast.show("Pago registrado correctamente", "success");
+            cerrarModalPago();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar pago';
+        }
+    } catch(e) {
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar pago';
+    }
+}
+</script>
+{% endblock %}
