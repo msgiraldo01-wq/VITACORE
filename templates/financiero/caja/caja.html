@@ -1,0 +1,1027 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Caja{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-cash-register"></i>{% endblock %}
+{% block header_title %}Cuadre de Caja{% endblock %}
+{% block header_subtitle %}Apertura, movimientos y cierre de caja por cajero.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
+  <i class="fa-solid fa-file-invoice-dollar"></i> Facturación
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+/* ===== BARRA DE ESTADO ===== */
+.cj-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.cj-status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+}
+
+.cj-status-item i {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.cj-status-item strong {
+  color: var(--text);
+}
+
+.cj-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+.cj-status-badge.abierta {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cj-status-badge.cerrada {
+  background: var(--surface-3);
+  color: var(--text-faint);
+}
+
+.cj-status-badge.sin-abrir {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.cj-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cj-actions-bar {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.cj-btn {
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: all .15s;
+}
+
+.cj-btn:hover { transform: translateY(-1px); }
+.cj-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+.cj-btn.green { background: var(--accent); color: #fff; }
+.cj-btn.green:hover { background: #256d28; }
+.cj-btn.red { background: var(--danger); color: #fff; }
+.cj-btn.red:hover { background: #a93226; }
+.cj-btn.blue { background: var(--brand); color: #fff; }
+.cj-btn.blue:hover { background: var(--brand-strong); }
+.cj-btn.ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.cj-btn.ghost:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ===== MODAL ABRIR CAJA ===== */
+.cj-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+
+.cj-modal-overlay.active { opacity: 1; pointer-events: all; }
+
+.cj-modal {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);
+  transform: translateY(20px);
+  transition: transform .3s;
+}
+
+.cj-modal-overlay.active .cj-modal { transform: translateY(0); }
+
+.cj-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cj-modal-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cj-modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-faint);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cj-modal-close:hover { background: var(--surface-3); }
+
+.cj-modal-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+
+.cj-form-group { display: flex; flex-direction: column; gap: 4px; }
+
+.cj-form-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.cj-form-input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cj-form-input:focus { outline: none; border-color: var(--brand); }
+
+.cj-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== CONTENIDO PRINCIPAL ===== */
+.cj-main { display: flex; flex-direction: column; gap: 18px; margin-top: 18px; }
+
+.cj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+.cj-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cj-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.cj-panel-title {
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.cj-panel-title i { color: var(--brand); }
+
+.cj-panel-body { padding: 14px 18px; }
+
+/* ===== DENOMINACIONES ===== */
+.cj-den-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.cj-den-row:last-child { border-bottom: none; }
+
+.cj-den-label {
+  width: 80px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cj-den-input {
+  width: 80px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cj-den-input:focus { outline: none; border-color: var(--brand); }
+
+.cj-den-total {
+  flex: 1;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.cj-den-grand {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 4px;
+  border-top: 2px solid var(--border);
+  margin-top: 6px;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text);
+}
+
+/* ===== DOCUMENTOS ===== */
+.cj-doc-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 110px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cj-doc-row:last-child { border-bottom: none; }
+
+.cj-doc-label { font-size: 13px; font-weight: 600; color: var(--text); }
+
+.cj-doc-input {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cj-doc-input:focus { outline: none; border-color: var(--brand); }
+
+.cj-doc-header {
+  display: grid;
+  grid-template-columns: 1fr 80px 110px;
+  gap: 8px;
+  padding: 0 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* ===== NOTAS ===== */
+.cj-notes-area {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.cj-notes-area:focus { outline: none; border-color: var(--brand); }
+
+.cj-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cj-tab {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cj-tab.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+/* ===== MOVIMIENTOS ===== */
+.cj-mov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cj-mov-table th {
+  background: var(--surface-3);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+}
+
+.cj-mov-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cj-mov-table tr:last-child td { border-bottom: none; }
+
+.cj-tipo-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cj-tipo-COPAGO { background: var(--info-soft); color: var(--info); }
+.cj-tipo-CUOTA_MODERADORA { background: var(--warn-soft); color: var(--warn); }
+.cj-tipo-PARTICULAR { background: var(--accent-soft); color: var(--accent); }
+.cj-tipo-ABONO { background: var(--brand-soft); color: var(--brand); }
+.cj-tipo-OTRO { background: var(--surface-3); color: var(--text-soft); }
+
+/* ===== FOOTER FIJO ===== */
+.cj-footer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.cj-footer-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.cj-footer-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cj-footer-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cj-footer-value.green { color: var(--accent); }
+.cj-footer-value.red { color: var(--danger); }
+.cj-footer-value.brand { color: var(--brand); }
+
+/* ===== EMPTY / CERRADA ===== */
+.cj-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+  color: var(--text-faint);
+}
+
+.cj-empty i { font-size: 3.5rem; opacity: .25; }
+.cj-empty p { font-size: 16px; margin: 0; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .cj-grid { grid-template-columns: 1fr; }
+  .cj-footer { grid-template-columns: 1fr 1fr; }
+  .cj-status-bar { flex-direction: column; align-items: flex-start; }
+  .cj-actions-bar { margin-left: 0; width: 100%; }
+}
+</style>
+
+<!-- BARRA DE ESTADO -->
+<div class="cj-status-bar" id="statusBar">
+  <div class="cj-status-item"><i class="fa-solid fa-building"></i> Sede: <strong id="stSede">—</strong></div>
+  <div class="cj-status-item"><i class="fa-solid fa-user"></i> Usuario: <strong id="stUsuario">—</strong></div>
+  <div class="cj-status-item"><i class="fa-solid fa-hashtag"></i> Nro. Cuadre: <strong id="stNroCuadre">—</strong></div>
+  <div class="cj-status-item"><i class="fa-solid fa-clock"></i> Apertura: <strong id="stHoraApertura">—</strong></div>
+  <div id="stBadgeWrap">
+    <span class="cj-status-badge sin-abrir" id="stBadge"><span class="cj-status-dot"></span> SIN ABRIR</span>
+  </div>
+  <div class="cj-actions-bar" id="actionsBar">
+    <button class="cj-btn green" id="btnAbrir" onclick="mostrarModalAbrir()"><i class="fa-solid fa-lock-open"></i> Abrir</button>
+    <button class="cj-btn ghost" id="btnGuardar" onclick="guardarConteo()" style="display:none;"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    <button class="cj-btn red" id="btnCerrar" onclick="confirmarCierre()" style="display:none;"><i class="fa-solid fa-lock"></i> Cerrar</button>
+  </div>
+</div>
+
+<!-- CONTENIDO CUANDO NO HAY CAJA -->
+<div class="cj-empty" id="emptyState">
+  <i class="fa-solid fa-cash-register"></i>
+  <p>No tiene caja abierta</p>
+  <p style="font-size:13px; font-weight:400; color:var(--text-faint);">Abra una caja para comenzar a registrar movimientos</p>
+  <button class="cj-btn green" onclick="mostrarModalAbrir()" style="margin-top:8px;"><i class="fa-solid fa-lock-open"></i> Abrir caja</button>
+</div>
+
+<!-- CONTENIDO CUANDO HAY CAJA ABIERTA -->
+<div class="cj-main" id="cajaContent" style="display:none;">
+
+  <!-- MOVIMIENTOS -->
+  <div class="cj-panel">
+    <div class="cj-panel-head">
+      <span class="cj-panel-title"><i class="fa-solid fa-list"></i> Movimientos del turno</span>
+      <span style="font-size:12px; color:var(--text-faint);" id="movCount">0 movimientos</span>
+    </div>
+    <div class="cj-panel-body" style="max-height:280px; overflow-y:auto; padding:0;">
+      <table class="cj-mov-table">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Medio pago</th>
+            <th style="text-align:right;">Valor</th>
+          </tr>
+        </thead>
+        <tbody id="movTableBody">
+          <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-faint);">Sin movimientos aún</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONTEO: EFECTIVO + DOCUMENTOS -->
+  <div class="cj-grid">
+    <!-- EFECTIVO -->
+    <div class="cj-panel">
+      <div class="cj-panel-head">
+        <span class="cj-panel-title"><i class="fa-solid fa-money-bill-wave"></i> Valor en Efectivo</span>
+      </div>
+      <div class="cj-panel-body" id="panelEfectivo"></div>
+    </div>
+
+    <!-- DOCUMENTOS + NOTAS -->
+    <div class="cj-panel">
+      <div class="cj-panel-head">
+        <span class="cj-panel-title"><i class="fa-solid fa-file-lines"></i> Valor en Documentos</span>
+      </div>
+      <div class="cj-panel-body">
+        <div class="cj-doc-header">
+          <span>Documento</span>
+          <span style="text-align:center;">Cantidad</span>
+          <span style="text-align:center;">Vlr. Total</span>
+        </div>
+        <div id="panelDocumentos"></div>
+        <div class="cj-den-grand" style="margin-top:10px;">
+          <span>Total Documentos</span>
+          <span id="totalDocumentos">$0</span>
+        </div>
+
+        <!-- Notas -->
+        <div style="margin-top:18px;">
+          <div class="cj-tabs">
+            <button class="cj-tab active" onclick="cambiarNotaTab('antes')">Antes Cierre</button>
+            <button class="cj-tab" onclick="cambiarNotaTab('despues')">Después del Cierre</button>
+          </div>
+          <textarea class="cj-notes-area" id="notaAntes" placeholder="Nota al cierre (Antes)..."></textarea>
+          <textarea class="cj-notes-area" id="notaDespues" placeholder="Nota después del cierre..." style="display:none;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER CON TOTALES -->
+  <div class="cj-footer">
+    <div class="cj-footer-card">
+      <div class="cj-footer-label"><i class="fa-solid fa-coins"></i> Vlr. Base</div>
+      <div class="cj-footer-value" id="ftBase">$0</div>
+    </div>
+    <div class="cj-footer-card">
+      <div class="cj-footer-label"><i class="fa-solid fa-cash-register"></i> Total En Caja</div>
+      <div class="cj-footer-value brand" id="ftEnCaja">$0</div>
+    </div>
+    <div class="cj-footer-card">
+      <div class="cj-footer-label"><i class="fa-solid fa-desktop"></i> Total Sistema</div>
+      <div class="cj-footer-value" id="ftSistema">$0</div>
+    </div>
+    <div class="cj-footer-card">
+      <div class="cj-footer-label"><i class="fa-solid fa-scale-balanced"></i> Diferencia</div>
+      <div class="cj-footer-value green" id="ftDiferencia">$0</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ABRIR CAJA -->
+<div class="cj-modal-overlay" id="modalAbrir">
+  <div class="cj-modal">
+    <div class="cj-modal-header">
+      <h2><i class="fa-solid fa-lock-open" style="color:var(--accent);"></i> Abrir Caja</h2>
+      <button class="cj-modal-close" onclick="cerrarModalAbrir()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="cj-modal-body">
+      <div class="cj-form-group">
+        <span class="cj-form-label">Sede</span>
+        <select id="abrirSede" class="cj-form-input" style="cursor:pointer;"></select>
+      </div>
+      <div class="cj-form-group">
+        <span class="cj-form-label">Valor base en efectivo</span>
+        <input type="number" id="abrirValorBase" class="cj-form-input" value="0" min="0" placeholder="$0">
+      </div>
+    </div>
+    <div class="cj-modal-footer">
+      <button class="cj-btn ghost" onclick="cerrarModalAbrir()">Cancelar</button>
+      <button class="cj-btn green" id="btnConfirmarAbrir" onclick="abrirCaja()">
+        <i class="fa-solid fa-lock-open"></i> Abrir caja
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ESTADO =====
+let cajaActual = null;
+let movimientosData = [];
+let resumenData = {};
+
+const DENOMINACIONES = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+const DOCUMENTOS = [
+  { key: 'cheques', label: 'Cheque(s)' },
+  { key: 'datafono', label: 'Datáfono' },
+  { key: 'transferencias', label: 'Transferencias' },
+  { key: 'consignaciones', label: 'Consignaciones' },
+  { key: 'facturas', label: 'Facturas' },
+  { key: 'vales', label: 'Vales' },
+  { key: 'retenciones', label: 'Retenciones' },
+  { key: 'otros', label: 'Otro' },
+];
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  cargarSedes();
+  verificarEstadoCaja();
+
+  document.getElementById('modalAbrir').addEventListener('click', e => {
+    if (e.target.id === 'modalAbrir') cerrarModalAbrir();
+  });
+});
+
+// ===== VERIFICAR ESTADO =====
+async function verificarEstadoCaja() {
+  try {
+    const res = await fetch('/caja/api/estado');
+    const data = await res.json();
+
+    if (data.ok && data.caja_abierta) {
+      cajaActual = data.caja;
+      mostrarCajaAbierta();
+    } else {
+      mostrarSinCaja();
+    }
+  } catch (e) {
+    Toast.show('Error verificando caja', 'error');
+  }
+}
+
+function mostrarSinCaja() {
+  cajaActual = null;
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('cajaContent').style.display = 'none';
+  document.getElementById('btnAbrir').style.display = 'flex';
+  document.getElementById('btnGuardar').style.display = 'none';
+  document.getElementById('btnCerrar').style.display = 'none';
+
+  document.getElementById('stSede').textContent = '—';
+  document.getElementById('stNroCuadre').textContent = '—';
+  document.getElementById('stHoraApertura').textContent = '—';
+  const badge = document.getElementById('stBadge');
+  badge.textContent = 'SIN ABRIR';
+  badge.className = 'cj-status-badge sin-abrir';
+  badge.innerHTML = '<span class="cj-status-dot"></span> SIN ABRIR';
+}
+
+function mostrarCajaAbierta() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('cajaContent').style.display = 'flex';
+  document.getElementById('btnAbrir').style.display = 'none';
+  document.getElementById('btnGuardar').style.display = 'flex';
+  document.getElementById('btnCerrar').style.display = 'flex';
+
+  document.getElementById('stSede').textContent = cajaActual.sede_nombre || '—';
+  document.getElementById('stUsuario').textContent = cajaActual.usuario_nombre || '—';
+  document.getElementById('stNroCuadre').textContent = cajaActual.nro_cuadre || '—';
+  document.getElementById('ftBase').textContent = fm(cajaActual.valor_base);
+
+  // Hora apertura (convertir UTC a local)
+  const fechaAp = cajaActual.fecha_apertura || '';
+  const horaAp = cajaActual.hora_apertura || '';
+  if (fechaAp && horaAp) {
+    document.getElementById('stHoraApertura').textContent = horaLocal(`${fechaAp}T${horaAp}Z`);
+  } else {
+    document.getElementById('stHoraApertura').textContent = '—';
+  }
+
+  const badge = document.getElementById('stBadge');
+  badge.className = 'cj-status-badge abierta';
+  badge.innerHTML = '<span class="cj-status-dot"></span> ABIERTA';
+
+  renderDenominaciones();
+  renderDocumentos();
+  cargarMovimientos();
+  cargarConteoGuardado();
+}
+
+// ===== SEDES =====
+async function cargarSedes() {
+  try {
+    const res = await fetch('/citas/api/sedes');
+    const data = await res.json();
+    const select = document.getElementById('abrirSede');
+    select.innerHTML = '<option value="">Seleccione sede...</option>';
+    (data.data || []).forEach(s => {
+      select.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+    });
+  } catch (e) {}
+}
+
+// ===== ABRIR CAJA =====
+function mostrarModalAbrir() {
+  document.getElementById('abrirValorBase').value = 0;
+  document.getElementById('modalAbrir').classList.add('active');
+}
+
+function cerrarModalAbrir() {
+  document.getElementById('modalAbrir').classList.remove('active');
+}
+
+async function abrirCaja() {
+  const sedeId = document.getElementById('abrirSede').value;
+  if (!sedeId) { Toast.show('Seleccione una sede', 'warning'); return; }
+
+  const btn = document.getElementById('btnConfirmarAbrir');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Abriendo...';
+
+  try {
+    const res = await fetch('/caja/api/abrir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sede_id: parseInt(sedeId),
+        valor_base: parseFloat(document.getElementById('abrirValorBase').value) || 0,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      Toast.show('Caja abierta correctamente', 'success');
+      cerrarModalAbrir();
+      verificarEstadoCaja();
+    } else {
+      Toast.show(data.error || 'Error', 'error');
+    }
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Abrir caja';
+  }
+}
+
+// ===== MOVIMIENTOS =====
+async function cargarMovimientos() {
+  if (!cajaActual) return;
+  try {
+    const res = await fetch(`/caja/api/movimientos/${cajaActual.id}`);
+    const data = await res.json();
+    movimientosData = data.data || [];
+    resumenData = data.resumen || {};
+    renderMovimientos();
+    actualizarFooter();
+  } catch (e) {}
+}
+
+function renderMovimientos() {
+  const tbody = document.getElementById('movTableBody');
+  document.getElementById('movCount').textContent = `${movimientosData.length} movimiento${movimientosData.length !== 1 ? 's' : ''}`;
+
+  if (!movimientosData.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-faint);">Sin movimientos aún</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = movimientosData.map(m => {
+    const hora = horaLocal(m.created_at);
+    const medio = (m.medio_pago || '').replace(/_/g, ' ');
+    return `
+      <tr>
+        <td style="font-weight:600;">${hora}</td>
+        <td><span class="cj-tipo-badge cj-tipo-${m.tipo}">${m.tipo.replace(/_/g, ' ')}</span></td>
+        <td style="font-size:12px;">${m.descripcion || '—'}<br><span style="color:var(--text-faint);">${m.paciente_nombre || ''}</span></td>
+        <td style="font-size:12px;">${medio}</td>
+        <td style="text-align:right; font-weight:700; color:var(--accent);">${fm(m.valor)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ===== DENOMINACIONES =====
+function renderDenominaciones() {
+  const panel = document.getElementById('panelEfectivo');
+  panel.innerHTML = DENOMINACIONES.map(d => `
+    <div class="cj-den-row">
+      <span class="cj-den-label">${fm(d)}</span>
+      <input type="number" class="cj-den-input" id="den_${d}" value="0" min="0"
+             onchange="calcularTotales()" oninput="calcularTotales()">
+      <span class="cj-den-total" id="denTotal_${d}">$0</span>
+    </div>
+  `).join('') + `
+    <div class="cj-den-grand">
+      <span>Total Efectivo</span>
+      <span id="totalEfectivo">$0</span>
+    </div>
+  `;
+}
+
+// ===== DOCUMENTOS =====
+function renderDocumentos() {
+  const panel = document.getElementById('panelDocumentos');
+  panel.innerHTML = DOCUMENTOS.map(d => `
+    <div class="cj-doc-row">
+      <span class="cj-doc-label">${d.label}</span>
+      <input type="number" class="cj-doc-input" id="doc_${d.key}_cant" value="0" min="0"
+             onchange="calcularTotales()" oninput="calcularTotales()">
+      <input type="number" class="cj-doc-input" id="doc_${d.key}_valor" value="0" min="0"
+             onchange="calcularTotales()" oninput="calcularTotales()">
+    </div>
+  `).join('');
+}
+
+// ===== CARGAR CONTEO GUARDADO =====
+async function cargarConteoGuardado() {
+  if (!cajaActual) return;
+  try {
+    const res = await fetch(`/caja/api/conteo/${cajaActual.id}`);
+    const data = await res.json();
+    if (!data.ok || !data.data) return;
+
+    const conteo = data.data;
+
+    // Restaurar denominaciones
+    DENOMINACIONES.forEach(d => {
+      const input = document.getElementById(`den_${d}`);
+      if (input && conteo[`den_${d}`] !== undefined) {
+        input.value = conteo[`den_${d}`];
+      }
+    });
+
+    // Restaurar documentos
+    DOCUMENTOS.forEach(d => {
+      const cantInput = document.getElementById(`doc_${d.key}_cant`);
+      const valInput = document.getElementById(`doc_${d.key}_valor`);
+      if (cantInput && conteo[`doc_${d.key}_cant`] !== undefined) {
+        cantInput.value = conteo[`doc_${d.key}_cant`];
+      }
+      if (valInput && conteo[`doc_${d.key}_valor`] !== undefined) {
+        valInput.value = conteo[`doc_${d.key}_valor`];
+      }
+    });
+
+    calcularTotales();
+  } catch (e) {
+    console.error('Error cargando conteo:', e);
+  }
+}
+
+// ===== CALCULAR TOTALES =====
+function calcularTotales() {
+  let totalEfectivo = 0;
+  DENOMINACIONES.forEach(d => {
+    const cant = parseInt(document.getElementById(`den_${d}`).value) || 0;
+    const subtotal = d * cant;
+    document.getElementById(`denTotal_${d}`).textContent = fm(subtotal);
+    totalEfectivo += subtotal;
+  });
+  document.getElementById('totalEfectivo').textContent = fm(totalEfectivo);
+
+  let totalDocs = 0;
+  DOCUMENTOS.forEach(d => {
+    const valor = parseFloat(document.getElementById(`doc_${d.key}_valor`).value) || 0;
+    totalDocs += valor;
+  });
+  document.getElementById('totalDocumentos').textContent = fm(totalDocs);
+
+  const totalEnCaja = totalEfectivo + totalDocs;
+  const totalSistema = resumenData.total || 0;
+  const diferencia = totalEnCaja - totalSistema;
+
+  document.getElementById('ftEnCaja').textContent = fm(totalEnCaja);
+  document.getElementById('ftSistema').textContent = fm(totalSistema);
+
+  const difEl = document.getElementById('ftDiferencia');
+  difEl.textContent = fm(diferencia);
+  difEl.className = `cj-footer-value ${diferencia === 0 ? 'green' : diferencia > 0 ? 'brand' : 'red'}`;
+}
+
+function actualizarFooter() {
+  const totalSistema = resumenData.total || 0;
+  document.getElementById('ftSistema').textContent = fm(totalSistema);
+  calcularTotales();
+}
+
+// ===== GUARDAR CONTEO =====
+async function guardarConteo() {
+  if (!cajaActual) return;
+
+  const data = {};
+  DENOMINACIONES.forEach(d => {
+    data[`den_${d}`] = parseInt(document.getElementById(`den_${d}`).value) || 0;
+  });
+  DOCUMENTOS.forEach(d => {
+    data[`doc_${d.key}_cant`] = parseInt(document.getElementById(`doc_${d.key}_cant`).value) || 0;
+    data[`doc_${d.key}_valor`] = parseFloat(document.getElementById(`doc_${d.key}_valor`).value) || 0;
+  });
+
+  try {
+    await fetch(`/caja/api/conteo/${cajaActual.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    Toast.show('Conteo guardado', 'success');
+  } catch (e) {
+    Toast.show('Error guardando conteo', 'error');
+  }
+}
+
+// ===== CERRAR CAJA =====
+async function confirmarCierre() {
+  // Primero guardar conteo
+  await guardarConteo();
+
+  const totalEnCaja = document.getElementById('ftEnCaja').textContent;
+  const totalSistema = document.getElementById('ftSistema').textContent;
+  const diferencia = document.getElementById('ftDiferencia').textContent;
+
+  const result = await Swal.fire({
+    title: '¿Cerrar caja?',
+    html: `
+      <div style="text-align:left; font-size:14px; line-height:2;">
+        <strong>Total en caja:</strong> ${totalEnCaja}<br>
+        <strong>Total sistema:</strong> ${totalSistema}<br>
+        <strong>Diferencia:</strong> ${diferencia}
+      </div>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, cerrar caja',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#c0392b',
+  });
+
+  if (!result.isConfirmed) return;
+
+  const btn = document.getElementById('btnCerrar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cerrando...';
+
+  try {
+    const payload = { caja_id: cajaActual.id };
+
+    // Denominaciones
+    DENOMINACIONES.forEach(d => {
+      payload[`den_${d}_cant`] = parseInt(document.getElementById(`den_${d}`).value) || 0;
+    });
+
+    // Documentos
+    DOCUMENTOS.forEach(d => {
+      payload[`doc_${d.key}_cant`] = parseInt(document.getElementById(`doc_${d.key}_cant`).value) || 0;
+      payload[`doc_${d.key}_valor`] = parseFloat(document.getElementById(`doc_${d.key}_valor`).value) || 0;
+    });
+
+    // Notas
+    payload.nota_antes_cierre = document.getElementById('notaAntes').value;
+    payload.nota_despues_cierre = document.getElementById('notaDespues').value;
+
+    const res = await fetch('/caja/api/cerrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      Toast.show('Caja cerrada correctamente', 'success');
+      verificarEstadoCaja();
+    } else {
+      Toast.show(data.error || 'Error', 'error');
+    }
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-lock"></i> Cerrar';
+  }
+}
+
+// ===== NOTAS TABS =====
+function cambiarNotaTab(tab) {
+  document.querySelectorAll('.cj-tab').forEach((t, i) => {
+    t.classList.toggle('active', (tab === 'antes' && i === 0) || (tab === 'despues' && i === 1));
+  });
+  document.getElementById('notaAntes').style.display = tab === 'antes' ? 'block' : 'none';
+  document.getElementById('notaDespues').style.display = tab === 'despues' ? 'block' : 'none';
+}
+
+// ===== UTILIDADES =====
+function fm(v) {
+  return '$' + (parseFloat(v) || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function horaLocal(utcStr) {
+  if (!utcStr) return '—';
+  try {
+    const d = new Date(utcStr);
+    return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch (e) {
+    return '—';
+  }
+}
+
+// Refrescar movimientos cada 30s
+setInterval(() => {
+  if (cajaActual) cargarMovimientos();
+}, 30000);
+</script>
+{% endblock %}

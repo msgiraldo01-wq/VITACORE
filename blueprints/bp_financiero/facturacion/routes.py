@@ -3,7 +3,7 @@ Rutas del módulo de facturación — Vitacore
 Blueprint: bp_facturacion  →  /facturacion/...
 """
 
-from flask import Blueprint, render_template, request, jsonify, Response
+from flask import Blueprint, render_template, request, jsonify, Response, session
 from repositories import fin_facturacion_repo as repo
 
 bp_facturacion = Blueprint(
@@ -405,6 +405,20 @@ def api_facturar():
         if cita_ids:
             repo.marcar_citas_facturadas(list(cita_ids))
 
+        # ── Registrar cobro automático en caja ──
+        try:
+            from repositories import fin_caja_repo as caja_repo
+            user = session.get("user", {})
+            caja = caja_repo.obtener_caja_abierta(user.get("id", 0))
+            if caja:
+                medio_pago = data.get("medio_pago", "EFECTIVO")
+                # Obtener datos completos de la factura para el cobro
+                factura_completa = repo.obtener_factura(factura["id"])
+                caja_repo.registrar_cobro_factura(caja["id"], factura_completa, medio_pago)
+        except Exception as e_caja:
+            # No bloquear la factura si falla el registro en caja
+            print(f"[WARN] Error registrando cobro en caja: {e_caja}")
+
         return jsonify({
             "ok": True,
             "factura_id": factura["id"],
@@ -471,6 +485,44 @@ def api_detalle_factura(factura_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# =============================================================
+# API — DESCARGAR PDF DE FACTURA
+# =============================================================
+
+@bp_facturacion.route("/api/factura/<int:factura_id>/pdf", methods=["GET"])
+def api_factura_pdf(factura_id):
+    """Genera y descarga el PDF de una factura."""
+    try:
+        from services.fin_factura_pdf import generar_factura_pdf
+
+        factura = repo.obtener_factura(factura_id)
+        if not factura:
+            return jsonify({"ok": False, "error": "Factura no encontrada"}), 404
+
+        detalle = repo.obtener_detalle_factura(factura_id)
+
+        # Datos de empresa — ajusta según tu configuración
+        empresa = {
+            "nombre": "IPS VITACORE S.A.S",
+            "nit": "NIT: 000.000.000-0",
+            "direccion": "",
+            "telefono": "",
+            "ciudad": "",
+        }
+
+        pdf_bytes = generar_factura_pdf(factura, detalle, empresa)
+        numero = factura.get("numero_factura", "factura")
+
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f"inline; filename=factura_{numero}.pdf"
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/anular", methods=["POST"])
 def api_anular_factura(factura_id):
