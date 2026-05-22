@@ -1,0 +1,636 @@
+{% extends "hc/base.html" %}
+{% block title %}Gestión de glosas · VITACORE{% endblock %}
+
+{% block extra_css %}
+<style>
+.glosa-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+.glosa-kpi{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    box-shadow:var(--shadow-sm);
+}
+.glosa-kpi-icon{
+    width:58px; height:58px;
+    border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:22px; flex-shrink:0;
+}
+.glosa-kpi-icon.danger  { background:#ef4444; }
+.glosa-kpi-icon.warning { background:#f59e0b; }
+.glosa-kpi-icon.success { background:#10b981; }
+.glosa-kpi-icon.info    { background:#0284c7; }
+.glosa-kpi-value{
+    font-size:28px; font-weight:800;
+    color:var(--text); line-height:1; margin-bottom:6px;
+}
+.glosa-kpi-label{ font-size:13px; color:var(--text-soft); }
+
+.glosa-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+.glosa-side{ display:flex; flex-direction:column; gap:24px; }
+
+.glosa-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+.glosa-group label{
+    display:block; margin-bottom:8px;
+    font-size:13px; font-weight:700; color:var(--text-soft);
+}
+.glosa-group input,
+.glosa-group select{
+    width:100%; height:46px;
+    border:1px solid var(--border);
+    border-radius:12px; padding:0 14px;
+    font-size:14px; background:var(--surface-2);
+    color:var(--text); outline:none;
+}
+.glosa-group input:focus,
+.glosa-group select:focus{ border-color:var(--brand); }
+
+.table-responsive{ overflow-x:auto; }
+.table-ax{ width:100%; border-collapse:collapse; font-size:14px; }
+.table-ax th{
+    padding:12px 14px; text-align:left;
+    font-size:11px; font-weight:800;
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); border-bottom:2px solid var(--border);
+}
+.table-ax td{
+    padding:13px 14px; border-bottom:1px solid var(--border);
+    color:var(--text); vertical-align:middle;
+}
+.table-ax tbody tr:hover{ background:var(--surface-2); }
+
+.status-pill{
+    display:inline-flex; align-items:center;
+    padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:700;
+}
+.status-pill.danger  { background:#fee2e2; color:#dc2626; }
+.status-pill.warning { background:#fef3c7; color:#d97706; }
+.status-pill.success { background:#dcfce7; color:#16a34a; }
+.status-pill.info    { background:#dbeafe; color:#2563eb; }
+.status-pill.neutral { background:var(--surface-3); color:var(--text-soft); }
+
+.btn-ax-table{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border-radius:10px;
+    background:var(--brand-soft); color:var(--brand);
+    font-size:13px; font-weight:700;
+    text-decoration:none; transition:.18s ease;
+}
+.btn-ax-table:hover{ background:var(--brand); color:#fff; }
+
+.glosa-alert{
+    padding:16px 18px; border-radius:16px;
+    display:flex; gap:14px; margin-bottom:14px;
+}
+.glosa-alert.warning { background:#fff7ed; color:#c2410c; }
+.glosa-alert.danger  { background:#fef2f2; color:#b91c1c; }
+.glosa-alert.success { background:#ecfdf5; color:#047857; }
+.glosa-alert.info    { background:#eff6ff; color:#1d4ed8; }
+.glosa-alert p{ margin:4px 0 0; font-size:13px; }
+
+.timeline-glosa{ display:flex; flex-direction:column; gap:18px; }
+.timeline-item-glosa{ display:flex; gap:14px; }
+.tl-dot{
+    width:12px; height:12px; border-radius:999px;
+    margin-top:5px; flex-shrink:0;
+}
+.tl-dot.success { background:#10b981; }
+.tl-dot.warning { background:#f59e0b; }
+.tl-dot.danger  { background:#ef4444; }
+.tl-dot.info    { background:#0284c7; }
+.timeline-item-glosa p{ margin:4px 0 0; color:var(--text-soft); font-size:13px; }
+.timeline-item-glosa small{ color:var(--text-faint); font-size:12px; }
+
+.card-title{ font-size:18px; font-weight:800; color:var(--text); margin:0 0 4px; }
+.card-subtitle{ font-size:13px; color:var(--text-soft); margin:0 0 16px; }
+
+@media(max-width:1200px){ .glosa-layout{ grid-template-columns:1fr; } }
+
+/* Modal nueva glosa */
+.modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(15,23,42,.55);
+    backdrop-filter:blur(4px);
+    display:none; align-items:center;
+    justify-content:center; z-index:9999; padding:24px;
+}
+.modal-overlay.active{ display:flex; }
+.modal-glosa{
+    width:100%; max-width:780px;
+    background:var(--surface);
+    border-radius:28px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(15,23,42,.25);
+    animation:modalShow .2s ease;
+}
+@keyframes modalShow{
+    from{ transform:translateY(20px); opacity:0; }
+    to{   transform:translateY(0);    opacity:1; }
+}
+
+</style>
+{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-triangle-exclamation"></i>{% endblock %}
+{% block header_title %}Gestión de glosas{% endblock %}
+{% block header_subtitle %}Auditoría médica y financiera de cuentas hospitalarias{% endblock %}
+
+{% block header_actions %}
+<a href="/financiero/glosas/exportar-excel" class="btn-ax ghost">
+    <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
+    Exportar Excel
+</a>
+<button class="btn-ax primary" onclick="abrirNuevaGlosa()">
+    <i class="fa-solid fa-plus"></i>
+    Nueva glosa
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# ── KPIs ─────────────────────────────────────── #}
+<div class="glosa-kpis">
+
+    <div class="glosa-kpi">
+        <div class="glosa-kpi-icon danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <div class="glosa-kpi-value">{{ kpis.total }}</div>
+            <div class="glosa-kpi-label">Glosas activas</div>
+        </div>
+    </div>
+
+    <div class="glosa-kpi">
+        <div class="glosa-kpi-icon warning">
+            <i class="fa-solid fa-sack-dollar"></i>
+        </div>
+        <div>
+            <div class="glosa-kpi-value">
+                ${{ "{:,.0f}".format(kpis.valor_glosado).replace(",",".") }}
+            </div>
+            <div class="glosa-kpi-label">Valor glosado</div>
+        </div>
+    </div>
+
+    <div class="glosa-kpi">
+        <div class="glosa-kpi-icon success">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+            <div class="glosa-kpi-value">{{ kpis.respondidas }}</div>
+            <div class="glosa-kpi-label">Respondidas</div>
+        </div>
+    </div>
+
+    <div class="glosa-kpi">
+        <div class="glosa-kpi-icon info">
+            <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+        <div>
+            <div class="glosa-kpi-value">{{ kpis.levantadas }}</div>
+            <div class="glosa-kpi-label">Levantadas</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="glosa-layout">
+
+    {# ── PANEL PRINCIPAL ──────────────────────── #}
+    <div class="content-card">
+        <p class="card-title">Bandeja de glosas</p>
+        <p class="card-subtitle">Gestión operativa y auditoría médica</p>
+
+        <div class="glosa-filters">
+            <div class="glosa-group">
+                <label>EPS</label>
+                <select id="filtroEps">
+                    <option value="">Todas</option>
+                    {% for eps in glosas | map(attribute='eps') | unique | list %}
+                    <option value="{{ eps }}">{{ eps }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="glosa-group">
+                <label>Estado</label>
+                <select id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="recibida">Recibida</option>
+                    <option value="en_respuesta">En respuesta</option>
+                    <option value="respondida">Respondida</option>
+                    <option value="levantada">Levantada</option>
+                    <option value="ratificada">Ratificada</option>
+                    <option value="conciliada">Conciliada</option>
+                </select>
+            </div>
+            <div class="glosa-group">
+                <label>Tipo glosa</label>
+                <select id="filtroTipo">
+                    <option value="">Todas</option>
+                    <option>Pertinencia médica</option>
+                    <option>Tarifas</option>
+                    <option>Soportes</option>
+                    <option>Duplicidad</option>
+                    <option>No POS</option>
+                    <option>Administrativo</option>
+                </select>
+            </div>
+            <div class="glosa-group">
+                <label>Factura</label>
+                <input type="text" id="filtroFactura" placeholder="Buscar factura...">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-ax">
+                <thead>
+                    <tr>
+                        <th>Glosa</th>
+                        <th>Factura</th>
+                        <th>EPS</th>
+                        <th>Tipo</th>
+                        <th>Valor glosado</th>
+                        <th>Estado</th>
+                        <th>Días</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla">
+                {% for g in glosas %}
+                    {% if g.estado == 'recibida' %}
+                        {% set pill = 'danger' %}
+                        {% set pill_label = 'Sin responder' %}
+                    {% elif g.estado == 'en_respuesta' %}
+                        {% set pill = 'warning' %}
+                        {% set pill_label = 'En respuesta' %}
+                    {% elif g.estado == 'respondida' %}
+                        {% set pill = 'success' %}
+                        {% set pill_label = 'Respondida' %}
+                    {% elif g.estado == 'levantada' %}
+                        {% set pill = 'info' %}
+                        {% set pill_label = 'Levantada' %}
+                    {% elif g.estado == 'ratificada' %}
+                        {% set pill = 'neutral' %}
+                        {% set pill_label = 'Ratificada' %}
+                    {% else %}
+                        {% set pill = 'success' %}
+                        {% set pill_label = 'Conciliada' %}
+                    {% endif %}
+                    <tr
+                        data-eps="{{ g.eps | lower }}"
+                        data-estado="{{ g.estado }}"
+                        data-tipo="{{ g.tipo_glosa | lower }}"
+                        data-factura="{{ g.numero_factura | lower }}">
+                        <td><strong>{{ g.numero_glosa }}</strong></td>
+                        <td>{{ g.numero_factura }}</td>
+                        <td>{{ g.eps }}</td>
+                        <td>{{ g.tipo_glosa }}</td>
+                        <td><strong>${{ "{:,.0f}".format(g.valor_glosado or 0).replace(",",".") }}</strong></td>
+                        <td><span class="status-pill {{ pill }}">{{ pill_label }}</span></td>
+                        <td>
+                            {% if g.dias_respuesta and g.dias_respuesta > 10 %}
+                                <span style="color:#dc2626; font-weight:700;">{{ g.dias_respuesta }} días</span>
+                            {% else %}
+                                {{ g.dias_respuesta or 0 }} días
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/financiero/glosas/detalle/{{ g.numero_glosa }}"
+                               class="btn-ax-table">
+                                <i class="fa-solid fa-eye"></i>
+                                Ver detalle
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align:center;padding:32px;color:var(--text-faint);">
+                            <i class="fa-solid fa-inbox" style="font-size:28px;display:block;margin-bottom:10px;"></i>
+                            No hay glosas registradas
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# ── PANEL DERECHO ────────────────────────── #}
+    <div class="glosa-side">
+
+        {# ALERTAS #}
+        <div class="content-card">
+            <p class="card-title">Alertas auditoría</p>
+
+            {% if kpis.vencidas > 0 %}
+            <div class="glosa-alert warning">
+                <i class="fa-solid fa-clock"></i>
+                <div>
+                    <strong>{{ kpis.vencidas }} glosas vencidas</strong>
+                    <p>Requieren respuesta inmediata</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set eps_critica = glosas | selectattr("estado","eq","recibida") | list %}
+            {% if eps_critica %}
+            <div class="glosa-alert danger">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>{{ eps_critica | length }} sin responder</strong>
+                    <p>{{ eps_critica[0].eps }} — mayor pendiente</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set en_resp = glosas | selectattr("estado","eq","en_respuesta") | list %}
+            {% if en_resp %}
+            <div class="glosa-alert info">
+                <i class="fa-solid fa-folder-open"></i>
+                <div>
+                    <strong>{{ en_resp | length }} en proceso</strong>
+                    <p>Auditoría médica en curso</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not kpis.vencidas and not eps_critica %}
+            <div class="glosa-alert success">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <strong>Sin alertas críticas</strong>
+                    <p>Gestión de glosas al día</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ACTIVIDAD RECIENTE #}
+        <div class="content-card">
+            <p class="card-title">Glosas recientes</p>
+            <div class="timeline-glosa">
+                {% for g in glosas[:5] %}
+                <div class="timeline-item-glosa">
+                    <div class="tl-dot {{ 'danger' if g.estado == 'recibida' else 'warning' if g.estado == 'en_respuesta' else 'success' if g.estado == 'levantada' else 'info' }}"></div>
+                    <div>
+                        <strong>{{ g.numero_glosa }}</strong>
+                        <p>{{ g.eps }} · ${{ "{:,.0f}".format(g.valor_glosado or 0).replace(",",".") }}</p>
+                        <small>{{ g.tipo_glosa }} · {{ g.dias_respuesta or 0 }} días</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{# ── MODAL NUEVA GLOSA ────────────────────────── #}
+<div class="modal-overlay" id="modalNuevaGlosa">
+    <div class="modal-glosa" style="max-width:780px; background:var(--surface);
+         border-radius:28px; overflow:hidden;
+         box-shadow:0 30px 80px rgba(15,23,42,.25);
+         animation:modalShow .2s ease; width:100%;">
+
+        <div style="padding:26px 28px; border-bottom:1px solid var(--border);
+                    display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <h2 style="margin:0; font-size:22px; font-weight:800; color:var(--text);">
+                    <i class="fa-solid fa-triangle-exclamation"
+                       style="color:var(--brand); margin-right:10px;"></i>
+                    Nueva glosa
+                </h2>
+                <p style="margin:5px 0 0; color:var(--text-soft); font-size:13px;">
+                    Registrar glosa recibida de EPS
+                </p>
+            </div>
+            <button onclick="cerrarNuevaGlosa()"
+                    style="width:40px; height:40px; border:none; border-radius:12px;
+                           background:var(--surface-2); color:var(--text); cursor:pointer;
+                           font-size:16px; display:grid; place-items:center;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div style="padding:28px;">
+            <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:18px;">
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Número factura *</label>
+                    <input type="text" id="ng_factura"
+                           placeholder="Ej: FE-2025-000124"
+                           style="border:1px solid var(--border); border-radius:14px;
+                                  padding:13px 16px; font-size:14px; outline:none;
+                                  background:var(--surface-2); color:var(--text);">
+                </div>
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">EPS *</label>
+                    <select id="ng_eps"
+                            style="border:1px solid var(--border); border-radius:14px;
+                                   padding:13px 16px; font-size:14px; outline:none;
+                                   background:var(--surface-2); color:var(--text); height:50px;">
+                        <option value="">Seleccionar EPS...</option>
+                        <option>NUEVA EPS</option>
+                        <option>SURA</option>
+                        <option>COOMEVA</option>
+                        <option>SALUD TOTAL</option>
+                        <option>COMPENSAR</option>
+                        <option>FAMISANAR</option>
+                        <option>OTRA</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Tipo de glosa *</label>
+                    <select id="ng_tipo"
+                            style="border:1px solid var(--border); border-radius:14px;
+                                   padding:13px 16px; font-size:14px; outline:none;
+                                   background:var(--surface-2); color:var(--text); height:50px;">
+                        <option value="">Seleccionar tipo...</option>
+                        <option>Pertinencia médica</option>
+                        <option>Tarifas</option>
+                        <option>Soportes</option>
+                        <option>Duplicidad</option>
+                        <option>No POS</option>
+                        <option>Administrativo</option>
+                        <option>Otro</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Valor glosado *</label>
+                    <input type="number" id="ng_valor"
+                           placeholder="Ej: 1500000" min="1"
+                           style="border:1px solid var(--border); border-radius:14px;
+                                  padding:13px 16px; font-size:14px; outline:none;
+                                  background:var(--surface-2); color:var(--text);">
+                </div>
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Fecha de glosa *</label>
+                    <input type="date" id="ng_fecha"
+                           style="border:1px solid var(--border); border-radius:14px;
+                                  padding:13px 16px; font-size:14px; outline:none;
+                                  background:var(--surface-2); color:var(--text);">
+                </div>
+
+                <div style="display:flex; flex-direction:column;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Causal EPS</label>
+                    <input type="text" id="ng_causal"
+                           placeholder="Motivo indicado por la EPS"
+                           style="border:1px solid var(--border); border-radius:14px;
+                                  padding:13px 16px; font-size:14px; outline:none;
+                                  background:var(--surface-2); color:var(--text);">
+                </div>
+
+                <div style="display:flex; flex-direction:column; grid-column:1/-1;">
+                    <label style="margin-bottom:8px; font-size:13px; font-weight:700;
+                                  color:var(--text-soft);">Observaciones</label>
+                    <textarea id="ng_observaciones" rows="3"
+                              placeholder="Detalle adicional de la glosa..."
+                              style="border:1px solid var(--border); border-radius:14px;
+                                     padding:13px 16px; font-size:14px; outline:none;
+                                     background:var(--surface-2); color:var(--text);
+                                     font-family:inherit; resize:vertical;"></textarea>
+                </div>
+
+            </div>
+        </div>
+
+        <div style="padding:22px 28px; border-top:1px solid var(--border);
+                    display:flex; justify-content:flex-end; gap:12px;">
+            <button class="btn-ax ghost" onclick="cerrarNuevaGlosa()">
+                Cancelar
+            </button>
+            <button class="btn-ax primary" id="btnCrearGlosa" onclick="crearGlosa()">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Crear glosa
+            </button>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const filtroEps     = document.getElementById("filtroEps");
+const filtroEstado  = document.getElementById("filtroEstado");
+const filtroTipo    = document.getElementById("filtroTipo");
+const filtroFactura = document.getElementById("filtroFactura");
+const filas         = document.querySelectorAll("#cuerpoTabla tr[data-eps]");
+
+function filtrar(){
+    const eps     = filtroEps.value.toLowerCase();
+    const estado  = filtroEstado.value;
+    const tipo    = filtroTipo.value.toLowerCase();
+    const factura = filtroFactura.value.toLowerCase().trim();
+
+    filas.forEach(fila => {
+        const okEps     = !eps     || fila.dataset.eps.includes(eps);
+        const okEstado  = !estado  || fila.dataset.estado === estado;
+        const okTipo    = !tipo    || fila.dataset.tipo.includes(tipo);
+        const okFactura = !factura || fila.dataset.factura.includes(factura);
+        fila.style.display = (okEps && okEstado && okTipo && okFactura) ? "" : "none";
+    });
+}
+
+filtroEps.addEventListener("change", filtrar);
+filtroEstado.addEventListener("change", filtrar);
+filtroTipo.addEventListener("change", filtrar);
+filtroFactura.addEventListener("input", filtrar);
+
+// ── NUEVA GLOSA ───────────────────────────────
+function abrirNuevaGlosa(){
+    // Fecha de hoy por defecto
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("ng_fecha").value = hoy;
+    document.getElementById("modalNuevaGlosa").classList.add("active");
+}
+
+function cerrarNuevaGlosa(){
+    document.getElementById("modalNuevaGlosa").classList.remove("active");
+}
+
+window.addEventListener("click", e => {
+    const m = document.getElementById("modalNuevaGlosa");
+    if(e.target === m) cerrarNuevaGlosa();
+});
+
+async function crearGlosa(){
+    const factura = document.getElementById("ng_factura").value.trim();
+    const eps     = document.getElementById("ng_eps").value;
+    const tipo    = document.getElementById("ng_tipo").value;
+    const valor   = document.getElementById("ng_valor").value;
+    const fecha   = document.getElementById("ng_fecha").value;
+
+    if(!factura || !eps || !tipo || !valor || !fecha){
+        Toast.show("Completa todos los campos obligatorios (*)", "warning");
+        return;
+    }
+
+    const btn = document.getElementById("btnCrearGlosa");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando...';
+
+    const formData = new FormData();
+    formData.append("numero_factura", factura);
+    formData.append("eps",            eps);
+    formData.append("tipo_glosa",     tipo);
+    formData.append("valor_glosado",  valor);
+    formData.append("fecha_glosa",    fecha);
+    formData.append("causal",         document.getElementById("ng_causal").value);
+    formData.append("observaciones",  document.getElementById("ng_observaciones").value);
+
+    try {
+        const res    = await fetch("/financiero/glosas/nueva", {
+            method: "POST", body: formData
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show(`Glosa ${result.numero_glosa} creada correctamente`, "success");
+            cerrarNuevaGlosa();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Crear glosa';
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Crear glosa';
+    }
+}
+</script>
+{% endblock %}

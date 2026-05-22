@@ -1,0 +1,679 @@
+{% extends "hc/base.html" %}
+{% block title %}Glosa {{ glosa.numero_glosa }} · VITACORE{% endblock %}
+
+{% block extra_css %}
+<style>
+.glosa-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+.glosa-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:24px;
+    margin-bottom:24px;
+    box-shadow:var(--shadow-sm);
+}
+.glosa-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-top:20px;
+}
+.glosa-mini{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    transition:.2s ease;
+}
+.glosa-mini:hover{
+    transform:translateY(-2px);
+    box-shadow:var(--shadow-sm);
+}
+.glosa-mini label{
+    display:block;
+    font-size:11px; font-weight:800;
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:8px;
+}
+.glosa-mini strong{
+    color:var(--text); font-size:15px; font-weight:700;
+}
+.glosa-section-title{
+    font-size:18px; font-weight:800;
+    color:var(--text); margin:0 0 4px;
+}
+.glosa-section-sub{
+    color:var(--text-soft); font-size:13px; margin:0 0 20px;
+}
+
+/* Resumen financiero */
+.glosa-total{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid var(--border);
+    color:var(--text-soft); font-size:14px;
+}
+.glosa-total strong{ color:var(--text); font-weight:700; }
+.glosa-total.final{
+    border-bottom:none;
+    border-top:2px solid var(--border);
+    padding-top:18px; margin-top:6px;
+    font-size:17px; font-weight:800;
+}
+.glosa-total.final strong{
+    font-size:20px; color:var(--brand);
+}
+
+/* Timeline */
+.timeline-fin{
+    display:flex; flex-direction:column;
+    gap:20px; position:relative; padding-left:8px;
+}
+.timeline-item{ display:flex; gap:14px; position:relative; z-index:2; }
+.timeline-dot{
+    width:12px; height:12px; border-radius:999px;
+    margin-top:5px; flex-shrink:0;
+}
+.dot-green  { background:#10b981; }
+.dot-orange { background:#f59e0b; }
+.dot-red    { background:#dc2626; }
+.dot-blue   { background:#0284c7; }
+.dot-purple { background:#7c3aed; }
+
+.timeline-content strong{
+    display:block; color:var(--text);
+    font-size:14px; font-weight:700; margin-bottom:3px;
+}
+.timeline-content p{ margin:0; color:var(--text-soft); font-size:13px; }
+.timeline-content small{
+    display:block; margin-top:5px;
+    color:var(--text-faint); font-size:12px;
+}
+
+/* Badges */
+.badge-soft{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:700;
+}
+.badge-soft-danger  { background:#fee2e2; color:#dc2626; }
+.badge-soft-warning { background:#fef3c7; color:#d97706; }
+.badge-soft-success { background:#dcfce7; color:#16a34a; }
+.badge-soft-primary { background:#dbeafe; color:#2563eb; }
+.badge-soft-neutral { background:var(--surface-3); color:var(--text-soft); }
+
+/* Tabla respuestas */
+.tabla-glosa{
+    width:100%; border-collapse:collapse; font-size:14px;
+}
+.tabla-glosa th{
+    padding:12px 14px; text-align:left;
+    font-size:11px; font-weight:800;
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); border-bottom:2px solid var(--border);
+}
+.tabla-glosa td{
+    padding:13px 14px; border-bottom:1px solid var(--border);
+    color:var(--text); vertical-align:middle;
+}
+.tabla-glosa tbody tr:hover{ background:var(--surface-2); }
+
+/* Modal */
+.modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(15,23,42,.55);
+    backdrop-filter:blur(4px);
+    display:none; align-items:center;
+    justify-content:center; z-index:9999; padding:24px;
+}
+.modal-overlay.active{ display:flex; }
+.modal-glosa{
+    width:100%; max-width:780px;
+    background:var(--surface);
+    border-radius:28px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(15,23,42,.25);
+    animation:modalShow .2s ease;
+}
+@keyframes modalShow{
+    from{ transform:translateY(20px); opacity:0; }
+    to{   transform:translateY(0);    opacity:1; }
+}
+.modal-header-gl{
+    padding:26px 28px;
+    border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:flex-start;
+}
+.modal-header-gl h2{
+    margin:0; font-size:22px; font-weight:800; color:var(--text);
+}
+.modal-header-gl p{ margin:5px 0 0; color:var(--text-soft); font-size:13px; }
+.modal-close{
+    width:40px; height:40px; border:none;
+    border-radius:12px; background:var(--surface-2);
+    color:var(--text); cursor:pointer; font-size:16px;
+    display:grid; place-items:center;
+}
+.modal-close:hover{ background:var(--surface-3); }
+.modal-body-gl{ padding:28px; }
+.form-grid-gl{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:18px;
+}
+.form-group-gl{ display:flex; flex-direction:column; }
+.form-group-gl label{
+    margin-bottom:8px; font-size:13px;
+    font-weight:700; color:var(--text-soft);
+}
+.form-group-gl input,
+.form-group-gl select,
+.form-group-gl textarea{
+    border:1px solid var(--border);
+    border-radius:14px; padding:13px 16px;
+    font-size:14px; outline:none;
+    background:var(--surface-2); color:var(--text);
+    transition:.2s ease; font-family:inherit;
+}
+.form-group-gl input:focus,
+.form-group-gl select:focus,
+.form-group-gl textarea:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(13,92,99,.12);
+}
+.form-group-gl input[readonly]{ opacity:.6; cursor:not-allowed; }
+.form-group-gl.full{ grid-column:1 / -1; }
+.modal-footer-gl{
+    padding:22px 28px;
+    border-top:1px solid var(--border);
+    display:flex; justify-content:flex-end; gap:12px;
+}
+
+/* Causal box */
+.causal-box{
+    background:var(--warn-soft);
+    border:1px solid var(--warn);
+    border-radius:16px;
+    padding:16px 20px;
+    margin-bottom:20px;
+}
+.causal-box strong{
+    display:block; color:var(--warn);
+    font-size:13px; margin-bottom:4px;
+}
+.causal-box p{ margin:0; color:var(--text); font-size:14px; }
+
+@media(max-width:1200px){
+    .glosa-layout{ grid-template-columns:1fr; }
+    .glosa-grid{ grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:600px){
+    .glosa-grid{ grid-template-columns:1fr; }
+    .form-grid-gl{ grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-triangle-exclamation"></i>{% endblock %}
+{% block header_title %}Glosa {{ glosa.numero_glosa }}{% endblock %}
+{% block header_subtitle %}Auditoría médica y financiera · {{ glosa.eps }}{% endblock %}
+
+{% block header_actions %}
+<a href="/financiero/glosas/" class="btn-ax ghost">
+    <i class="fa-solid fa-arrow-left"></i>
+    Volver
+</a>
+<button class="btn-ax primary" onclick="abrirModalRespuesta()">
+    <i class="fa-solid fa-reply"></i>
+    Registrar respuesta
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# BARRA DE ALERTA SI ESTÁ SIN RESPONDER #}
+{% if glosa.estado == 'recibida' %}
+<div style="margin-bottom:16px; background:#fef2f2; border:1px solid #fca5a5;
+            border-radius:16px; padding:14px 20px; display:flex; align-items:center; gap:12px;">
+    <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626; font-size:18px;"></i>
+    <span style="color:#b91c1c; font-weight:700; font-size:14px;">
+        Glosa sin responder — {{ glosa.dias_respuesta or 0 }} días transcurridos.
+        Plazo normativo: 15 días hábiles (Res. 3047).
+    </span>
+</div>
+{% endif %}
+
+<div class="glosa-layout">
+
+    {# ── COLUMNA IZQUIERDA ─────────────────────── #}
+    <div>
+
+        {# INFORMACIÓN DE LA GLOSA #}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Información de la glosa</p>
+            <p class="glosa-section-sub">Estado actual y datos del proceso de auditoría</p>
+
+            <div class="glosa-grid">
+                <div class="glosa-mini">
+                    <label>Número glosa</label>
+                    <strong>{{ glosa.numero_glosa }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Factura</label>
+                    <a href="/financiero/cartera/detalle/{{ glosa.numero_factura }}"
+                       style="color:var(--brand); font-weight:700; font-size:15px;
+                              text-decoration:none; display:flex; align-items:center; gap:6px;">
+                        {{ glosa.numero_factura }}
+                        <i class="fa-solid fa-arrow-up-right-from-square"
+                           style="font-size:11px;"></i>
+                    </a>
+                </div>
+                <div class="glosa-mini">
+                    <label>EPS</label>
+                    <strong>{{ glosa.eps }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Estado</label>
+                    {% if glosa.estado == 'recibida' %}
+                        <span class="badge-soft badge-soft-danger">Sin responder</span>
+                    {% elif glosa.estado == 'en_respuesta' %}
+                        <span class="badge-soft badge-soft-warning">En respuesta</span>
+                    {% elif glosa.estado == 'respondida' %}
+                        <span class="badge-soft badge-soft-success">Respondida</span>
+                    {% elif glosa.estado == 'levantada' %}
+                        <span class="badge-soft badge-soft-primary">Levantada</span>
+                    {% elif glosa.estado == 'ratificada' %}
+                        <span class="badge-soft badge-soft-neutral">Ratificada</span>
+                    {% else %}
+                        <span class="badge-soft badge-soft-success">Conciliada</span>
+                    {% endif %}
+                </div>
+                <div class="glosa-mini">
+                    <label>Tipo glosa</label>
+                    <strong>{{ glosa.tipo_glosa }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Fecha glosa</label>
+                    <strong>{{ glosa.fecha_glosa or "—" }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Fecha vencimiento</label>
+                    <strong>{{ glosa.fecha_vencimiento or "—" }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Días transcurridos</label>
+                    {% if glosa.dias_respuesta and glosa.dias_respuesta > 15 %}
+                        <strong style="color:#dc2626;">{{ glosa.dias_respuesta }} días</strong>
+                    {% else %}
+                        <strong>{{ glosa.dias_respuesta or 0 }} días</strong>
+                    {% endif %}
+                </div>
+                {% if glosa.respondida_por %}
+                <div class="glosa-mini">
+                    <label>Respondida por</label>
+                    <strong>{{ glosa.respondida_por }}</strong>
+                </div>
+                <div class="glosa-mini">
+                    <label>Fecha respuesta</label>
+                    <strong>{{ glosa.fecha_respuesta or "—" }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# CAUSAL #}
+        {% if glosa.causal %}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Causal de la glosa</p>
+            <p class="glosa-section-sub">Motivo registrado por la EPS</p>
+            <div class="causal-box">
+                <strong><i class="fa-solid fa-triangle-exclamation"></i> Causal EPS</strong>
+                <p>{{ glosa.causal }}</p>
+            </div>
+            {% if glosa.observaciones %}
+            <p style="color:var(--text-soft); font-size:14px; margin:0;">
+                <strong>Observaciones:</strong> {{ glosa.observaciones }}
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# HISTORIAL DE RESPUESTAS #}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Historial de respuestas</p>
+            <p class="glosa-section-sub">Gestión operativa del proceso de auditoría</p>
+
+            <div style="overflow-x:auto;">
+                <table class="tabla-glosa">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Descripción</th>
+                            <th>Valor</th>
+                            <th>Registrado por</th>
+                            <th>Soporte</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for r in respuestas %}
+                        <tr>
+                            <td>{{ r.created_at[:10] if r.created_at else "—" }}</td>
+                            <td>
+                                {% if r.tipo_respuesta == 'respuesta' %}
+                                    <span class="badge-soft badge-soft-primary">Respuesta</span>
+                                {% elif r.tipo_respuesta == 'soporte' %}
+                                    <span class="badge-soft badge-soft-warning">Soporte</span>
+                                {% elif r.tipo_respuesta == 'conciliacion' %}
+                                    <span class="badge-soft badge-soft-success">Conciliación</span>
+                                {% else %}
+                                    <span class="badge-soft badge-soft-neutral">Nota</span>
+                                {% endif %}
+                            </td>
+                            <td style="max-width:260px; white-space:normal;">{{ r.descripcion }}</td>
+                            <td>
+                                {% if r.valor_propuesto and r.valor_propuesto > 0 %}
+                                    ${{ "{:,.0f}".format(r.valor_propuesto).replace(",",".") }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ r.registrado_por or "—" }}</td>
+                            <td>
+                                {% if r.soporte_url %}
+                                    <a href="{{ r.soporte_url }}" target="_blank"
+                                       class="btn-ax-table" style="padding:6px 10px; font-size:12px;">
+                                        <i class="fa-solid fa-file"></i> Ver
+                                    </a>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:28px; color:var(--text-faint);">
+                                <i class="fa-solid fa-inbox" style="font-size:24px; display:block; margin-bottom:8px;"></i>
+                                Sin respuestas registradas aún
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── COLUMNA DERECHA ───────────────────────── #}
+    <div>
+
+        {# RESUMEN FINANCIERO #}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Resumen financiero</p>
+            <div style="margin-top:16px;">
+                <div class="glosa-total">
+                    <span>Valor glosado</span>
+                    <strong style="color:#dc2626;">
+                        ${{ "{:,.0f}".format(glosa.valor_glosado or 0).replace(",",".") }}
+                    </strong>
+                </div>
+                <div class="glosa-total">
+                    <span>Valor aceptado</span>
+                    <strong style="color:#f59e0b;">
+                        ${{ "{:,.0f}".format(glosa.valor_aceptado or 0).replace(",",".") }}
+                    </strong>
+                </div>
+                <div class="glosa-total">
+                    <span>Valor levantado</span>
+                    <strong style="color:#10b981;">
+                        ${{ "{:,.0f}".format(glosa.valor_levantado or 0).replace(",",".") }}
+                    </strong>
+                </div>
+                <div class="glosa-total final">
+                    <span>Valor en disputa</span>
+                    <strong>
+                        ${{ "{:,.0f}".format(glosa.valor_ratificado or 0).replace(",",".") }}
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        {# TIMELINE #}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Timeline de auditoría</p>
+            <div class="timeline-fin">
+
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-red"></div>
+                    <div class="timeline-content">
+                        <strong>Glosa recibida</strong>
+                        <p>{{ glosa.eps }} · {{ glosa.tipo_glosa }}</p>
+                        <small>{{ glosa.fecha_glosa or "—" }}</small>
+                    </div>
+                </div>
+
+                {% for r in respuestas | reverse %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-blue"></div>
+                    <div class="timeline-content">
+                        <strong>
+                            {% if r.tipo_respuesta == 'respuesta' %}Respuesta enviada
+                            {% elif r.tipo_respuesta == 'soporte' %}Soporte adjuntado
+                            {% elif r.tipo_respuesta == 'conciliacion' %}Conciliación registrada
+                            {% else %}Nota agregada{% endif %}
+                        </strong>
+                        <p>{{ r.descripcion[:60] }}{% if r.descripcion|length > 60 %}...{% endif %}</p>
+                        <small>{{ r.created_at[:10] if r.created_at else "—" }} — {{ r.registrado_por }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if glosa.estado == 'levantada' %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-green"></div>
+                    <div class="timeline-content">
+                        <strong>Glosa levantada</strong>
+                        <p>EPS acepta la respuesta</p>
+                        <small>{{ glosa.fecha_respuesta or "—" }}</small>
+                    </div>
+                </div>
+                {% elif glosa.estado == 'ratificada' %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-orange"></div>
+                    <div class="timeline-content">
+                        <strong>Glosa ratificada</strong>
+                        <p>EPS mantiene la glosa</p>
+                        <small>{{ glosa.fecha_respuesta or "—" }}</small>
+                    </div>
+                </div>
+                {% elif glosa.estado in ['recibida', 'en_respuesta'] %}
+                <div class="timeline-item">
+                    <div class="timeline-dot dot-orange"></div>
+                    <div class="timeline-content">
+                        <strong>En proceso</strong>
+                        <p>Esperando resolución</p>
+                        <small>Actual</small>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        {# ACCIONES RÁPIDAS #}
+        <div class="glosa-card">
+            <p class="glosa-section-title">Acciones</p>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                <button class="btn-ax primary" onclick="abrirModalRespuesta()" style="width:100%;">
+                    <i class="fa-solid fa-reply"></i>
+                    Registrar respuesta
+                </button>
+                <button class="btn-ax ghost" onclick="abrirModalRespuesta('soporte')" style="width:100%;">
+                    <i class="fa-solid fa-paperclip"></i>
+                    Adjuntar soporte
+                </button>
+                <button class="btn-ax ghost" onclick="abrirModalRespuesta('conciliacion')" style="width:100%;">
+                    <i class="fa-solid fa-handshake"></i>
+                    Registrar conciliación
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{# ── MODAL REGISTRAR RESPUESTA ─────────────────── #}
+<div class="modal-overlay" id="modalRespuesta">
+    <div class="modal-glosa">
+
+        <div class="modal-header-gl">
+            <div>
+                <h2><i class="fa-solid fa-reply" style="color:var(--brand);margin-right:10px;"></i>Registrar respuesta</h2>
+                <p>Glosa {{ glosa.numero_glosa }} · {{ glosa.eps }}</p>
+            </div>
+            <button class="modal-close" onclick="cerrarModalRespuesta()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-body-gl">
+            <div class="form-grid-gl">
+
+                <div class="form-group-gl">
+                    <label>Número glosa</label>
+                    <input type="text" value="{{ glosa.numero_glosa }}" readonly>
+                </div>
+
+                <div class="form-group-gl">
+                    <label>EPS</label>
+                    <input type="text" value="{{ glosa.eps }}" readonly>
+                </div>
+
+                <div class="form-group-gl">
+                    <label>Tipo de respuesta</label>
+                    <select id="tipoRespuesta">
+                        <option value="respuesta">Respuesta técnica</option>
+                        <option value="soporte">Adjuntar soporte</option>
+                        <option value="conciliacion">Conciliación</option>
+                        <option value="nota">Nota interna</option>
+                    </select>
+                </div>
+
+                <div class="form-group-gl">
+                    <label>Nuevo estado glosa</label>
+                    <select id="nuevoEstado">
+                        <option value="en_respuesta">En respuesta</option>
+                        <option value="respondida">Respondida</option>
+                        <option value="levantada">Levantada</option>
+                        <option value="ratificada">Ratificada</option>
+                        <option value="conciliada">Conciliada</option>
+                    </select>
+                </div>
+
+                <div class="form-group-gl">
+                    <label>Valor propuesto</label>
+                    <input type="number" id="valorPropuesto" placeholder="0" min="0">
+                </div>
+
+                <div class="form-group-gl">
+                    <label>Adjuntar soporte</label>
+                    <input type="file" id="soporteGlosa"
+                           accept=".pdf,.png,.jpg,.jpeg,.xml"
+                           style="padding:10px 16px;">
+                </div>
+
+                <div class="form-group-gl full">
+                    <label>Descripción de la respuesta *</label>
+                    <textarea rows="4" id="descripcionRespuesta"
+                              placeholder="Detalle técnico y clínico de la respuesta a la glosa..."></textarea>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-footer-gl">
+            <button class="btn-ax ghost" onclick="cerrarModalRespuesta()">
+                Cancelar
+            </button>
+            <button class="btn-ax primary" id="btnGuardarRespuesta" onclick="guardarRespuesta()">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Guardar respuesta
+            </button>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const GLOSA_ID  = "{{ glosa.id }}";
+const GLOSA_NUM = "{{ glosa.numero_glosa }}";
+
+function abrirModalRespuesta(tipo = "respuesta"){
+    document.getElementById("tipoRespuesta").value = tipo;
+    document.getElementById("modalRespuesta").classList.add("active");
+}
+
+function cerrarModalRespuesta(){
+    document.getElementById("modalRespuesta").classList.remove("active");
+}
+
+window.addEventListener("click", e => {
+    const modal = document.getElementById("modalRespuesta");
+    if(e.target === modal) cerrarModalRespuesta();
+});
+
+async function guardarRespuesta(){
+    const descripcion = document.getElementById("descripcionRespuesta").value.trim();
+    if(!descripcion){
+        Toast.show("La descripción es obligatoria", "warning");
+        return;
+    }
+
+    const btn = document.getElementById("btnGuardarRespuesta");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    const formData = new FormData();
+    formData.append("glosa_id",        GLOSA_ID);
+    formData.append("numero_glosa",    GLOSA_NUM);
+    formData.append("tipo_respuesta",  document.getElementById("tipoRespuesta").value);
+    formData.append("nuevo_estado",    document.getElementById("nuevoEstado").value);
+    formData.append("descripcion",     descripcion);
+    formData.append("valor_propuesto", document.getElementById("valorPropuesto").value || 0);
+
+    const soporte = document.getElementById("soporteGlosa").files[0];
+    if(soporte) formData.append("soporte", soporte);
+
+    try {
+        const res    = await fetch("/financiero/glosas/registrar-respuesta", {
+            method: "POST", body: formData
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show("Respuesta registrada correctamente", "success");
+            cerrarModalRespuesta();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar respuesta';
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar respuesta';
+    }
+}
+</script>
+{% endblock %}

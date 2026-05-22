@@ -587,6 +587,125 @@
     </div>
 </div>
 
+{# GLOSAS ASOCIADAS #}
+<div class="cartera-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <p class="cartera-section-title">
+            <i class="fa-solid fa-triangle-exclamation"
+               style="color:#f59e0b; margin-right:8px;"></i>
+            Glosas asociadas
+        </p>
+        <a href="/financiero/glosas/"
+           style="font-size:13px; color:var(--brand); font-weight:700;
+                  text-decoration:none;">
+            Ver todas las glosas →
+        </a>
+    </div>
+    <p class="cartera-section-sub">Glosas vinculadas a esta factura</p>
+
+    {% if glosas %}
+    <div style="overflow-x:auto;">
+        <table class="tabla-cartera">
+            <thead>
+                <tr>
+                    <th>Glosa</th>
+                    <th>Tipo</th>
+                    <th>Valor glosado</th>
+                    <th>Estado</th>
+                    <th>Días</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for g in glosas %}
+                <tr>
+                    <td><strong>{{ g.numero_glosa }}</strong></td>
+                    <td>{{ g.tipo_glosa }}</td>
+                    <td style="color:#dc2626;">
+                        <strong>
+                            ${{ "{:,.0f}".format(g.valor_glosado or 0).replace(",",".") }}
+                        </strong>
+                    </td>
+                    <td>
+                        {% if g.estado == 'recibida' %}
+                            <span class="badge-soft badge-soft-danger">Sin responder</span>
+                        {% elif g.estado == 'en_respuesta' %}
+                            <span class="badge-soft badge-soft-warning">En respuesta</span>
+                        {% elif g.estado == 'respondida' %}
+                            <span class="badge-soft badge-soft-success">Respondida</span>
+                        {% elif g.estado == 'levantada' %}
+                            <span class="badge-soft badge-soft-primary">Levantada</span>
+                        {% else %}
+                            <span class="badge-soft badge-soft-neutral">{{ g.estado|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if g.dias_respuesta and g.dias_respuesta > 10 %}
+                            <span style="color:#dc2626; font-weight:700;">
+                                {{ g.dias_respuesta }} días
+                            </span>
+                        {% else %}
+                            {{ g.dias_respuesta or 0 }} días
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/financiero/glosas/detalle/{{ g.numero_glosa }}"
+                           class="btn-ax-table">
+                            <i class="fa-solid fa-eye"></i>
+                            Ver glosa
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Resumen rápido de glosas #}
+    <div style="display:grid; grid-template-columns:repeat(3,1fr);
+                gap:12px; margin-top:18px;">
+        <div style="background:var(--danger-soft); border-radius:14px;
+                    padding:14px; text-align:center;">
+            <strong style="display:block; font-size:20px; color:#dc2626;">
+                {{ glosas | selectattr("estado","eq","recibida") | list | length }}
+            </strong>
+            <span style="font-size:12px; color:#dc2626; font-weight:600;">
+                Sin responder
+            </span>
+        </div>
+        <div style="background:var(--warn-soft); border-radius:14px;
+                    padding:14px; text-align:center;">
+            <strong style="display:block; font-size:20px; color:#d97706;">
+                {{ glosas | selectattr("estado","eq","en_respuesta") | list | length }}
+            </strong>
+            <span style="font-size:12px; color:#d97706; font-weight:600;">
+                En respuesta
+            </span>
+        </div>
+        <div style="background:var(--accent-soft); border-radius:14px;
+                    padding:14px; text-align:center;">
+            <strong style="display:block; font-size:20px; color:#16a34a;">
+                {{ glosas | selectattr("estado","eq","levantada") | list | length }}
+            </strong>
+            <span style="font-size:12px; color:#16a34a; font-weight:600;">
+                Levantadas
+            </span>
+        </div>
+    </div>
+
+    {% else %}
+    <div style="text-align:center; padding:28px; color:var(--text-faint);">
+        <i class="fa-solid fa-circle-check"
+           style="font-size:28px; display:block; margin-bottom:10px; color:#10b981;"></i>
+        <strong style="color:var(--text-soft);">Sin glosas registradas</strong>
+        <p style="margin:6px 0 0; font-size:13px;">
+            Esta factura no tiene glosas asociadas
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+
 {# ── MODAL REGISTRAR PAGO ──────────────────────── #}
 <div class="modal-overlay" id="modalPago">
     <div class="modal-financiero">

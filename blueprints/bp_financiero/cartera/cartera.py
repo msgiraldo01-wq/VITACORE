@@ -17,6 +17,8 @@ from flask import Blueprint, render_template, request, jsonify, session, Respons
 from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from repositories.fin_glosas_repo import obtener_glosas_por_factura
+
 
 bp_financiero_cartera = Blueprint("cartera", __name__, url_prefix="/financiero/cartera")
 
@@ -43,6 +45,7 @@ def index():
 def detalle(numero_factura):
     factura = obtener_factura_por_numero(numero_factura)
     pagos   = obtener_pagos_por_factura(numero_factura)
+    glosas  = obtener_glosas_por_factura(numero_factura)
 
     if not factura:
         return "Factura no encontrada", 404
@@ -51,6 +54,7 @@ def detalle(numero_factura):
         "financiero/cartera/cartera_detalle.html",
         data=factura,
         pagos=pagos,
+        glosas=glosas,
     )
 
 
