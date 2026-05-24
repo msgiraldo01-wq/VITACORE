@@ -17,6 +17,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import date
 
+
 bp_financiero_glosas = Blueprint(
     "bp_financiero_glosas",
     __name__,
@@ -249,5 +250,78 @@ def api_nueva_glosa():
             "registrado_por": session.get("user", {}).get("username", "Sistema"),
         })
         return jsonify({"ok": True, "numero_glosa": resultado})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --------------------------------------------------
+# ANÁLISIS IA DE GLOSA (Google Gemini)
+# --------------------------------------------------
+@bp_financiero_glosas.route("/analizar-ia", methods=["POST"])
+def api_analizar_ia():
+    import json
+    from groq import Groq
+    from flask import current_app
+
+    body = request.get_json(silent=True) or {}
+
+    numero_glosa   = body.get("numero_glosa", "")
+    numero_factura = body.get("numero_factura", "")
+    eps            = body.get("eps", "")
+    tipo_glosa     = body.get("tipo_glosa", "")
+    valor_glosado  = body.get("valor_glosado", 0)
+    causal         = body.get("causal", "No especificada")
+    dias_respuesta = body.get("dias_respuesta", 0)
+
+    prompt = f"""Eres un experto en auditoría médica y cartera hospitalaria en Colombia, con amplio conocimiento de la normativa del sector salud (Res. 3047/2008, Res. 4747/2015, Circular 030, Ley 1438/2011, Decreto 4747/2007).
+
+Analiza esta glosa hospitalaria y responde ÚNICAMENTE en formato JSON válido, sin texto adicional, sin bloques de código markdown:
+
+DATOS DE LA GLOSA:
+- Número: {numero_glosa}
+- Factura: {numero_factura}
+- EPS: {eps}
+- Tipo de glosa: {tipo_glosa}
+- Valor glosado: ${valor_glosado:,.0f}
+- Causal EPS: {causal}
+- Días transcurridos: {dias_respuesta}
+
+Responde con este JSON exacto:
+{{
+  "probabilidad_levantamiento": 75,
+  "nivel_riesgo": "medio",
+  "respuesta_sugerida": "Texto completo de la respuesta técnica, mínimo 3 párrafos, citando normativa colombiana específica",
+  "normativa_aplicable": "Lista detallada de normas aplicables con descripción de cada una y cómo aplica al caso",
+  "carta_formal": "Texto completo de la carta formal para la EPS, con encabezado, cuerpo argumentativo y cierre profesional",
+  "recomendaciones": "Recomendaciones adicionales del auditor para fortalecer la respuesta"
+}}"""
+
+    try:
+        client = Groq(api_key=current_app.config.get("GROQ_API_KEY"))
+
+        completion = client.chat.completions.create(
+            model    = "llama-3.3-70b-versatile",
+            messages = [
+                {
+                    "role": "system",
+                    "content": "Eres un experto en auditoría médica hospitalaria colombiana. Siempre respondes ÚNICAMENTE con JSON válido, sin texto adicional."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature = 0.3,
+            max_tokens  = 2000,
+        )
+
+        texto  = completion.choices[0].message.content.strip()
+        clean  = texto.replace("```json", "").replace("```", "").strip()
+        result = json.loads(clean)
+
+        return jsonify({"ok": True, "data": result})
+
+    except json.JSONDecodeError as e:
+        return jsonify({"ok": False, "error": f"JSON inválido: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

@@ -272,7 +272,7 @@
                         <i class="fa-solid fa-arrow-up-right-from-square"
                            style="font-size:11px;"></i>
                     </a>
-                </div>
+                </div>    
                 <div class="glosa-mini">
                     <label>EPS</label>
                     <strong>{{ glosa.eps }}</strong>
@@ -384,15 +384,21 @@
                                 {% endif %}
                             </td>
                             <td>{{ r.registrado_por or "—" }}</td>
-                            <td>
-                                {% if r.soporte_url %}
-                                    <a href="{{ r.soporte_url }}" target="_blank"
-                                       class="btn-ax-table" style="padding:6px 10px; font-size:12px;">
-                                        <i class="fa-solid fa-file"></i> Ver
-                                    </a>
-                                {% else %}
-                                    —
-                                {% endif %}
+                            <td style="display:flex; gap:6px; align-items:center;">
+                                <button
+                                <td>
+                                    <button
+                                        onclick="verRespuesta({{ loop.index0 }})"
+                                    style="border:none; background:var(--brand-soft);
+                                           color:var(--brand); cursor:pointer;
+                                           font-size:13px; padding:7px 12px;
+                                           border-radius:8px; font-weight:700;
+                                           transition:.18s; display:flex;
+                                           align-items:center; gap:5px;"
+                                    onmouseover="this.style.background='var(--brand)';this.style.color='#fff';"
+                                    onmouseout="this.style.background='var(--brand-soft)';this.style.color='var(--brand)';">
+                                    <i class="fa-solid fa-eye"></i> Ver
+                                </button>
                             </td>
                         </tr>
                     {% else %}
@@ -529,6 +535,135 @@
 
 </div>
 
+{# ── MODAL VER RESPUESTA ──────────────────────── #}
+<div class="modal-overlay" id="modalVerRespuesta">
+    <div style="width:100%; max-width:680px; background:var(--surface);
+                border-radius:28px; overflow:hidden;
+                box-shadow:0 30px 80px rgba(15,23,42,.25);
+                animation:modalShow .2s ease;">
+
+        <div style="padding:26px 28px; border-bottom:1px solid var(--border);
+                    display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <h2 id="vr_titulo" style="margin:0; font-size:22px;
+                    font-weight:800; color:var(--text);">
+                    <i class="fa-solid fa-reply"
+                       style="color:var(--brand); margin-right:10px;"></i>
+                    Detalle de respuesta
+                </h2>
+                <p id="vr_subtitulo" style="margin:5px 0 0;
+                   color:var(--text-soft); font-size:13px;">
+                    Glosa {{ glosa.numero_glosa }} · {{ glosa.eps }}
+                </p>
+            </div>
+            <button onclick="cerrarVerRespuesta()"
+                    style="width:40px; height:40px; border:none;
+                           border-radius:12px; background:var(--surface-2);
+                           color:var(--text); cursor:pointer; font-size:16px;
+                           display:grid; place-items:center;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div style="padding:28px;">
+
+            {# Badge tipo #}
+            <div style="text-align:center; margin-bottom:24px;">
+                <span id="vr_badge"
+                      style="display:inline-flex; align-items:center; gap:8px;
+                             padding:8px 20px; border-radius:999px;
+                             font-size:15px; font-weight:800;">
+                </span>
+            </div>
+
+            {# Grid datos #}
+            <div style="display:grid; grid-template-columns:repeat(2,1fr);
+                        gap:12px; margin-bottom:20px;">
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Fecha
+                    </span>
+                    <strong id="vr_fecha" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Registrado por
+                    </span>
+                    <strong id="vr_registrado" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Valor propuesto
+                    </span>
+                    <strong id="vr_valor" style="font-size:18px; color:var(--brand);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Glosa
+                    </span>
+                    <strong style="font-size:15px; color:var(--text);">
+                        {{ glosa.numero_glosa }}
+                    </strong>
+                </div>
+
+            </div>
+
+            {# Descripción #}
+            <div style="background:var(--surface-2); border:1px solid var(--border);
+                        border-left:4px solid var(--brand);
+                        border-radius:14px; padding:16px; margin-bottom:16px;">
+                <span style="display:block; font-size:11px; font-weight:800;
+                             letter-spacing:.06em; text-transform:uppercase;
+                             color:var(--text-faint); margin-bottom:8px;">
+                    Descripción de la respuesta
+                </span>
+                <p id="vr_descripcion"
+                   style="margin:0; color:var(--text); font-size:14px;
+                          line-height:1.7; white-space:pre-wrap;"></p>
+            </div>
+
+            {# Soporte #}
+            <div id="vr_soporte_box" style="display:none; margin-bottom:16px;">
+                <a id="vr_soporte_link" href="#" target="_blank"
+                   class="btn-ax ghost"
+                   style="width:100%; justify-content:center; text-decoration:none;">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                    Ver soporte adjunto
+                </a>
+            </div>
+
+        </div>
+
+        <div style="padding:22px 28px; border-top:1px solid var(--border);
+                    display:flex; justify-content:flex-end; gap:12px;">
+            <button class="btn-ax ghost" onclick="cerrarVerRespuesta()">
+                Cerrar
+            </button>
+            <button class="btn-ax primary" onclick="imprimirRespuesta()">
+                <i class="fa-solid fa-print"></i>
+                Imprimir respuesta
+            </button>
+        </div>
+
+    </div>
+</div>
+
 {# ── MODAL REGISTRAR RESPUESTA ─────────────────── #}
 <div class="modal-overlay" id="modalRespuesta">
     <div class="modal-glosa">
@@ -594,13 +729,183 @@
                     <textarea rows="4" id="descripcionRespuesta"
                               placeholder="Detalle técnico y clínico de la respuesta a la glosa..."></textarea>
                 </div>
+                {# PANEL IA #}
+            <div id="panelIA" style="display:none; margin-top:20px;">
 
+                {# LOADING #}
+                <div id="iaLoading"
+                     style="display:none; text-align:center; padding:32px;">
+                    <div style="width:48px; height:48px; border-radius:50%;
+                                border:4px solid #ede9fe;
+                                border-top-color:#7c3aed;
+                                animation:spin .8s linear infinite;
+                                margin:0 auto 16px;"></div>
+                    <p style="color:#7c3aed; font-weight:700; margin:0 0 4px;">
+                        Analizando con IA...
+                    </p>
+                    <p style="color:var(--text-soft); font-size:13px; margin:0;">
+                        Revisando normativa colombiana y generando respuesta
+                    </p>
+                </div>
+
+                {# RESULTADO IA #}
+                <div id="iaResultado" style="display:none;">
+
+                    {# HEADER IA #}
+                    <div style="display:flex; align-items:center; gap:12px;
+                                padding:16px 20px; border-radius:16px;
+                                background:linear-gradient(135deg,#7c3aed22,#6d28d911);
+                                border:1px solid #7c3aed33; margin-bottom:16px;">
+                        <div style="width:42px; height:42px; border-radius:12px;
+                                    background:linear-gradient(135deg,#7c3aed,#6d28d9);
+                                    display:grid; place-items:center; flex-shrink:0;">
+                            <i class="fa-solid fa-wand-magic-sparkles"
+                               style="color:#fff; font-size:18px;"></i>
+                        </div>
+                        <div>
+                            <strong style="color:#6d28d9; font-size:14px;">
+                                Análisis VITACORE IA
+                            </strong>
+                            <p style="margin:2px 0 0; font-size:12px;
+                                      color:var(--text-soft);">
+                                Basado en normativa colombiana del sector salud
+                            </p>
+                        </div>
+                        <div id="iaProbabilidad"
+                             style="margin-left:auto; text-align:center;
+                                    padding:10px 16px; border-radius:12px;
+                                    background:#fff; border:2px solid #7c3aed;">
+                        </div>
+                    </div>
+
+                    {# TABS IA #}
+                    <div style="display:flex; gap:8px; margin-bottom:16px;
+                                border-bottom:2px solid var(--border); padding-bottom:0;">
+                        <button onclick="mostrarTab('respuesta')"
+                                id="tab-respuesta"
+                                style="padding:10px 16px; border:none;
+                                       background:none; cursor:pointer;
+                                       font-weight:700; font-size:13px;
+                                       color:#7c3aed; border-bottom:3px solid #7c3aed;
+                                       margin-bottom:-2px;">
+                            <i class="fa-solid fa-reply"></i> Respuesta sugerida
+                        </button>
+                        <button onclick="mostrarTab('normativa')"
+                                id="tab-normativa"
+                                style="padding:10px 16px; border:none;
+                                       background:none; cursor:pointer;
+                                       font-weight:700; font-size:13px;
+                                       color:var(--text-soft); border-bottom:3px solid transparent;
+                                       margin-bottom:-2px;">
+                            <i class="fa-solid fa-scale-balanced"></i> Normativa aplicable
+                        </button>
+                        <button onclick="mostrarTab('carta')"
+                                id="tab-carta"
+                                style="padding:10px 16px; border:none;
+                                       background:none; cursor:pointer;
+                                       font-weight:700; font-size:13px;
+                                       color:var(--text-soft); border-bottom:3px solid transparent;
+                                       margin-bottom:-2px;">
+                            <i class="fa-solid fa-envelope"></i> Carta formal
+                        </button>
+                    </div>
+
+                    {# TAB RESPUESTA #}
+                    <div id="content-respuesta">
+                        <div style="background:var(--surface-2);
+                                    border:1px solid var(--border);
+                                    border-left:4px solid #7c3aed;
+                                    border-radius:14px; padding:16px;
+                                    margin-bottom:12px;">
+                            <p style="margin:0 0 8px; font-size:12px;
+                                      font-weight:800; color:#7c3aed;
+                                      text-transform:uppercase; letter-spacing:.06em;">
+                                Respuesta técnica sugerida
+                            </p>
+                            <p id="iaTextoRespuesta"
+                               style="margin:0; color:var(--text);
+                                      font-size:14px; line-height:1.7;
+                                      white-space:pre-wrap;"></p>
+                        </div>
+                        <button onclick="usarRespuestaIA()"
+                                style="width:100%; padding:12px; border-radius:12px;
+                                       border:2px dashed #7c3aed;
+                                       background:transparent; color:#7c3aed;
+                                       font-weight:700; font-size:14px;
+                                       cursor:pointer; transition:.18s;"
+                                onmouseover="this.style.background='#7c3aed';this.style.color='#fff';"
+                                onmouseout="this.style.background='transparent';this.style.color='#7c3aed';">
+                            <i class="fa-solid fa-arrow-down"></i>
+                            Usar esta respuesta
+                        </button>
+                    </div>
+
+                    {# TAB NORMATIVA #}
+                    <div id="content-normativa" style="display:none;">
+                        <div style="background:var(--surface-2);
+                                    border:1px solid var(--border);
+                                    border-left:4px solid #0284c7;
+                                    border-radius:14px; padding:16px;">
+                            <p style="margin:0 0 8px; font-size:12px;
+                                      font-weight:800; color:#0284c7;
+                                      text-transform:uppercase; letter-spacing:.06em;">
+                                Normativa colombiana aplicable
+                            </p>
+                            <div id="iaTextoNormativa"
+                                 style="margin:0; color:var(--text);
+                                        font-size:14px; line-height:1.7;
+                                        white-space:pre-wrap;"></div>
+                        </div>
+                    </div>
+
+                    {# TAB CARTA #}
+                    <div id="content-carta" style="display:none;">
+                        <div style="background:var(--surface-2);
+                                    border:1px solid var(--border);
+                                    border-left:4px solid #10b981;
+                                    border-radius:14px; padding:16px;
+                                    margin-bottom:12px;">
+                            <p style="margin:0 0 8px; font-size:12px;
+                                      font-weight:800; color:#10b981;
+                                      text-transform:uppercase; letter-spacing:.06em;">
+                                Carta formal para EPS
+                            </p>
+                            <div id="iaTextoCarta"
+                                 style="margin:0; color:var(--text);
+                                        font-size:13px; line-height:1.8;
+                                        white-space:pre-wrap;
+                                        font-family: 'Courier New', monospace;"></div>
+                        </div>
+                        <button onclick="imprimirCarta()"
+                                style="width:100%; padding:12px; border-radius:12px;
+                                       border:2px dashed #10b981;
+                                       background:transparent; color:#10b981;
+                                       font-weight:700; font-size:14px;
+                                       cursor:pointer; transition:.18s;"
+                                onmouseover="this.style.background='#10b981';this.style.color='#fff';"
+                                onmouseout="this.style.background='transparent';this.style.color='#10b981';">
+                            <i class="fa-solid fa-print"></i>
+                            Imprimir carta formal
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
             </div>
         </div>
 
         <div class="modal-footer-gl">
             <button class="btn-ax ghost" onclick="cerrarModalRespuesta()">
                 Cancelar
+            </button>
+            <button class="btn-ax ghost"
+                    id="btnAnalisisIA"
+                    onclick="analizarConIA()"
+                    style="background:linear-gradient(135deg,#7c3aed,#6d28d9);
+                           color:#fff; border:none; gap:8px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                Analizar con IA
             </button>
             <button class="btn-ax primary" id="btnGuardarRespuesta" onclick="guardarRespuesta()">
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -615,6 +920,20 @@
 
 {% block extra_js %}
 <script>
+
+    const RESPUESTAS_DATA = [
+    {% for r in respuestas %}
+    {
+        fecha:      "{{ r.created_at[:10] if r.created_at else '' }}",
+        tipo:       "{{ r.tipo_respuesta }}",
+        descripcion: {{ r.descripcion | tojson }},
+        valor:      {{ r.valor_propuesto or 0 }},
+        registrado: "{{ r.registrado_por or 'Sistema' }}",
+        soporte:    "{{ r.soporte_url or '' }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
 const GLOSA_ID  = "{{ glosa.id }}";
 const GLOSA_NUM = "{{ glosa.numero_glosa }}";
 
@@ -675,5 +994,525 @@ async function guardarRespuesta(){
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar respuesta';
     }
 }
+
+// ── ANÁLISIS CON IA ───────────────────────────
+let iaData = {}; // Guarda resultado IA
+
+function mostrarTab(tab){
+    ["respuesta","normativa","carta"].forEach(t => {
+        document.getElementById(`content-${t}`).style.display = t === tab ? "block" : "none";
+        const btn = document.getElementById(`tab-${t}`);
+        btn.style.color          = t === tab ? "#7c3aed" : "var(--text-soft)";
+        btn.style.borderBottom   = t === tab ? "3px solid #7c3aed" : "3px solid transparent";
+    });
+}
+
+function usarRespuestaIA(){
+    const texto = document.getElementById("iaTextoRespuesta").textContent;
+    if(texto){
+        document.getElementById("descripcionRespuesta").value = texto;
+        Toast.show("Respuesta copiada al formulario", "success");
+    }
+}
+
+async function analizarConIA(){
+    const panel    = document.getElementById("panelIA");
+    const loading  = document.getElementById("iaLoading");
+    const resultado = document.getElementById("iaResultado");
+
+    panel.style.display    = "block";
+    loading.style.display  = "block";
+    resultado.style.display = "none";
+
+    // Scroll al panel
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    const btn = document.getElementById("btnAnalisisIA");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analizando...';
+
+    // Datos de la glosa
+    const glosaData = {
+        numero_glosa:   "{{ glosa.numero_glosa }}",
+        numero_factura: "{{ glosa.numero_factura }}",
+        eps:            "{{ glosa.eps }}",
+        tipo_glosa:     "{{ glosa.tipo_glosa }}",
+        valor_glosado:  {{ glosa.valor_glosado or 0 }},
+        causal:         "{{ glosa.causal or '' }}",
+        dias_respuesta: {{ glosa.dias_respuesta or 0 }},
+        estado:         "{{ glosa.estado }}",
+    };
+
+    const prompt = `Eres un experto en auditoría médica y cartera hospitalaria en Colombia, con amplio conocimiento de la normativa del sector salud (Res. 3047/2008, Res. 4747/2015, Circular 030, Ley 1438/2011, Decreto 4747/2007).
+
+Analiza esta glosa hospitalaria y responde ÚNICAMENTE en formato JSON válido, sin texto adicional, sin bloques de código:
+
+DATOS DE LA GLOSA:
+- Número: ${glosaData.numero_glosa}
+- Factura: ${glosaData.numero_factura}
+- EPS: ${glosaData.eps}
+- Tipo de glosa: ${glosaData.tipo_glosa}
+- Valor glosado: $${glosaData.valor_glosado.toLocaleString('es-CO')}
+- Causal EPS: ${glosaData.causal || 'No especificada'}
+- Días transcurridos: ${glosaData.dias_respuesta}
+
+Responde con este JSON exacto:
+{
+  "probabilidad_levantamiento": 75,
+  "nivel_riesgo": "medio",
+  "respuesta_sugerida": "Texto completo de la respuesta técnica aquí, mínimo 3 párrafos, citando normativa",
+  "normativa_aplicable": "Lista detallada de normas aplicables con descripción de cada una",
+  "carta_formal": "Texto completo de la carta formal para la EPS, con encabezado, cuerpo y cierre profesional",
+  "recomendaciones": "Recomendaciones adicionales del auditor"
+}`;
+
+try {
+    const response = await fetch("/financiero/glosas/analizar-ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            numero_glosa:   "{{ glosa.numero_glosa }}",
+            numero_factura: "{{ glosa.numero_factura }}",
+            eps:            "{{ glosa.eps }}",
+            tipo_glosa:     "{{ glosa.tipo_glosa }}",
+            valor_glosado:  {{ glosa.valor_glosado or 0 }},
+            causal:         "{{ glosa.causal or '' }}",
+            dias_respuesta: {{ glosa.dias_respuesta or 0 }},
+        })
+    });
+
+    const data = await response.json();
+
+    if(!data.ok){
+        throw new Error(data.error || "Error en el análisis");
+    }
+
+    const result = data.data;
+    iaData = result;
+
+    // Mostrar probabilidad
+    const prob      = result.probabilidad_levantamiento || 0;
+    const probColor = prob >= 70 ? "#10b981" : prob >= 40 ? "#f59e0b" : "#dc2626";
+    document.getElementById("iaProbabilidad").innerHTML = `
+        <div style="font-size:22px; font-weight:800; color:${probColor};">
+            ${prob}%
+        </div>
+        <div style="font-size:10px; font-weight:700; color:var(--text-soft);
+                    text-transform:uppercase; letter-spacing:.06em;">
+            Prob. éxito
+        </div>
+    `;
+
+    // Llenar tabs
+    document.getElementById("iaTextoRespuesta").textContent =
+        result.respuesta_sugerida || "Sin respuesta generada";
+    document.getElementById("iaTextoNormativa").textContent =
+        result.normativa_aplicable || "Sin normativa identificada";
+    document.getElementById("iaTextoCarta").textContent =
+        result.carta_formal || "Sin carta generada";
+
+    // Mostrar resultado
+    loading.style.display    = "none";
+    resultado.style.display  = "block";
+    mostrarTab("respuesta");
+
+    Toast.show("Análisis de IA completado", "success");
+
+} catch(e) {
+    loading.style.display = "none";
+    panel.style.display   = "none";
+    Toast.show("Error al consultar la IA: " + e.message, "error");
+} finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Analizar con IA';
+}
+}
+
+function imprimirCarta(){
+    const carta     = document.getElementById("iaTextoCarta").textContent;
+    const glosaNum  = "{{ glosa.numero_glosa }}";
+    const eps       = "{{ glosa.eps }}";
+    const factura   = "{{ glosa.numero_factura }}";
+    const ahora     = new Date();
+    const fechaImp  = ahora.toLocaleDateString("es-CO", {
+        day:"2-digit", month:"long", year:"numeric"
+    });
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carta respuesta ${glosaNum}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body {
+            font-family: 'Manrope', Arial, sans-serif;
+            font-size: 13px;
+            color: #132226;
+            background: #fff;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 20mm 20mm 16mm;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 16px;
+            border-bottom: 3px solid #0d5c63;
+            margin-bottom: 28px;
+        }
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0d5c63;
+            margin-bottom: 2px;
+        }
+        .header p { font-size:11px; color:#5e7278; font-weight:600; }
+        .fecha { text-align:right; font-size:13px; margin-bottom:24px; }
+        .destinatario {
+            margin-bottom: 28px;
+            padding: 16px;
+            background: #f4f7f8;
+            border-radius: 10px;
+            border-left: 4px solid #0d5c63;
+        }
+        .destinatario p { line-height:1.8; }
+        .ref {
+            font-weight: 800;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #e6f3f4;
+            border-radius: 8px;
+            color: #0d5c63;
+        }
+        .cuerpo {
+            white-space: pre-wrap;
+            line-height: 1.9;
+            font-size: 13px;
+            text-align: justify;
+            margin-bottom: 40px;
+        }
+        .firma {
+            margin-top: 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        .firma-item { text-align:center; }
+        .firma-linea {
+            border-top: 1.5px solid #132226;
+            margin-bottom: 8px;
+        }
+        .firma-label {
+            font-size:11px; font-weight:700;
+            color:#5e7278; text-transform:uppercase;
+        }
+        .footer {
+            margin-top:32px;
+            padding-top:12px;
+            border-top:2px solid #0d5c63;
+            display:flex;
+            justify-content:space-between;
+            font-size:10px;
+            color:#7d9096;
+        }
+        .watermark {
+            position:fixed; top:50%; left:50%;
+            transform:translate(-50%,-50%) rotate(-35deg);
+            font-size:80px; font-weight:900;
+            color:rgba(13,92,99,.04);
+            pointer-events:none; white-space:nowrap;
+        }
+        @media print {
+            body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+        }
+    </style>
+</head>
+<body>
+<div class="watermark">VITACORE</div>
+<div class="page">
+
+    <div class="header">
+        <div>
+            <h1>VITACORE</h1>
+            <p>HIS · ERP Hospitalario · Módulo Financiero</p>
+            <p style="margin-top:2px; color:#0d5c63; font-weight:700;">
+                Departamento de Auditoría Médica y Cartera
+            </p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-size:13px; font-weight:700;">${fechaImp}</p>
+            <p style="font-size:11px; color:#5e7278;">Ref: ${glosaNum}</p>
+        </div>
+    </div>
+
+    <div class="fecha">
+        Ciudad, ${fechaImp}
+    </div>
+
+    <div class="destinatario">
+        <p><strong>Señores</strong></p>
+        <p><strong>${eps}</strong></p>
+        <p>Departamento de Auditoría Médica</p>
+        <p>Ciudad</p>
+    </div>
+
+    <div class="ref">
+        <strong>REF:</strong> Respuesta formal a glosa ${glosaNum} —
+        Factura ${factura}
+    </div>
+
+    <div class="cuerpo">${carta}</div>
+
+    <div class="firma">
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Auditor médico</div>
+        </div>
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Director financiero</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>
+            <strong style="color:#0d5c63;">VITACORE HIS · ERP Hospitalario</strong><br>
+            Documento generado por IA · ${fechaImp}
+        </div>
+        <div style="text-align:right;">
+            Glosa: ${glosaNum} · Factura: ${factura}
+        </div>
+    </div>
+
+</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+    const ventana = window.open("", "_blank", "width=900,height=700");
+    ventana.document.write(html);
+    ventana.document.close();
+}
+
+// ── VER RESPUESTA ─────────────────────────────
+const RESP_COLORES = {
+    "respuesta":    { color: "#2563eb", bg: "#dbeafe", label: "Respuesta técnica" },
+    "soporte":      { color: "#d97706", bg: "#fef3c7", label: "Soporte adjunto" },
+    "conciliacion": { color: "#10b981", bg: "#dcfce7", label: "Conciliación" },
+    "nota":         { color: "#7c3aed", bg: "#ede9fe", label: "Nota interna" },
+};
+
+function verRespuesta(index){
+    const r   = RESPUESTAS_DATA[index];
+    const cfg = RESP_COLORES[r.tipo] || { color:"#0d5c63", bg:"#e6f3f4", label: r.tipo };
+
+    const badge = document.getElementById("vr_badge");
+    badge.textContent      = cfg.label;
+    badge.style.background = cfg.bg;
+    badge.style.color      = cfg.color;
+
+    document.getElementById("vr_fecha").textContent       = r.fecha;
+    document.getElementById("vr_registrado").textContent  = r.registrado;
+    document.getElementById("vr_descripcion").textContent = r.descripcion;
+    document.getElementById("vr_valor").textContent =
+        r.valor > 0 ? "$" + Number(r.valor).toLocaleString("es-CO") : "Sin valor propuesto";
+
+    const soporteBox  = document.getElementById("vr_soporte_box");
+    const soporteLink = document.getElementById("vr_soporte_link");
+    if(r.soporte){
+        soporteBox.style.display = "block";
+        soporteLink.href         = r.soporte;
+    } else {
+        soporteBox.style.display = "none";
+    }
+
+    document.getElementById("modalVerRespuesta").classList.add("active");
+}
+
+function cerrarVerRespuesta(){
+    document.getElementById("modalVerRespuesta").classList.remove("active");
+}
+
+window.addEventListener("click", e => {
+    const m = document.getElementById("modalVerRespuesta");
+    if(e.target === m) cerrarVerRespuesta();
+});
+
+function imprimirRespuesta(){
+    const fecha       = document.getElementById("vr_fecha").textContent;
+    const registrado  = document.getElementById("vr_registrado").textContent;
+    const descripcion = document.getElementById("vr_descripcion").textContent;
+    const valor       = document.getElementById("vr_valor").textContent;
+    const badge       = document.getElementById("vr_badge");
+    const tipoLabel   = badge.textContent;
+    const tipoColor   = badge.style.color;
+    const tipoBg      = badge.style.background;
+
+    const glosaNum  = "{{ glosa.numero_glosa }}";
+    const glosaEps  = "{{ glosa.eps }}";
+    const glosaTipo = "{{ glosa.tipo_glosa }}";
+    const glosaCausal = "{{ glosa.causal or 'No especificada' }}";
+
+    const ahora    = new Date();
+    const fechaImp = ahora.toLocaleDateString("es-CO", {
+        day:"2-digit", month:"long", year:"numeric"
+    });
+    const horaImp = ahora.toLocaleTimeString("es-CO", {
+        hour:"2-digit", minute:"2-digit"
+    });
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Respuesta ${glosaNum} · VITACORE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Manrope',Arial,sans-serif; font-size:13px; color:#132226; }
+        .page { width:210mm; min-height:297mm; margin:0 auto; padding:18mm 18mm 14mm; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start;
+                  padding-bottom:16px; border-bottom:3px solid #0d5c63; margin-bottom:24px; }
+        .header h1 { font-size:26px; font-weight:800; color:#0d5c63; margin-bottom:2px; }
+        .header p  { font-size:11px; color:#5e7278; font-weight:600; }
+        .badge { display:inline-flex; align-items:center; padding:8px 18px;
+                 border-radius:999px; font-size:14px; font-weight:800;
+                 background:${tipoBg}; color:${tipoColor};
+                 border:2px solid ${tipoColor}33; margin-bottom:22px; }
+        .section-title { font-size:11px; font-weight:800; letter-spacing:.1em;
+                         text-transform:uppercase; color:#0d5c63; margin-bottom:12px;
+                         padding-bottom:6px; border-bottom:1px solid #d9e4e7; }
+        .data-grid { display:grid; grid-template-columns:repeat(2,1fr);
+                     gap:12px; margin-bottom:20px; }
+        .data-item { background:#f4f7f8; border:1px solid #d9e4e7;
+                     border-radius:10px; padding:12px 14px; }
+        .data-item .label { font-size:10px; font-weight:800; letter-spacing:.08em;
+                            text-transform:uppercase; color:#7d9096;
+                            margin-bottom:4px; display:block; }
+        .data-item .value { font-size:14px; font-weight:700; color:#132226; }
+        .data-item.full { grid-column:1/-1; }
+        .respuesta-box { background:#f4f7f8; border:1px solid #d9e4e7;
+                         border-left:4px solid ${tipoColor}; border-radius:10px;
+                         padding:16px; margin-bottom:20px; }
+        .respuesta-box p { line-height:1.8; white-space:pre-wrap; font-size:13px; }
+        .glosa-info { background:#e6f3f4; border:1px solid #0d5c6333;
+                      border-radius:10px; padding:14px 16px; margin-bottom:24px; }
+        .glosa-info p { font-size:13px; line-height:1.6; color:#132226; }
+        .firmas { display:grid; grid-template-columns:repeat(2,1fr);
+                  gap:40px; margin-top:48px; margin-bottom:20px; }
+        .firma-item { text-align:center; }
+        .firma-linea { border-top:1.5px solid #132226; margin-bottom:8px; }
+        .firma-label { font-size:11px; font-weight:700; color:#5e7278;
+                       text-transform:uppercase; letter-spacing:.06em; }
+        .footer { border-top:2px solid #0d5c63; padding-top:12px; margin-top:20px;
+                  display:flex; justify-content:space-between; }
+        .footer p { font-size:10px; color:#7d9096; }
+        .watermark { position:fixed; top:50%; left:50%;
+                     transform:translate(-50%,-50%) rotate(-35deg);
+                     font-size:80px; font-weight:900; color:rgba(13,92,99,.04);
+                     pointer-events:none; white-space:nowrap; }
+        @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+    </style>
+</head>
+<body>
+<div class="watermark">VITACORE</div>
+<div class="page">
+
+    <div class="header">
+        <div>
+            <h1>VITACORE</h1>
+            <p>HIS · ERP Hospitalario · Auditoría Médica</p>
+            <p style="margin-top:4px; color:#0d5c63; font-weight:700;">
+                Respuesta formal a glosa hospitalaria
+            </p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-size:13px; font-weight:700;">${glosaNum}</p>
+            <p style="font-size:11px; color:#5e7278;">Impreso: ${fechaImp} ${horaImp}</p>
+        </div>
+    </div>
+
+    <div class="badge">${tipoLabel}</div>
+
+    <p class="section-title">Información de la glosa</p>
+    <div class="data-grid">
+        <div class="data-item">
+            <span class="label">Número glosa</span>
+            <span class="value">${glosaNum}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">EPS</span>
+            <span class="value">${glosaEps}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Tipo de glosa</span>
+            <span class="value">${glosaTipo}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Fecha respuesta</span>
+            <span class="value">${fecha}</span>
+        </div>
+        <div class="data-item full">
+            <span class="label">Causal EPS</span>
+            <span class="value">${glosaCausal}</span>
+        </div>
+    </div>
+
+    <p class="section-title">Respuesta</p>
+    <div class="respuesta-box">
+        <p>${descripcion}</p>
+    </div>
+
+    ${valor !== "Sin valor propuesto" ? `
+    <div class="glosa-info">
+        <p><strong>Valor propuesto en conciliación:</strong> ${valor}</p>
+    </div>` : ""}
+
+    <p class="section-title">Firmas</p>
+    <div class="firmas">
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Elaborado por</div>
+            <div style="font-size:12px; font-weight:800; color:#132226; margin-top:2px;">
+                ${registrado}
+            </div>
+        </div>
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Auditor médico</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>
+            <p style="font-size:11px; font-weight:800; color:#0d5c63;">
+                VITACORE HIS · ERP Hospitalario
+            </p>
+            <p>Documento generado: ${fechaImp} ${horaImp}</p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-weight:700;">${glosaNum}</p>
+            <p>Módulo: Auditoría médica · Glosas</p>
+        </div>
+    </div>
+
+</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+    const ventana = window.open("", "_blank", "width=900,height=700");
+    ventana.document.write(html);
+    ventana.document.close();
+}
+
 </script>
 {% endblock %}

@@ -491,6 +491,24 @@
                 </div>
                 {% endif %}
 
+                {% for g in glosas %}
+                <div class="timeline-item">
+                    <div class="timeline-dot {{ 'dot-red' if g.estado == 'recibida' else 'dot-orange' if g.estado == 'en_respuesta' else 'dot-green' if g.estado == 'levantada' else 'dot-blue' }}"></div>
+                    <div class="timeline-content">
+                        <strong>{{ g.numero_glosa }}</strong>
+                        <p>{{ g.tipo_glosa }} · {{ g.estado | replace('_',' ') | title }}</p>
+                        <small>
+                            {{ g.fecha_glosa or "—" }}
+                            <a href="/financiero/glosas/detalle/{{ g.numero_glosa }}"
+                               style="margin-left:8px; color:var(--brand);
+                                      font-weight:700; text-decoration:none;">
+                                Ver glosa →
+                            </a>
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+
                 {% for pago in pagos %}
                 <div class="timeline-item">
                     <div class="timeline-dot dot-blue"></div>
@@ -705,6 +723,458 @@
     {% endif %}
 </div>
 
+{# DOCUMENTOS DE CARTERA #}
+<div class="cartera-card">
+    <div style="display:flex; justify-content:space-between;
+                align-items:center; margin-bottom:4px;">
+        <p class="cartera-section-title">
+            <i class="fa-solid fa-file-invoice"
+               style="color:var(--brand); margin-right:8px;"></i>
+            Documentos de cartera
+        </p>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <a href="/financiero/cartera/documentos"
+               style="font-size:13px; color:var(--brand);
+                      font-weight:700; text-decoration:none;">
+                Ver todos →
+            </a>
+            <button class="btn-ax primary"
+                    onclick="abrirModalDocumento()"
+                    style="min-height:36px; padding:0 14px; font-size:13px;">
+                <i class="fa-solid fa-plus"></i>
+                Nuevo documento
+            </button>
+        </div>
+    </div>
+    <p class="cartera-section-sub">
+        NC, ND, RC, DEV, ACL y CRU asociados a esta factura
+    </p>
+
+    {# RESUMEN POR TIPO #}
+    <div style="display:grid; grid-template-columns:repeat(6,1fr);
+                gap:10px; margin-bottom:20px;">
+
+        {% set tipos = [
+            ("NC", "Nota crédito",    "#7c3aed", "#ede9fe"),
+            ("ND", "Nota débito",     "#dc2626", "#fee2e2"),
+            ("RC", "Recibo caja",     "#10b981", "#dcfce7"),
+            ("DEV","Devolución",      "#f59e0b", "#fef3c7"),
+            ("ACL","Aclaración",      "#0284c7", "#dbeafe"),
+            ("CRU","Cruce",           "#0d5c63", "#e6f3f4"),
+        ] %}
+
+        {% for tipo, label, color, bg in tipos %}
+        {% set count = documentos | selectattr("tipo_documento","eq",tipo) | list | length %}
+        <div style="background:{{ bg }}; border-radius:14px;
+                    padding:12px; text-align:center;
+                    border:1px solid {{ color }}22;">
+            <strong style="display:block; font-size:18px;
+                           color:{{ color }}; font-weight:800;">
+                {{ count }}
+            </strong>
+            <span style="font-size:11px; color:{{ color }};
+                         font-weight:700;">{{ tipo }}</span>
+            <span style="display:block; font-size:10px;
+                         color:{{ color }}88;">{{ label }}</span>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    {# TABLA DE DOCUMENTOS #}
+    {% if documentos %}
+    <div style="overflow-x:auto;">
+        <table class="tabla-cartera">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Referencia</th>
+                    <th>Valor</th>
+                    <th>Afecta saldo</th>
+                    <th>Soporte</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for doc in documentos %}
+                {% if doc.tipo_documento == "NC" %}
+                    {% set dc = "#7c3aed" %} {% set db = "#ede9fe" %}
+                {% elif doc.tipo_documento == "ND" %}
+                    {% set dc = "#dc2626" %} {% set db = "#fee2e2" %}
+                {% elif doc.tipo_documento == "RC" %}
+                    {% set dc = "#10b981" %} {% set db = "#dcfce7" %}
+                {% elif doc.tipo_documento == "DEV" %}
+                    {% set dc = "#f59e0b" %} {% set db = "#fef3c7" %}
+                {% elif doc.tipo_documento == "ACL" %}
+                    {% set dc = "#0284c7" %} {% set db = "#dbeafe" %}
+                {% else %}
+                    {% set dc = "#0d5c63" %} {% set db = "#e6f3f4" %}
+                {% endif %}
+                <tr>
+                    <td><strong>{{ doc.numero_documento }}</strong></td>
+                    <td>
+                        <span style="display:inline-flex; align-items:center;
+                                     padding:4px 10px; border-radius:999px;
+                                     font-size:12px; font-weight:800;
+                                     background:{{ db }}; color:{{ dc }};">
+                            {{ doc.tipo_documento }}
+                        </span>
+                    </td>
+                    <td>{{ doc.fecha_documento }}</td>
+                    <td style="max-width:200px; white-space:normal; font-size:13px;">
+                        {{ doc.descripcion or "—" }}
+                    </td>
+                    <td style="font-size:13px;">
+                        {{ doc.referencia_externa or "—" }}
+                    </td>
+                    <td>
+                        <strong style="color:
+                            {{ '#10b981' if doc.tipo_documento in ['NC','RC','CRU'] else '#dc2626' }};">
+                            {% if doc.tipo_documento in ['NC','RC','CRU','DEV'] %}—{% endif %}
+                            ${{ "{:,.0f}".format(doc.valor or 0).replace(",",".") }}
+                        </strong>
+                    </td>
+                    <td style="text-align:center;">
+                        {% if doc.afecta_saldo %}
+                            <i class="fa-solid fa-circle-check"
+                               style="color:#10b981;"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-minus"
+                               style="color:var(--text-faint);"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if doc.soporte_url %}
+                            <a href="{{ doc.soporte_url }}" target="_blank"
+                               class="btn-ax-table"
+                               style="padding:6px 10px; font-size:12px;">
+                                <i class="fa-solid fa-file"></i> Ver
+                            </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="display:flex; gap:6px; align-items:center;">
+                        <button
+                            onclick="verDocumento(
+                                '{{ doc.numero_documento }}',
+                                '{{ doc.tipo_documento }}',
+                                '{{ doc.fecha_documento }}',
+                                '{{ doc.eps }}',
+                                '{{ doc.numero_factura }}',
+                                {{ doc.valor or 0 }},
+                                '{{ doc.descripcion or "" }}',
+                                '{{ doc.referencia_externa or "" }}',
+                                {{ 'true' if doc.afecta_saldo else 'false' }},
+                                '{{ doc.registrado_por or "" }}',
+                                '{{ doc.created_at[:10] if doc.created_at else "" }}',
+                                '{{ doc.soporte_url or "" }}'
+                            )"
+                            style="border:none; background:var(--brand-soft);
+                                   color:var(--brand); cursor:pointer;
+                                   font-size:13px; padding:7px 12px;
+                                   border-radius:8px; font-weight:700;
+                                   transition:.18s; display:flex;
+                                   align-items:center; gap:5px;"
+                            onmouseover="this.style.background='var(--brand)';this.style.color='#fff';"
+                            onmouseout="this.style.background='var(--brand-soft)';this.style.color='var(--brand)';">
+                            <i class="fa-solid fa-eye"></i> Ver
+                        </button>
+                        <button onclick="anularDocumento('{{ doc.numero_documento }}')"
+                                style="border:none; background:none;
+                                       color:var(--text-faint); cursor:pointer;
+                                       font-size:13px; padding:7px 10px;
+                                       border-radius:8px; transition:.18s;"
+                                title="Anular documento"
+                                onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';"
+                                onmouseout="this.style.background='none';this.style.color='var(--text-faint)';">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:28px; color:var(--text-faint);">
+        <i class="fa-solid fa-file-circle-plus"
+           style="font-size:28px; display:block;
+                  margin-bottom:10px; color:var(--brand);"></i>
+        <strong style="color:var(--text-soft);">
+            Sin documentos registrados
+        </strong>
+        <p style="margin:6px 0 0; font-size:13px;">
+            Registra NC, ND, RC u otros documentos para esta factura
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{# ── MODAL NUEVO DOCUMENTO ────────────────────── #}
+<div class="modal-overlay" id="modalDocumento">
+    <div class="modal-financiero">
+
+        <div class="modal-header-fin">
+            <div>
+                <h2>
+                    <i class="fa-solid fa-file-invoice"
+                       style="color:var(--brand); margin-right:10px;"></i>
+                    Nuevo documento
+                </h2>
+                <p>Registrar NC, ND, RC, DEV, ACL o CRU para {{ data.numero_factura }}</p>
+            </div>
+            <button class="modal-close" onclick="cerrarModalDocumento()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-body-fin">
+            <div class="form-grid-fin">
+
+                <div class="form-group-fin">
+                    <label>Factura</label>
+                    <input type="text" value="{{ data.numero_factura }}" readonly>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>EPS</label>
+                    <input type="text" value="{{ data.eps }}" readonly>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Tipo de documento *</label>
+                    <select id="tipoDocumento">
+                        <option value="">Seleccionar...</option>
+                        <option value="NC">NC — Nota crédito</option>
+                        <option value="ND">ND — Nota débito</option>
+                        <option value="RC">RC — Recibo de caja</option>
+                        <option value="DEV">DEV — Devolución</option>
+                        <option value="ACL">ACL — Aclaración</option>
+                        <option value="CRU">CRU — Cruce de cuentas</option>
+                    </select>
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Fecha documento *</label>
+                    <input type="date" id="fechaDocumento">
+                </div>
+
+                <div class="form-group-fin">
+                    <label>Valor</label>
+                    <input type="number" id="valorDocumento"
+                           placeholder="0" min="0">
+                </div>
+
+                <div class="form-group-fin">
+                    <label>¿Afecta saldo?</label>
+                    <select id="afectaSaldo">
+                        <option value="true">Sí — afecta saldo</option>
+                        <option value="false">No — solo informativo</option>
+                    </select>
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>Referencia externa</label>
+                    <input type="text" id="referenciaDocumento"
+                           placeholder="Número de referencia EPS / banco">
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>Descripción</label>
+                    <textarea rows="3" id="descripcionDocumento"
+                              placeholder="Detalle del documento..."></textarea>
+                </div>
+
+                <div class="form-group-fin full">
+                    <label>
+                        <i class="fa-solid fa-paperclip"
+                           style="margin-right:6px;"></i>
+                        Adjuntar soporte
+                    </label>
+                    <input type="file" id="soporteDocumento"
+                           accept=".pdf,.png,.jpg,.jpeg,.xml"
+                           style="padding:10px 16px;">
+                    <small style="color:var(--text-faint);
+                                  margin-top:6px; display:block;">
+                        PDF, PNG, JPG, XML · Máx. 5MB
+                    </small>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-footer-fin">
+            <button class="btn-ax ghost" onclick="cerrarModalDocumento()">
+                Cancelar
+            </button>
+            <button class="btn-ax primary"
+                    id="btnGuardarDocumento"
+                    onclick="guardarDocumento()">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Guardar
+            </button>
+        </div>
+
+    </div>
+</div>
+
+{# ── MODAL VER DOCUMENTO ──────────────────────── #}
+<div class="modal-overlay" id="modalVerDocumento">
+    <div class="modal-financiero" style="max-width:620px;">
+
+        <div class="modal-header-fin">
+            <div>
+                <h2 id="vd_titulo">
+                    <i class="fa-solid fa-file-invoice"
+                       style="color:var(--brand); margin-right:10px;"></i>
+                    Detalle del documento
+                </h2>
+                <p id="vd_subtitulo">Información completa del documento de cartera</p>
+            </div>
+            <button class="modal-close" onclick="cerrarVerDocumento()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="modal-body-fin">
+
+            {# BADGE TIPO #}
+            <div style="text-align:center; margin-bottom:24px;">
+                <span id="vd_badge"
+                      style="display:inline-flex; align-items:center; gap:8px;
+                             padding:10px 24px; border-radius:999px;
+                             font-size:18px; font-weight:800;">
+                </span>
+            </div>
+
+            {# GRID DE DATOS #}
+            <div style="display:grid; grid-template-columns:repeat(2,1fr);
+                        gap:14px; margin-bottom:20px;">
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Número documento
+                    </span>
+                    <strong id="vd_numero" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Fecha documento
+                    </span>
+                    <strong id="vd_fecha" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        EPS
+                    </span>
+                    <strong id="vd_eps" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Factura
+                    </span>
+                    <strong id="vd_factura" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Valor
+                    </span>
+                    <strong id="vd_valor"
+                            style="font-size:20px; color:var(--brand);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Afecta saldo
+                    </span>
+                    <strong id="vd_afecta" style="font-size:15px;"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Referencia externa
+                    </span>
+                    <strong id="vd_referencia" style="font-size:14px; color:var(--text);"></strong>
+                </div>
+
+                <div style="background:var(--surface-2); border:1px solid var(--border);
+                            border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800;
+                                 letter-spacing:.06em; text-transform:uppercase;
+                                 color:var(--text-faint); margin-bottom:6px;">
+                        Registrado por
+                    </span>
+                    <strong id="vd_registrado" style="font-size:14px; color:var(--text);"></strong>
+                </div>
+
+            </div>
+
+            {# DESCRIPCIÓN #}
+            <div style="background:var(--surface-2); border:1px solid var(--border);
+                        border-radius:14px; padding:16px; margin-bottom:16px;">
+                <span style="display:block; font-size:11px; font-weight:800;
+                             letter-spacing:.06em; text-transform:uppercase;
+                             color:var(--text-faint); margin-bottom:8px;">
+                    Descripción
+                </span>
+                <p id="vd_descripcion"
+                   style="margin:0; color:var(--text); font-size:14px;
+                          line-height:1.6;"></p>
+            </div>
+
+            {# SOPORTE #}
+            <div id="vd_soporte_box" style="display:none;">
+                <a id="vd_soporte_link" href="#" target="_blank"
+                   class="btn-ax primary"
+                   style="width:100%; justify-content:center;">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                    Ver soporte adjunto
+                </a>
+            </div>
+
+        </div>
+
+        <div class="modal-footer-fin">
+            <button class="btn-ax ghost" onclick="cerrarVerDocumento()">
+                Cerrar
+            </button>
+            <button class="btn-ax primary"
+                    onclick="imprimirDocumento()"
+                    style="display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-print"></i>
+                Imprimir documento
+            </button>
+        </div>
+
+    </div>
+</div>
 
 {# ── MODAL REGISTRAR PAGO ──────────────────────── #}
 <div class="modal-overlay" id="modalPago">
@@ -889,6 +1359,564 @@ async function guardarPago(){
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar pago';
     }
+}
+
+// ── DOCUMENTOS DE CARTERA ─────────────────────
+function abrirModalDocumento(){
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("fechaDocumento").value = hoy;
+    document.getElementById("modalDocumento").classList.add("active");
+}
+
+function cerrarModalDocumento(){
+    document.getElementById("modalDocumento").classList.remove("active");
+}
+
+async function guardarDocumento(){
+    const tipo  = document.getElementById("tipoDocumento").value;
+    const valor = document.getElementById("valorDocumento").value;
+    const fecha = document.getElementById("fechaDocumento").value;
+
+    if(!tipo || !fecha){
+        Toast.show("Selecciona tipo y fecha del documento", "warning");
+        return;
+    }
+
+    const btn = document.getElementById("btnGuardarDocumento");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    const formData = new FormData();
+    formData.append("factura_id",         FACTURA_ID);
+    formData.append("numero_factura",     FACTURA_NUM);
+    formData.append("eps",                "{{ data.eps }}");
+    formData.append("tipo_documento",     tipo);
+    formData.append("valor",              valor || 0);
+    formData.append("fecha_documento",    fecha);
+    formData.append("descripcion",        document.getElementById("descripcionDocumento").value);
+    formData.append("referencia_externa", document.getElementById("referenciaDocumento").value);
+    formData.append("afecta_saldo",       document.getElementById("afectaSaldo").value);
+
+    const soporte = document.getElementById("soporteDocumento").files[0];
+    if(soporte) formData.append("soporte", soporte);
+
+    try {
+        const res    = await fetch("/financiero/cartera/registrar-documento", {
+            method: "POST", body: formData
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show(`Documento ${result.numero_documento} registrado`, "success");
+            cerrarModalDocumento();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
+    }
+}
+
+async function anularDocumento(numeroDocumento){
+    const confirmar = confirm(
+        `¿Seguro que deseas anular el documento ${numeroDocumento}?\nEsta acción no se puede deshacer.`
+    );
+    if(!confirmar) return;
+
+    try {
+        const res    = await fetch("/financiero/cartera/anular-documento", {
+            method:  "POST",
+            headers: {"Content-Type": "application/json"},
+            body:    JSON.stringify({numero_documento: numeroDocumento})
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show("Documento anulado correctamente", "success");
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+    }
+}
+
+// Colores por tipo de documento
+const DOC_COLORES = {
+    "NC":  { color: "#7c3aed", bg: "#ede9fe", label: "Nota crédito" },
+    "ND":  { color: "#dc2626", bg: "#fee2e2", label: "Nota débito" },
+    "RC":  { color: "#10b981", bg: "#dcfce7", label: "Recibo de caja" },
+    "DEV": { color: "#f59e0b", bg: "#fef3c7", label: "Devolución" },
+    "ACL": { color: "#0284c7", bg: "#dbeafe", label: "Aclaración" },
+    "CRU": { color: "#0d5c63", bg: "#e6f3f4", label: "Cruce de cuentas" },
+};
+
+function verDocumento(numero, tipo, fecha, eps, factura,
+                      valor, descripcion, referencia,
+                      afectaSaldo, registradoPor, createdAt, soporteUrl){
+
+    const cfg = DOC_COLORES[tipo] || { color:"#0d5c63", bg:"#e6f3f4", label: tipo };
+
+    // Badge
+    const badge = document.getElementById("vd_badge");
+    badge.textContent = `${tipo} — ${cfg.label}`;
+    badge.style.background = cfg.bg;
+    badge.style.color      = cfg.color;
+
+    // Título
+    document.getElementById("vd_titulo").innerHTML =
+        `<i class="fa-solid fa-file-invoice"
+            style="color:${cfg.color}; margin-right:10px;"></i>
+         ${numero}`;
+
+    document.getElementById("vd_subtitulo").textContent =
+        `Documento registrado el ${createdAt}`;
+
+    // Datos
+    document.getElementById("vd_numero").textContent     = numero;
+    document.getElementById("vd_fecha").textContent      = fecha;
+    document.getElementById("vd_eps").textContent        = eps;
+    document.getElementById("vd_factura").textContent    = factura;
+    document.getElementById("vd_referencia").textContent = referencia || "—";
+    document.getElementById("vd_registrado").textContent = registradoPor || "Sistema";
+    document.getElementById("vd_descripcion").textContent = descripcion || "Sin descripción";
+
+    // Valor formateado
+    const valorFmt = "$" + Number(valor).toLocaleString("es-CO");
+    document.getElementById("vd_valor").textContent  = valorFmt;
+    document.getElementById("vd_valor").style.color  = cfg.color;
+
+    // Afecta saldo
+    const afecta = document.getElementById("vd_afecta");
+    if(afectaSaldo){
+        afecta.innerHTML =
+            '<i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i>' +
+            '<span style="color:#10b981;">Sí — afecta saldo</span>';
+    } else {
+        afecta.innerHTML =
+            '<i class="fa-solid fa-circle-minus" style="color:var(--text-faint); margin-right:6px;"></i>' +
+            '<span style="color:var(--text-soft);">No — solo informativo</span>';
+    }
+
+    // Soporte
+    const soporteBox  = document.getElementById("vd_soporte_box");
+    const soporteLink = document.getElementById("vd_soporte_link");
+    if(soporteUrl){
+        soporteBox.style.display  = "block";
+        soporteLink.href          = soporteUrl;
+    } else {
+        soporteBox.style.display  = "none";
+    }
+
+    // Abrir modal
+    document.getElementById("modalVerDocumento").classList.add("active");
+}
+
+function cerrarVerDocumento(){
+    document.getElementById("modalVerDocumento").classList.remove("active");
+}
+
+// Cerrar al click fuera
+window.addEventListener("click", e => {
+    const m = document.getElementById("modalVerDocumento");
+    if(e.target === m) cerrarVerDocumento();
+});
+
+
+function imprimirDocumento(){
+    // Recoger datos actuales del modal
+    const numero      = document.getElementById("vd_numero").textContent;
+    const fecha       = document.getElementById("vd_fecha").textContent;
+    const eps         = document.getElementById("vd_eps").textContent;
+    const factura     = document.getElementById("vd_factura").textContent;
+    const valor       = document.getElementById("vd_valor").textContent;
+    const descripcion = document.getElementById("vd_descripcion").textContent;
+    const referencia  = document.getElementById("vd_referencia").textContent;
+    const registrado  = document.getElementById("vd_registrado").textContent;
+    const badge       = document.getElementById("vd_badge");
+    const tipoLabel   = badge.textContent;
+    const tipoColor   = badge.style.color;
+    const tipoBg      = badge.style.background;
+
+    // Fecha de impresión
+    const ahora    = new Date();
+    const fechaImp = ahora.toLocaleDateString("es-CO", {
+        day:"2-digit", month:"long", year:"numeric"
+    });
+    const horaImp  = ahora.toLocaleTimeString("es-CO", {
+        hour:"2-digit", minute:"2-digit"
+    });
+
+    // Determinar si afecta saldo
+    const afectaEl  = document.getElementById("vd_afecta");
+    const afectaTxt = afectaEl ? afectaEl.innerText : "—";
+
+    // Soporte
+    const soporteUrl  = document.getElementById("vd_soporte_link").href;
+    const tieneSoporte = soporteUrl && soporteUrl !== "#" && soporteUrl !== window.location.href;
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>${numero} · VITACORE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Manrope', Arial, sans-serif;
+            background: #fff;
+            color: #132226;
+            font-size: 13px;
+            padding: 0;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 16mm 16mm 12mm;
+            position: relative;
+        }
+
+        /* MEMBRETE */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 18px;
+            border-bottom: 3px solid #0d5c63;
+            margin-bottom: 24px;
+        }
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0d5c63;
+            letter-spacing: -.03em;
+            margin-bottom: 2px;
+        }
+        .header-left p {
+            font-size: 11px;
+            color: #5e7278;
+            font-weight: 600;
+        }
+        .header-right {
+            text-align: right;
+        }
+        .header-right .doc-number {
+            font-size: 22px;
+            font-weight: 800;
+            color: #132226;
+        }
+        .header-right .doc-date {
+            font-size: 11px;
+            color: #5e7278;
+            margin-top: 4px;
+        }
+
+        /* BADGE TIPO */
+        .tipo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 800;
+            background: ${tipoBg};
+            color: ${tipoColor};
+            margin-bottom: 24px;
+            border: 2px solid ${tipoColor}33;
+        }
+
+        /* SECCIÓN */
+        .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: #0d5c63;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #d9e4e7;
+        }
+
+        /* GRID DATOS */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .data-item {
+            background: #f4f7f8;
+            border: 1px solid #d9e4e7;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .data-item .label {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #7d9096;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .data-item .value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #132226;
+        }
+        .data-item.full {
+            grid-column: 1 / -1;
+        }
+        .data-item .value.highlight {
+            font-size: 20px;
+            color: ${tipoColor};
+        }
+
+        /* DESCRIPCIÓN */
+        .descripcion-box {
+            background: #f4f7f8;
+            border: 1px solid #d9e4e7;
+            border-left: 4px solid ${tipoColor};
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+        }
+        .descripcion-box p {
+            line-height: 1.6;
+            color: #132226;
+        }
+
+        /* EFECTOS */
+        .efecto-box {
+            background: #e6f3f4;
+            border: 1px solid #0d5c6333;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .efecto-box .icon {
+            font-size: 24px;
+            color: #0d5c63;
+        }
+        .efecto-box p {
+            font-size: 13px;
+            color: #132226;
+            line-height: 1.5;
+        }
+        .efecto-box strong { color: #0d5c63; }
+
+        /* FIRMAS */
+        .firmas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 48px;
+            margin-bottom: 24px;
+        }
+        .firma-item {
+            text-align: center;
+        }
+        .firma-linea {
+            border-top: 1.5px solid #132226;
+            margin-bottom: 8px;
+        }
+        .firma-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #5e7278;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .firma-nombre {
+            font-size: 12px;
+            font-weight: 800;
+            color: #132226;
+            margin-top: 2px;
+        }
+
+        /* FOOTER */
+        .footer {
+            border-top: 2px solid #0d5c63;
+            padding-top: 12px;
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .footer p {
+            font-size: 10px;
+            color: #7d9096;
+        }
+        .footer .vitacore {
+            font-size: 11px;
+            font-weight: 800;
+            color: #0d5c63;
+        }
+
+        /* MARCA DE AGUA */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(13,92,99,.04);
+            letter-spacing: .1em;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 0;
+        }
+
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { padding: 12mm; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="watermark">VITACORE</div>
+
+<div class="page">
+
+    <!-- MEMBRETE -->
+    <div class="header">
+        <div class="header-left">
+            <h1>VITACORE</h1>
+            <p>HIS · ERP Hospitalario · Módulo Financiero</p>
+            <p style="margin-top:4px; color:#0d5c63; font-weight:700;">
+                Sistema de Información Hospitalaria
+            </p>
+        </div>
+        <div class="header-right">
+            <div class="doc-number">${numero}</div>
+            <div class="doc-date">
+                Impreso: ${fechaImp} · ${horaImp}
+            </div>
+            <div class="doc-date" style="margin-top:2px;">
+                Registrado por: <strong>${registrado}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIPO DE DOCUMENTO -->
+    <div class="tipo-badge">
+        ${tipoLabel}
+    </div>
+
+    <!-- DATOS PRINCIPALES -->
+    <p class="section-title">Información del documento</p>
+    <div class="data-grid">
+        <div class="data-item">
+            <span class="label">Número documento</span>
+            <span class="value">${numero}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Fecha documento</span>
+            <span class="value">${fecha}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">EPS / Entidad</span>
+            <span class="value">${eps}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Factura asociada</span>
+            <span class="value">${factura}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Valor del documento</span>
+            <span class="value highlight">${valor}</span>
+        </div>
+        <div class="data-item">
+            <span class="label">Referencia externa</span>
+            <span class="value">${referencia !== "—" ? referencia : "Sin referencia"}</span>
+        </div>
+        <div class="data-item full">
+            <span class="label">Efecto sobre el saldo</span>
+            <span class="value">${afectaTxt}</span>
+        </div>
+    </div>
+
+    <!-- DESCRIPCIÓN -->
+    <p class="section-title">Descripción</p>
+    <div class="descripcion-box">
+        <p>${descripcion !== "Sin descripción" ? descripcion : "Sin descripción registrada."}</p>
+    </div>
+
+    <!-- EFECTO FINANCIERO -->
+    <div class="efecto-box">
+        <div class="icon">📋</div>
+        <p>
+            Este documento fue generado por el módulo financiero de
+            <strong>VITACORE HIS/ERP</strong> y forma parte del ciclo de
+            cartera hospitalaria. El documento <strong>${numero}</strong>
+            ${afectaTxt.includes("Sí") ? "afecta el saldo de la factura " + factura + "." :
+              "es de carácter informativo y no modifica el saldo de la factura."}
+        </p>
+    </div>
+
+    <!-- FIRMAS -->
+    <p class="section-title">Firmas y autorizaciones</p>
+    <div class="firmas">
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Elaborado por</div>
+            <div class="firma-nombre">${registrado}</div>
+        </div>
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Revisado por</div>
+            <div class="firma-nombre">Coordinación financiera</div>
+        </div>
+        <div class="firma-item">
+            <div class="firma-linea"></div>
+            <div class="firma-label">Aprobado por</div>
+            <div class="firma-nombre">Gerencia financiera</div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div>
+            <p class="vitacore">VITACORE HIS · ERP Hospitalario</p>
+            <p>Documento generado electrónicamente · ${fechaImp} ${horaImp}</p>
+            <p>Este documento es válido sin firma manuscrita cuando sea generado por el sistema.</p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-size:11px; font-weight:800; color:#0d5c63;">${numero}</p>
+            <p>Módulo: Cartera hospitalaria</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    window.onload = function(){ window.print(); }
+<\/script>
+</body>
+</html>`;
+
+    // Abrir ventana de impresión
+    const ventana = window.open("", "_blank", "width=900,height=700");
+    ventana.document.write(html);
+    ventana.document.close();
 }
 </script>
 {% endblock %}

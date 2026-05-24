@@ -10,3 +10,6 @@ class Config:
     SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     SUPABASE_TABLE_HC_PROFESIONALES = os.getenv("SUPABASE_TABLE_HC_PROFESIONALES", "hc_profesionales")
     
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+

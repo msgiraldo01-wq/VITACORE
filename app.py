@@ -69,4 +69,3 @@ def inicio():
 if __name__ == "__main__":
     app.run(debug=True)
 
-app.register_blueprint(bp_hc_medicamentos)
