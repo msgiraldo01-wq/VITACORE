@@ -16,431 +16,75 @@
 
 {% block content %}
 <style>
-.fl-container {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-/* ===== FILTROS ===== */
-.fl-filtros {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: stretch;
-}
-
-.fl-filtro {
-  height: 42px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  min-width: 140px;
-}
-
-.fl-filtro:focus {
-  outline: none;
-  border-color: var(--brand);
-}
-
-.fl-btn-filtrar {
-  height: 42px;
-  padding: 0 18px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--brand);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all .15s;
-}
-
-.fl-btn-filtrar:hover {
-  background: var(--brand-strong);
-}
-
-.fl-btn-limpiar {
-  height: 42px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .15s;
-}
-
-.fl-btn-limpiar:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-/* ===== STATS ===== */
-.fl-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.fl-stat {
-  padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.fl-stat-label {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--text-faint);
-  margin-bottom: 6px;
-}
-
-.fl-stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text);
-}
-
-.fl-stat-sub {
-  font-size: 12px;
-  color: var(--text-soft);
-  margin-top: 2px;
-}
-
-/* ===== TABLA ===== */
-.fl-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.fl-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.fl-table th {
-  background: var(--surface-3);
-  padding: 12px 14px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.fl-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  vertical-align: middle;
-}
-
-.fl-table tr:last-child td {
-  border-bottom: none;
-}
-
-.fl-table tr {
-  cursor: pointer;
-  transition: background .15s;
-}
-
-.fl-table tr:hover td {
-  background: rgba(13,92,99,.03);
-}
-
-.fl-numero {
-  font-weight: 800;
-  color: var(--brand);
-  font-size: 15px;
-}
-
-.fl-estado {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-
+.fl-container { display: flex; flex-direction: column; gap: 18px; }
+.fl-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+.fl-filtro { height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; min-width: 140px; }
+.fl-filtro:focus { outline: none; border-color: var(--brand); }
+.fl-btn-filtrar { height: 42px; padding: 0 18px; border: none; border-radius: var(--radius-sm); background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.fl-btn-filtrar:hover { background: var(--brand-strong); }
+.fl-btn-limpiar { height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-soft); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.fl-btn-limpiar:hover { border-color: var(--danger); color: var(--danger); }
+.fl-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.fl-stat { padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-2); }
+.fl-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 6px; }
+.fl-stat-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.fl-stat-sub { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+.fl-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.fl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.fl-table th { background: var(--surface-3); padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.fl-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.fl-table tr:last-child td { border-bottom: none; }
+.fl-table tbody tr { cursor: pointer; transition: background .15s; }
+.fl-table tbody tr:hover td { background: rgba(13,92,99,.03); }
+.fl-numero { font-weight: 800; color: var(--brand); font-size: 15px; }
+.fl-estado { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .fl-estado.BORRADOR { background: var(--surface-3); color: var(--text-faint); }
 .fl-estado.EMITIDA { background: var(--info-soft); color: var(--info); }
 .fl-estado.RADICADA { background: var(--warn-soft); color: var(--warn); }
 .fl-estado.PAGADA { background: var(--accent-soft); color: var(--accent); }
 .fl-estado.ANULADA { background: var(--danger-soft); color: var(--danger); }
-
-.fl-valor {
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.fl-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: var(--text-faint);
-  gap: 14px;
-}
-
+.fl-valor { font-weight: 700; white-space: nowrap; }
+.fl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-faint); gap: 14px; }
 .fl-empty i { font-size: 3rem; opacity: .3; }
 .fl-empty p { font-size: 15px; margin: 0; }
+.fl-loading-more { text-align: center; padding: 16px; color: var(--text-faint); font-size: 13px; }
 
-/* ===== MODAL DETALLE ===== */
-.fl-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .3s;
-}
-
-.fl-modal-overlay.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.fl-modal {
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  width: 92%;
-  max-width: 750px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);
-  transform: translateY(20px) scale(.98);
-  transition: transform .3s;
-}
-
-.fl-modal-overlay.active .fl-modal {
-  transform: translateY(0) scale(1);
-}
-
-.fl-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.fl-modal-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fl-modal-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: var(--text-faint);
-  cursor: pointer;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fl-modal-close:hover {
-  background: var(--surface-3);
-  color: var(--text);
-}
-
-.fl-modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.fl-det-section {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--text-faint);
-  margin: 8px 0 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fl-det-section i {
-  color: var(--brand);
-}
-
-.fl-det-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.fl-det-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.fl-det-label {
-  font-size: 11px;
-  color: var(--text-faint);
-  font-weight: 700;
-}
-
-.fl-det-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.fl-det-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.fl-det-table th {
-  background: var(--surface-3);
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  color: var(--text-faint);
-}
-
-.fl-det-table td {
-  padding: 8px 12px;
-  border-top: 1px solid var(--border);
-}
-
-.fl-det-totals {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 16px;
-}
-
-.fl-det-total-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 14px;
-}
-
-.fl-det-total-row.main {
-  border-top: 2px solid var(--border);
-  margin-top: 8px;
-  padding-top: 12px;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--brand);
-}
-
-.fl-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-}
-
-.fl-btn {
-  height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all .15s;
-}
-
-.fl-btn:hover {
-  border-color: var(--brand);
-  color: var(--brand);
-}
-
-.fl-btn.danger:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-@media (max-width: 768px) {
-  .fl-stats { grid-template-columns: 1fr 1fr; }
-  .fl-det-grid { grid-template-columns: 1fr; }
-  .fl-filtros { flex-direction: column; }
-  .fl-filtro { min-width: 100%; }
-}
+/* Modal */
+.fl-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.fl-modal-overlay.active { opacity: 1; pointer-events: all; }
+.fl-modal { background: var(--surface); border-radius: var(--radius-xl); width: 92%; max-width: 750px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0,0,0,.1); transform: translateY(20px) scale(.98); transition: transform .3s; }
+.fl-modal-overlay.active .fl-modal { transform: translateY(0) scale(1); }
+.fl-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.fl-modal-header h2 { margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.fl-modal-close { background: none; border: none; font-size: 20px; color: var(--text-faint); cursor: pointer; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.fl-modal-close:hover { background: var(--surface-3); color: var(--text); }
+.fl-modal-body { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.fl-det-section { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
+.fl-det-section i { color: var(--brand); }
+.fl-det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fl-det-item { display: flex; flex-direction: column; gap: 2px; }
+.fl-det-label { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+.fl-det-value { font-size: 14px; font-weight: 600; color: var(--text); }
+.fl-det-table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.fl-det-table th { background: var(--surface-3); padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); }
+.fl-det-table td { padding: 8px 12px; border-top: 1px solid var(--border); }
+.fl-det-totals { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
+.fl-det-total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.fl-det-total-row.main { border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 800; color: var(--brand); }
+.fl-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.fl-btn { height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.fl-btn:hover { border-color: var(--brand); color: var(--brand); }
+.fl-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+@media (max-width: 768px) { .fl-stats { grid-template-columns: 1fr 1fr; } .fl-det-grid { grid-template-columns: 1fr; } .fl-filtros { flex-direction: column; } .fl-filtro { min-width: 100%; } }
 </style>
 
 <div class="fl-container">
-
   <!-- STATS -->
-  <div class="fl-stats" id="statsContainer">
-    <div class="fl-stat">
-      <div class="fl-stat-label">Total facturas</div>
-      <div class="fl-stat-value" id="statTotal">—</div>
-    </div>
-    <div class="fl-stat">
-      <div class="fl-stat-label">Emitidas</div>
-      <div class="fl-stat-value" id="statEmitidas" style="color:var(--info);">—</div>
-      <div class="fl-stat-sub" id="statValorEmitidas"></div>
-    </div>
-    <div class="fl-stat">
-      <div class="fl-stat-label">Pagadas</div>
-      <div class="fl-stat-value" id="statPagadas" style="color:var(--accent);">—</div>
-      <div class="fl-stat-sub" id="statValorPagadas"></div>
-    </div>
-    <div class="fl-stat">
-      <div class="fl-stat-label">Anuladas</div>
-      <div class="fl-stat-value" id="statAnuladas" style="color:var(--danger);">—</div>
-    </div>
+  <div class="fl-stats">
+    <div class="fl-stat"><div class="fl-stat-label">Total facturas</div><div class="fl-stat-value" id="statTotal">—</div></div>
+    <div class="fl-stat"><div class="fl-stat-label">Emitidas</div><div class="fl-stat-value" id="statEmitidas" style="color:var(--info);">—</div><div class="fl-stat-sub" id="statValorEmitidas"></div></div>
+    <div class="fl-stat"><div class="fl-stat-label">Pagadas</div><div class="fl-stat-value" id="statPagadas" style="color:var(--accent);">—</div><div class="fl-stat-sub" id="statValorPagadas"></div></div>
+    <div class="fl-stat"><div class="fl-stat-label">Anuladas</div><div class="fl-stat-value" id="statAnuladas" style="color:var(--danger);">—</div></div>
   </div>
 
   <!-- FILTROS -->
@@ -455,19 +99,29 @@
     </select>
     <input type="date" class="fl-filtro" id="filtroDesde" title="Fecha desde">
     <input type="date" class="fl-filtro" id="filtroHasta" title="Fecha hasta">
-    <button class="fl-btn-filtrar" onclick="cargarFacturas()">
-      <i class="fa-solid fa-filter"></i> Filtrar
-    </button>
-    <button class="fl-btn-limpiar" onclick="limpiarFiltros()">
-      <i class="fa-solid fa-xmark"></i> Limpiar
-    </button>
+    <button class="fl-btn-filtrar" onclick="resetYCargar()"><i class="fa-solid fa-filter"></i> Filtrar</button>
+    <button class="fl-btn-limpiar" onclick="limpiarFiltros()"><i class="fa-solid fa-xmark"></i> Limpiar</button>
   </div>
 
   <!-- TABLA -->
   <div id="facturasContenido">
-    <div class="fl-empty">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <p>Cargando facturas...</p>
+    <div class="fl-table-wrap">
+      <table class="fl-table">
+        <thead>
+          <tr>
+            <th>Nro. factura</th><th>Fecha</th><th>Paciente</th>
+            <th>Entidad</th><th>Total</th><th>Copago</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="facturasBody"></tbody>
+      </table>
+    </div>
+    <div class="fl-loading-more" id="loadingMore" style="display:none;">
+      <i class="fa-solid fa-spinner fa-spin"></i> Cargando más facturas...
+    </div>
+    <div class="fl-empty" id="emptyFacturas" style="display:none;">
+      <i class="fa-solid fa-file-invoice"></i>
+      <p>No se encontraron facturas</p>
     </div>
   </div>
 </div>
@@ -483,31 +137,42 @@
       <p style="text-align:center; color:var(--text-faint);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p>
     </div>
     <div class="fl-modal-footer" id="detalleFooter" style="display:none;">
-      <button class="fl-btn" onclick="descargarPDF()">
-        <i class="fa-solid fa-file-pdf"></i> Descargar PDF
-      </button>
-      <button class="fl-btn danger" id="btnAnular" onclick="anularFactura()">
-        <i class="fa-solid fa-ban"></i> Anular
-      </button>
+      <button class="fl-btn" onclick="descargarPDF()"><i class="fa-solid fa-file-pdf"></i> Descargar PDF</button>
+      <button class="fl-btn danger" id="btnAnular" onclick="anularFactura()"><i class="fa-solid fa-ban"></i> Anular</button>
     </div>
   </div>
 </div>
 
 <script>
+// ===== ESTADO =====
 let facturasData = [];
 let facturaActualId = null;
+let currentOffset = 0;
+let hasMore = true;
+let isLoading = false;
+const PAGE_SIZE = 20;
 
+// ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
   cargarFacturas();
   cargarResumen();
 
-  // Si viene ?id= en la URL, abrir detalle directo
   const params = new URLSearchParams(window.location.search);
   const idParam = params.get('id');
   if (idParam) abrirDetalle(parseInt(idParam));
 
   document.getElementById('modalDetalle').addEventListener('click', (e) => {
     if (e.target.id === 'modalDetalle') cerrarDetalle();
+  });
+
+  // Scroll infinito
+  window.addEventListener('scroll', () => {
+    if (isLoading || !hasMore) return;
+    const scrollBottom = window.innerHeight + window.scrollY;
+    const docHeight = document.documentElement.scrollHeight;
+    if (scrollBottom >= docHeight - 200) {
+      cargarFacturas();
+    }
   });
 });
 
@@ -520,124 +185,115 @@ async function cargarResumen() {
     const r = data.data;
     document.getElementById('statTotal').textContent = r.total_facturas;
     document.getElementById('statEmitidas').textContent = r.emitidas;
-    document.getElementById('statValorEmitidas').textContent = `$${formatMoney(r.valor_emitidas)}`;
+    document.getElementById('statValorEmitidas').textContent = `$${fm(r.valor_emitidas)}`;
     document.getElementById('statPagadas').textContent = r.pagadas;
-    document.getElementById('statValorPagadas').textContent = `$${formatMoney(r.valor_pagadas)}`;
+    document.getElementById('statValorPagadas').textContent = `$${fm(r.valor_pagadas)}`;
     document.getElementById('statAnuladas').textContent = r.anuladas;
   } catch (e) {}
 }
 
-// ===== CARGAR FACTURAS =====
+// ===== CARGAR FACTURAS (con paginación) =====
 async function cargarFacturas() {
+  if (isLoading || !hasMore) return;
+  isLoading = true;
+
+  const loading = document.getElementById('loadingMore');
+  loading.style.display = 'block';
+
   const estado = document.getElementById('filtroEstado').value;
   const desde = document.getElementById('filtroDesde').value;
   const hasta = document.getElementById('filtroHasta').value;
 
-  let url = '/facturacion/api/facturas?';
-  if (estado) url += `estado=${estado}&`;
-  if (desde) url += `fecha_desde=${desde}&`;
-  if (hasta) url += `fecha_hasta=${hasta}&`;
+  let url = `/facturacion/api/facturas?limit=${PAGE_SIZE}&offset=${currentOffset}`;
+  if (estado) url += `&estado=${estado}`;
+  if (desde) url += `&fecha_desde=${desde}`;
+  if (hasta) url += `&fecha_hasta=${hasta}`;
 
   try {
     const res = await fetch(url);
     const data = await res.json();
-    facturasData = data.data || [];
-    renderFacturas();
+    const nuevas = data.data || [];
+    hasMore = data.has_more || false;
+
+    facturasData = [...facturasData, ...nuevas];
+    currentOffset += nuevas.length;
+
+    appendFacturas(nuevas);
+
+    if (!facturasData.length) {
+      document.getElementById('emptyFacturas').style.display = 'flex';
+    } else {
+      document.getElementById('emptyFacturas').style.display = 'none';
+    }
   } catch (e) {
-    document.getElementById('facturasContenido').innerHTML = `
-      <div class="fl-empty"><i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i><p>Error al cargar facturas</p></div>
-    `;
+    Toast.show('Error cargando facturas', 'error');
+  } finally {
+    isLoading = false;
+    loading.style.display = hasMore ? 'none' : 'none';
+    if (!hasMore && facturasData.length > 0) {
+      loading.innerHTML = `<span style="color:var(--text-faint); font-size:12px;">Se muestran todas las ${facturasData.length} facturas</span>`;
+      loading.style.display = 'block';
+    }
   }
 }
 
-function renderFacturas() {
-  const container = document.getElementById('facturasContenido');
+function appendFacturas(nuevas) {
+  const tbody = document.getElementById('facturasBody');
 
-  if (!facturasData.length) {
-    container.innerHTML = `
-      <div class="fl-empty">
-        <i class="fa-solid fa-file-invoice"></i>
-        <p>No se encontraron facturas</p>
-      </div>
-    `;
-    return;
-  }
-
-  let html = `
-    <div class="fl-table-wrap">
-      <table class="fl-table">
-        <thead>
-          <tr>
-            <th>Nro. factura</th>
-            <th>Fecha</th>
-            <th>Paciente</th>
-            <th>Entidad</th>
-            <th>Total</th>
-            <th>Copago</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  facturasData.forEach(f => {
+  nuevas.forEach(f => {
     const fecha = f.fecha_expedicion ? f.fecha_expedicion.split('T')[0] : '—';
-
-    html += `
-      <tr onclick="abrirDetalle(${f.id})">
-        <td><span class="fl-numero">${f.numero_factura}</span></td>
-        <td>${fecha}</td>
-        <td>
-          <div style="font-weight:600;">${f.paciente_nombre || '—'}</div>
-          <div style="font-size:12px; color:var(--text-soft);">${f.paciente_documento || ''}</div>
-        </td>
-        <td style="font-size:13px;">${f.cliente_nombre || '—'}<br><span style="color:var(--text-faint); font-size:11px;">${f.cliente_nit || ''}</span></td>
-        <td class="fl-valor" style="color:var(--brand);">$${formatMoney(f.total)}</td>
-        <td class="fl-valor" style="font-size:13px; color:var(--text-soft);">$${formatMoney(f.copago || 0)}</td>
-        <td><span class="fl-estado ${f.estado}">${f.estado}</span></td>
-      </tr>
+    const tr = document.createElement('tr');
+    tr.onclick = () => abrirDetalle(f.id);
+    tr.innerHTML = `
+      <td><span class="fl-numero">${f.numero_factura}</span></td>
+      <td>${fecha}</td>
+      <td>
+        <div style="font-weight:600;">${f.paciente_nombre || '—'}</div>
+        <div style="font-size:12px; color:var(--text-soft);">${f.paciente_documento || ''}</div>
+      </td>
+      <td style="font-size:13px;">${f.cliente_nombre || '—'}<br><span style="color:var(--text-faint); font-size:11px;">${f.cliente_nit || ''}</span></td>
+      <td class="fl-valor" style="color:var(--brand);">$${fm(f.total)}</td>
+      <td class="fl-valor" style="font-size:13px; color:var(--text-soft);">$${fm(f.copago || 0)}</td>
+      <td><span class="fl-estado ${f.estado}">${f.estado}</span></td>
     `;
+    tbody.appendChild(tr);
   });
+}
 
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
+// ===== RESET Y FILTRAR =====
+function resetYCargar() {
+  facturasData = [];
+  currentOffset = 0;
+  hasMore = true;
+  document.getElementById('facturasBody').innerHTML = '';
+  document.getElementById('loadingMore').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando más facturas...';
+  cargarFacturas();
 }
 
 function limpiarFiltros() {
   document.getElementById('filtroEstado').value = '';
   document.getElementById('filtroDesde').value = '';
   document.getElementById('filtroHasta').value = '';
-  cargarFacturas();
+  resetYCargar();
 }
 
 // ===== DETALLE =====
 async function abrirDetalle(facturaId) {
   facturaActualId = facturaId;
-  const overlay = document.getElementById('modalDetalle');
-  overlay.classList.add('active');
+  document.getElementById('modalDetalle').classList.add('active');
   document.getElementById('detalleBody').innerHTML = '<p style="text-align:center; color:var(--text-faint);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p>';
   document.getElementById('detalleFooter').style.display = 'none';
 
   try {
     const res = await fetch(`/facturacion/api/factura/${facturaId}`);
     const data = await res.json();
-
-    if (!data.ok) {
-      Toast.show(data.error || 'Error', 'error');
-      cerrarDetalle();
-      return;
-    }
-
+    if (!data.ok) { Toast.show(data.error || 'Error', 'error'); cerrarDetalle(); return; }
     renderDetalle(data.data, data.detalle, data.notas);
-  } catch (e) {
-    Toast.show('Error de conexión', 'error');
-    cerrarDetalle();
-  }
+  } catch (e) { Toast.show('Error de conexión', 'error'); cerrarDetalle(); }
 }
 
 function renderDetalle(f, detalle, notas) {
   document.getElementById('detNumero').textContent = f.numero_factura;
-
   const pac = f.hc_pacientes || {};
   const cli = f.hc_clientes || {};
   const con = f.hc_contratos || {};
@@ -650,27 +306,18 @@ function renderDetalle(f, detalle, notas) {
       <td><strong>${d.codigo_cups}</strong></td>
       <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${d.descripcion}">${d.descripcion}</td>
       <td style="text-align:center;">${d.cantidad}</td>
-      <td style="text-align:right;">$${formatMoney(d.valor_unitario)}</td>
-      <td style="text-align:right; font-weight:700;">$${formatMoney(d.valor_total)}</td>
+      <td style="text-align:right;">$${fm(d.valor_unitario)}</td>
+      <td style="text-align:right; font-weight:700;">$${fm(d.valor_total)}</td>
     </tr>
   `).join('');
 
   let notasHTML = '';
   if (notas && notas.length) {
-    notasHTML = `
-      <div class="fl-det-section"><i class="fa-solid fa-file-lines"></i> Notas crédito / débito</div>
-      ${notas.map(n => `
-        <div style="display:flex; justify-content:space-between; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; margin-bottom:6px;">
-          <div>
-            <strong>${n.numero_nota}</strong> — ${n.tipo}
-            <div style="font-size:12px; color:var(--text-soft);">${n.motivo}</div>
-          </div>
-          <span style="font-weight:700; color:${n.tipo === 'CREDITO' ? 'var(--danger)' : 'var(--accent)'};">
-            ${n.tipo === 'CREDITO' ? '-' : '+'}$${formatMoney(n.valor)}
-          </span>
-        </div>
-      `).join('')}
-    `;
+    notasHTML = `<div class="fl-det-section"><i class="fa-solid fa-file-lines"></i> Notas crédito / débito</div>
+      ${notas.map(n => `<div style="display:flex; justify-content:space-between; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; margin-bottom:6px;">
+        <div><strong>${n.numero_nota}</strong> — ${n.tipo}<div style="font-size:12px; color:var(--text-soft);">${n.motivo}</div></div>
+        <span style="font-weight:700; color:${n.tipo === 'CREDITO' ? 'var(--danger)' : 'var(--accent)'};">${n.tipo === 'CREDITO' ? '-' : '+'}$${fm(n.valor)}</span>
+      </div>`).join('')}`;
   }
 
   document.getElementById('detalleBody').innerHTML = `
@@ -678,13 +325,11 @@ function renderDetalle(f, detalle, notas) {
       <span class="fl-estado ${f.estado}" style="font-size:13px; padding:6px 16px;">${f.estado}</span>
       <span style="font-size:13px; color:var(--text-soft);">${fecha}</span>
     </div>
-
     <div class="fl-det-section"><i class="fa-solid fa-user"></i> Paciente</div>
     <div class="fl-det-grid">
       <div class="fl-det-item"><span class="fl-det-label">Nombre</span><span class="fl-det-value">${pacNombre || '—'}</span></div>
-      <div class="fl-det-item"><span class="fl-det-label">Documento</span><span class="fl-det-value">${pac.tipo_documento_id || 'CC'} ${pac.numero_documento || '—'}</span></div>
+      <div class="fl-det-item"><span class="fl-det-label">Documento</span><span class="fl-det-value">${(pac.hc_tipos_documento || {}).codigo || pac.tipo_documento_id || 'CC'} ${pac.numero_documento || '—'}</span></div>
     </div>
-
     <div class="fl-det-section"><i class="fa-solid fa-building"></i> Entidad y contrato</div>
     <div class="fl-det-grid">
       <div class="fl-det-item"><span class="fl-det-label">Cliente</span><span class="fl-det-value">${cli.nombre || '—'}</span></div>
@@ -692,7 +337,6 @@ function renderDetalle(f, detalle, notas) {
       <div class="fl-det-item"><span class="fl-det-label">Contrato</span><span class="fl-det-value">${con.nro_contrato || '—'}</span></div>
       <div class="fl-det-item"><span class="fl-det-label">Manual</span><span class="fl-det-value">${con.manual_tarifario || '—'}</span></div>
     </div>
-
     <div class="fl-det-section"><i class="fa-solid fa-hospital"></i> Sede y datos FEV</div>
     <div class="fl-det-grid">
       <div class="fl-det-item"><span class="fl-det-label">Sede</span><span class="fl-det-value">${sede.nombre || '—'}</span></div>
@@ -700,36 +344,25 @@ function renderDetalle(f, detalle, notas) {
       <div class="fl-det-item"><span class="fl-det-label">Modalidad pago</span><span class="fl-det-value">${(f.modalidad_pago || '—').replace(/_/g, ' ')}</span></div>
       <div class="fl-det-item"><span class="fl-det-label">Cobertura</span><span class="fl-det-value">${(f.cobertura_plan_beneficios || '—').replace(/_/g, ' ')}</span></div>
     </div>
-
     <div class="fl-det-section"><i class="fa-solid fa-list"></i> Detalle de servicios</div>
     <table class="fl-det-table">
-      <thead>
-        <tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">V. Unit.</th><th style="text-align:right;">V. Total</th></tr>
-      </thead>
+      <thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">V. Unit.</th><th style="text-align:right;">V. Total</th></tr></thead>
       <tbody>${detalleHTML || '<tr><td colspan="5" style="text-align:center; color:var(--text-faint);">Sin detalle</td></tr>'}</tbody>
     </table>
-
     <div class="fl-det-totals">
-      <div class="fl-det-total-row"><span>Subtotal</span><span>$${formatMoney(f.subtotal)}</span></div>
-      ${f.descuento > 0 ? `<div class="fl-det-total-row"><span>Descuento</span><span>-$${formatMoney(f.descuento)}</span></div>` : ''}
-      ${f.copago > 0 ? `<div class="fl-det-total-row"><span>Copago</span><span>$${formatMoney(f.copago)}</span></div>` : ''}
-      ${f.cuota_moderadora > 0 ? `<div class="fl-det-total-row"><span>Cuota moderadora</span><span>$${formatMoney(f.cuota_moderadora)}</span></div>` : ''}
-      ${f.cuota_recuperacion > 0 ? `<div class="fl-det-total-row"><span>Cuota recuperación</span><span>$${formatMoney(f.cuota_recuperacion)}</span></div>` : ''}
-      <div class="fl-det-total-row main"><span>Total</span><span>$${formatMoney(f.total)}</span></div>
+      <div class="fl-det-total-row"><span>Subtotal</span><span>$${fm(f.subtotal)}</span></div>
+      ${f.descuento > 0 ? `<div class="fl-det-total-row"><span>Descuento</span><span>-$${fm(f.descuento)}</span></div>` : ''}
+      ${f.copago > 0 ? `<div class="fl-det-total-row"><span>Copago</span><span>$${fm(f.copago)}</span></div>` : ''}
+      ${f.cuota_moderadora > 0 ? `<div class="fl-det-total-row"><span>Cuota moderadora</span><span>$${fm(f.cuota_moderadora)}</span></div>` : ''}
+      ${f.cuota_recuperacion > 0 ? `<div class="fl-det-total-row"><span>Cuota recuperación</span><span>$${fm(f.cuota_recuperacion)}</span></div>` : ''}
+      <div class="fl-det-total-row main"><span>Total</span><span>$${fm(f.total)}</span></div>
     </div>
-
     ${notasHTML}
-
     ${f.observaciones ? `<div style="padding:12px 14px; background:var(--surface-2); border-radius:8px; font-size:13px; color:var(--text-soft); border:1px solid var(--border);"><strong>Observaciones:</strong> ${f.observaciones}</div>` : ''}
   `;
 
-  // Mostrar footer con botón anular si no está anulada
   const footer = document.getElementById('detalleFooter');
-  if (f.estado !== 'ANULADA') {
-    footer.style.display = 'flex';
-  } else {
-    footer.style.display = 'none';
-  }
+  footer.style.display = f.estado !== 'ANULADA' ? 'flex' : 'none';
 }
 
 function cerrarDetalle() {
@@ -740,52 +373,32 @@ function cerrarDetalle() {
 // ===== ANULAR =====
 async function anularFactura() {
   if (!facturaActualId) return;
-
   const { value: motivo, isConfirmed } = await Swal.fire({
-    title: '¿Anular esta factura?',
-    input: 'textarea',
-    inputLabel: 'Motivo de anulación',
-    inputPlaceholder: 'Describa el motivo...',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, anular',
-    cancelButtonText: 'Cancelar',
-    confirmButtonColor: '#c0392b',
-    inputValidator: (value) => {
-      if (!value) return 'Ingrese un motivo';
-    }
+    title: '¿Anular esta factura?', input: 'textarea', inputLabel: 'Motivo de anulación',
+    inputPlaceholder: 'Describa el motivo...', showCancelButton: true,
+    confirmButtonText: 'Sí, anular', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b',
+    inputValidator: (value) => { if (!value) return 'Ingrese un motivo'; }
   });
-
   if (!isConfirmed) return;
-
   try {
     const res = await fetch(`/facturacion/api/factura/${facturaActualId}/anular`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ motivo }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motivo })
     });
     const data = await res.json();
-
-    if (data.ok) {
-      Toast.show('Factura anulada correctamente', 'success');
-      cerrarDetalle();
-      cargarFacturas();
-      cargarResumen();
-    } else {
-      Toast.show(data.error || 'Error', 'error');
-    }
-  } catch (e) {
-    Toast.show('Error de conexión', 'error');
-  }
+    if (data.ok) { Toast.show('Factura anulada correctamente', 'success'); cerrarDetalle(); resetYCargar(); cargarResumen(); }
+    else { Toast.show(data.error || 'Error', 'error'); }
+  } catch (e) { Toast.show('Error de conexión', 'error'); }
 }
 
-function formatMoney(value) {
-  const num = parseFloat(value) || 0;
-  return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
+// ===== PDF =====
 async function descargarPDF() {
   if (!facturaActualId) return;
   window.open(`/facturacion/factura/${facturaActualId}/vista`, '_blank');
+}
+
+// ===== UTILIDADES =====
+function fm(v) {
+  return (parseFloat(v) || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 </script>
 {% endblock %}

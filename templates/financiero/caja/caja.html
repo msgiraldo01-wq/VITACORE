@@ -495,6 +495,34 @@
   <button class="cj-btn green" onclick="mostrarModalAbrir()" style="margin-top:8px;"><i class="fa-solid fa-lock-open"></i> Abrir caja</button>
 </div>
 
+<!-- MIS CUADRES ANTERIORES -->
+<div class="cj-panel" id="misCuadresPanel" style="display:none; margin-top:18px;">
+  <div class="cj-panel-head">
+    <span class="cj-panel-title"><i class="fa-solid fa-clock-rotate-left"></i> Mis cuadres anteriores</span>
+    <span style="font-size:12px; color:var(--text-faint);" id="cuadresCount"></span>
+  </div>
+  <div class="cj-panel-body" style="padding:0; overflow-x:auto;">
+    <table class="cj-mov-table" id="cuadresTable">
+      <thead>
+        <tr>
+          <th>Nro.</th>
+          <th>Sede</th>
+          <th>Apertura</th>
+          <th>Cierre</th>
+          <th style="text-align:right;">Total Sistema</th>
+          <th style="text-align:right;">Total en Caja</th>
+          <th style="text-align:right;">Diferencia</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cuadresBody">
+        <tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-faint);">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- CONTENIDO CUANDO HAY CAJA ABIERTA -->
 <div class="cj-main" id="cajaContent" style="display:none;">
 
@@ -666,13 +694,16 @@ function mostrarSinCaja() {
   document.getElementById('stNroCuadre').textContent = '—';
   document.getElementById('stHoraApertura').textContent = '—';
   const badge = document.getElementById('stBadge');
-  badge.textContent = 'SIN ABRIR';
   badge.className = 'cj-status-badge sin-abrir';
   badge.innerHTML = '<span class="cj-status-dot"></span> SIN ABRIR';
+
+  document.getElementById('misCuadresPanel').style.display = 'block';
+  cargarMisCuadres();
 }
 
 function mostrarCajaAbierta() {
   document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('misCuadresPanel').style.display = 'none';
   document.getElementById('cajaContent').style.display = 'flex';
   document.getElementById('btnAbrir').style.display = 'none';
   document.getElementById('btnGuardar').style.display = 'flex';
@@ -904,6 +935,10 @@ function actualizarFooter() {
 async function guardarConteo() {
   if (!cajaActual) return;
 
+  const btn = document.getElementById('btnGuardar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
   const data = {};
   DENOMINACIONES.forEach(d => {
     data[`den_${d}`] = parseInt(document.getElementById(`den_${d}`).value) || 0;
@@ -914,14 +949,19 @@ async function guardarConteo() {
   });
 
   try {
-    await fetch(`/caja/api/conteo/${cajaActual.id}`, {
+    const res = await fetch(`/caja/api/conteo/${cajaActual.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    Toast.show('Conteo guardado', 'success');
+    const result = await res.json();
+    if (result.ok) Toast.show('Conteo guardado', 'success');
+    else Toast.show(result.error || 'Error', 'error');
   } catch (e) {
     Toast.show('Error guardando conteo', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
   }
 }
 
@@ -1002,6 +1042,58 @@ function cambiarNotaTab(tab) {
   });
   document.getElementById('notaAntes').style.display = tab === 'antes' ? 'block' : 'none';
   document.getElementById('notaDespues').style.display = tab === 'despues' ? 'block' : 'none';
+}
+
+// ===== MIS CUADRES ANTERIORES =====
+async function cargarMisCuadres() {
+  try {
+    const res = await fetch('/caja/api/historial');
+    const data = await res.json();
+    const cajas = data.data || [];
+
+    const tbody = document.getElementById('cuadresBody');
+    document.getElementById('cuadresCount').textContent = `${cajas.length} cuadre${cajas.length !== 1 ? 's' : ''}`;
+
+    if (!cajas.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-faint);">No tiene cuadres anteriores</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = cajas.map(c => {
+      const fechaAp = c.fecha_apertura || '—';
+      const horaAp = c.hora_apertura ? c.hora_apertura.slice(0, 5) : '';
+      const fechaCi = c.fecha_cierre || '—';
+      const horaCi = c.hora_cierre ? c.hora_cierre.slice(0, 5) : '';
+
+      const apertura = horaAp ? horaLocal(`${fechaAp}T${horaAp}Z`) : '—';
+      const cierre = horaCi ? horaLocal(`${fechaCi}T${horaCi}Z`) : '—';
+
+      const dif = parseFloat(c.diferencia || 0);
+      const difColor = dif === 0 ? 'var(--accent)' : dif > 0 ? 'var(--brand)' : 'var(--danger)';
+
+      const estadoClass = c.estado === 'CERRADA' ? 'cerrada' : 'abierta';
+
+      return `
+        <tr>
+          <td style="font-weight:800; color:var(--brand);">#${c.nro_cuadre}</td>
+          <td>${c.sede_nombre || '—'}</td>
+          <td style="font-size:12px;">${fechaAp}<br><span style="color:var(--text-faint);">${apertura}</span></td>
+          <td style="font-size:12px;">${fechaCi}<br><span style="color:var(--text-faint);">${cierre}</span></td>
+          <td style="text-align:right; font-weight:600;">${fm(c.total_sistema)}</td>
+          <td style="text-align:right; font-weight:600;">${fm(c.total_en_caja)}</td>
+          <td style="text-align:right; font-weight:700; color:${difColor};">${fm(dif)}</td>
+          <td><span class="cj-status-badge ${estadoClass}" style="font-size:10px; padding:3px 10px;">${c.estado}</span></td>
+          <td>
+            <a href="/caja/cuadre/${c.id}/reporte" target="_blank" class="cj-btn ghost" style="height:30px; padding:0 10px; font-size:11px;">
+              <i class="fa-solid fa-file-lines"></i> Ver
+            </a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    document.getElementById('cuadresBody').innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error cargando cuadres</td></tr>';
+  }
 }
 
 // ===== UTILIDADES =====

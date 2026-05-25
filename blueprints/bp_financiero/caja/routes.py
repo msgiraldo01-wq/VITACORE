@@ -265,10 +265,11 @@ def api_detalle_caja(caja_id):
 
 @bp_caja.route("/api/historial", methods=["GET"])
 def api_historial_cajas():
-    """Lista las últimas cajas cerradas."""
+    """Lista las últimas cajas del usuario logueado."""
     try:
+        usuario = _get_usuario()
         sede_id = request.args.get("sede_id", type=int)
-        cajas = caja_repo.listar_cajas(sede_id=sede_id)
+        cajas = caja_repo.listar_cajas(sede_id=sede_id, usuario_id=usuario["id"])
 
         for c in cajas:
             sede = c.pop("hc_sedes", None) or {}
@@ -278,3 +279,9 @@ def api_historial_cajas():
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp_caja.route("/cuadre/<int:caja_id>/reporte")
+def reporte_cuadre(caja_id):
+    """Vista HTML del reporte de cuadre de caja para imprimir/PDF."""
+    return render_template("financiero/caja/caja_reporte.html", caja_id=caja_id)

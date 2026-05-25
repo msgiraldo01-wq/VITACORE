@@ -151,8 +151,8 @@ def cerrar_caja(caja_id: int, data: dict):
     return res.data[0] if res.data else None
 
 
-def listar_cajas(empresa_id: int = 1, sede_id: int = None, limit: int = 50):
-    """Lista las últimas cajas."""
+def listar_cajas(empresa_id: int = 1, sede_id: int = None, usuario_id=None, limit: int = 50):
+    """Lista las últimas cajas, opcionalmente filtradas por usuario."""
     q = (
         _sb()
         .table("fin_cajas")
@@ -163,6 +163,8 @@ def listar_cajas(empresa_id: int = 1, sede_id: int = None, limit: int = 50):
     )
     if sede_id:
         q = q.eq("sede_id", sede_id)
+    if usuario_id:
+        q = q.eq("usuario_id", str(usuario_id))
     res = q.execute()
     return res.data or []
 
@@ -274,14 +276,16 @@ def actualizar_conteo(caja_id: int, campo: str, valor_nuevo, usuario_id: int, us
 def guardar_conteo_completo(caja_id: int, data: dict, usuario_id, usuario_nombre: str):
     """
     Guarda todo el conteo de golpe y registra cambios en historial.
+    Optimizado: máximo 3 queries (leer, actualizar, insertar historial).
     """
-    from datetime import datetime, timezone
-
     conteo_actual = obtener_conteo(caja_id)
     if not conteo_actual:
-        return None
+        # Si no existe, crear el registro
+        _sb().table("fin_caja_conteos").insert({"caja_id": caja_id}).execute()
+        conteo_actual = obtener_conteo(caja_id)
+        if not conteo_actual:
+            return None
 
-    ahora = datetime.now(timezone.utc).isoformat()
     cambios = []
     update = {}
 
@@ -301,15 +305,14 @@ def guardar_conteo_completo(caja_id: int, data: dict, usuario_id, usuario_nombre
                 "usuario_nombre": usuario_nombre,
             })
 
-    # Actualizar conteo
+    # Solo hacer queries si hay algo que actualizar
     if update:
         _sb().table("fin_caja_conteos").update(update).eq("caja_id", caja_id).execute()
 
-    # Registrar historial de cambios
     if cambios:
         _sb().table("fin_caja_conteo_historial").insert(cambios).execute()
 
-    return obtener_conteo(caja_id)
+    return {"ok": True}
 
 
 def listar_conteo_historial(caja_id: int):

@@ -289,6 +289,13 @@ def api_facturar():
         if not prefactura_id:
             return jsonify({"ok": False, "error": "prefactura_id es requerido"}), 400
 
+        # Validar caja abierta
+        from repositories import fin_caja_repo as caja_repo
+        user = session.get("user", {})
+        caja = caja_repo.obtener_caja_abierta(user.get("id", ""))
+        if not caja:
+            return jsonify({"ok": False, "error": "Debe abrir una caja antes de facturar"}), 400
+
         # Obtener prefactura
         prefactura = repo.obtener_prefactura(prefactura_id)
         if not prefactura:
@@ -441,12 +448,16 @@ def api_listar_facturas():
         cliente_id = request.args.get("cliente_id", type=int)
         fecha_desde = request.args.get("fecha_desde")
         fecha_hasta = request.args.get("fecha_hasta")
+        limit = request.args.get("limit", 20, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         facturas = repo.listar_facturas(
             estado=estado,
             cliente_id=cliente_id,
             fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta,
+            limit=limit,
+            offset=offset,
         )
 
         # Aplanar joins
@@ -459,7 +470,7 @@ def api_listar_facturas():
             f["cliente_nombre"] = cli.get("nombre", "")
             f["cliente_nit"] = cli.get("nit", "")
 
-        return jsonify({"ok": True, "data": facturas})
+        return jsonify({"ok": True, "data": facturas, "has_more": len(facturas) == limit})
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

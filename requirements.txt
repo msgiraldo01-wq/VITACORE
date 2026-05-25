@@ -4,3 +4,4 @@ python-dotenv
 playwright
 xhtml2pdf
 openpyxl
+groq

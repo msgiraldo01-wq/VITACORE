@@ -26,7 +26,7 @@ def buscar_citas_facturables(numero_documento: str):
     pac = (
         _sb()
         .table("hc_pacientes")
-        .select("id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, numero_documento, tipo_documento_id")
+        .select("id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, numero_documento, tipo_documento_id, hc_tipos_documento(codigo)")
         .eq("numero_documento", numero_documento.strip())
         .limit(1)
         .execute()
@@ -35,6 +35,9 @@ def buscar_citas_facturables(numero_documento: str):
         return None, []
 
     paciente = pac.data[0]
+    # Aplanar tipo documento
+    tipo_doc = paciente.pop("hc_tipos_documento", None) or {}
+    paciente["tipo_documento"] = tipo_doc.get("codigo", "CC")
 
     # 2. Buscar citas facturables de ese paciente
     citas = (
@@ -239,7 +242,7 @@ def obtener_factura(factura_id: int):
         .select(
             "*, hc_pacientes(primer_nombre, segundo_nombre, primer_apellido, "
             "segundo_apellido, numero_documento, tipo_documento_id, "
-            "fecha_nacimiento, sexo), "
+            "fecha_nacimiento, sexo, hc_tipos_documento(codigo)), "
             "hc_clientes(nombre, nit, codigo), "
             "hc_contratos(nro_contrato, manual_tarifario, tipo_contrato), "
             "hc_sedes(nombre, codigo, direccion), "
@@ -266,7 +269,7 @@ def obtener_detalle_factura(factura_id: int):
 
 def listar_facturas(empresa_id: int = 1, estado: str = None,
                     cliente_id: int = None, fecha_desde: str = None,
-                    fecha_hasta: str = None, limit: int = 50):
+                    fecha_hasta: str = None, limit: int = 20, offset: int = 0):
     q = (
         _sb()
         .table("fin_facturas")
@@ -278,7 +281,7 @@ def listar_facturas(empresa_id: int = 1, estado: str = None,
         )
         .eq("empresa_id", empresa_id)
         .order("fecha_expedicion", desc=True)
-        .limit(limit)
+        .range(offset, offset + limit - 1)
     )
     if estado:
         q = q.eq("estado", estado)
