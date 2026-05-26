@@ -1,0 +1,1036 @@
+{% extends "hc/base.html" %}
+{% block title %}Radicación electrónica · VITACORE{% endblock %}
+
+{% block extra_css %}
+<style>
+.rad-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:18px;
+    margin-bottom:24px;
+}
+.rad-kpi{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    box-shadow:var(--shadow-sm);
+}
+.rad-kpi-icon{
+    width:58px; height:58px;
+    border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:22px; flex-shrink:0;
+}
+.rad-kpi-icon.success { background:#10b981; }
+.rad-kpi-icon.warning { background:#f59e0b; }
+.rad-kpi-icon.danger  { background:#ef4444; }
+.rad-kpi-icon.info    { background:#0284c7; }
+.rad-kpi-icon.brand   { background:var(--brand); }
+.rad-kpi-value{ font-size:28px; font-weight:800; color:var(--text); line-height:1; margin-bottom:6px; }
+.rad-kpi-label{ font-size:13px; color:var(--text-soft); }
+
+.rad-layout{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+.rad-side{ display:flex; flex-direction:column; gap:24px; }
+
+.rad-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:16px;
+    margin-bottom:22px;
+}
+.rad-group label{
+    display:block; margin-bottom:8px;
+    font-size:13px; font-weight:700; color:var(--text-soft);
+}
+.rad-group input,
+.rad-group select{
+    width:100%; height:46px;
+    border:1px solid var(--border);
+    border-radius:12px; padding:0 14px;
+    font-size:14px; background:var(--surface-2);
+    color:var(--text); outline:none;
+}
+.rad-group input:focus,
+.rad-group select:focus{ border-color:var(--brand); }
+
+.table-responsive{ overflow-x:auto; }
+.table-ax{ width:100%; border-collapse:collapse; font-size:14px; }
+.table-ax th{
+    padding:12px 14px; text-align:left;
+    font-size:11px; font-weight:800;
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); border-bottom:2px solid var(--border);
+}
+.table-ax td{
+    padding:13px 14px; border-bottom:1px solid var(--border);
+    color:var(--text); vertical-align:middle;
+}
+.table-ax tbody tr:hover{ background:var(--surface-2); }
+
+.status-pill{
+    display:inline-flex; align-items:center;
+    padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:700;
+}
+.status-pill.success { background:#dcfce7; color:#16a34a; }
+.status-pill.warning { background:#fef3c7; color:#d97706; }
+.status-pill.danger  { background:#fee2e2; color:#dc2626; }
+.status-pill.info    { background:#dbeafe; color:#2563eb; }
+.status-pill.neutral { background:var(--surface-3); color:var(--text-soft); }
+
+.btn-ax-table{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border-radius:10px;
+    background:var(--brand-soft); color:var(--brand);
+    font-size:13px; font-weight:700;
+    text-decoration:none; border:none; cursor:pointer;
+    transition:.18s ease;
+}
+.btn-ax-table:hover{ background:var(--brand); color:#fff; }
+
+.rad-alert{
+    padding:16px 18px; border-radius:16px;
+    display:flex; gap:14px; margin-bottom:14px;
+    align-items:flex-start;
+}
+.rad-alert.warning { background:#fff7ed; color:#c2410c; }
+.rad-alert.danger  { background:#fef2f2; color:#b91c1c; }
+.rad-alert.success { background:#ecfdf5; color:#047857; }
+.rad-alert.info    { background:#eff6ff; color:#1d4ed8; }
+.rad-alert p{ margin:4px 0 0; font-size:13px; }
+
+.timeline-rad{ display:flex; flex-direction:column; gap:18px; }
+.timeline-item-rad{ display:flex; gap:14px; }
+.tl-dot{
+    width:12px; height:12px; border-radius:999px;
+    margin-top:5px; flex-shrink:0;
+}
+.tl-dot.success { background:#10b981; }
+.tl-dot.warning { background:#f59e0b; }
+.tl-dot.danger  { background:#ef4444; }
+.tl-dot.info    { background:#0284c7; }
+.timeline-item-rad p{ margin:4px 0 0; color:var(--text-soft); font-size:13px; }
+.timeline-item-rad small{ color:var(--text-faint); font-size:12px; }
+
+.card-title{ font-size:18px; font-weight:800; color:var(--text); margin:0 0 4px; }
+.card-subtitle{ font-size:13px; color:var(--text-soft); margin:0 0 16px; }
+
+/* Tabs */
+.rad-tabs{
+    display:flex; gap:4px;
+    background:var(--surface-2);
+    border-radius:14px; padding:4px;
+    margin-bottom:22px;
+}
+.rad-tab{
+    flex:1; padding:10px 16px;
+    border:none; border-radius:10px;
+    background:none; cursor:pointer;
+    font-size:13px; font-weight:700;
+    color:var(--text-soft); transition:.18s;
+}
+.rad-tab.active{
+    background:var(--surface);
+    color:var(--brand);
+    box-shadow:var(--shadow-sm);
+}
+
+/* Modal */
+.modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(15,23,42,.55);
+    backdrop-filter:blur(4px);
+    display:none; align-items:center;
+    justify-content:center; z-index:9999; padding:24px;
+}
+.modal-overlay.active{ display:flex; }
+.modal-rad{
+    width:100%; max-width:720px;
+    background:var(--surface);
+    border-radius:28px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(15,23,42,.25);
+    animation:modalShow .2s ease;
+}
+@keyframes modalShow{
+    from{ transform:translateY(20px); opacity:0; }
+    to{   transform:translateY(0); opacity:1; }
+}
+.modal-header-rad{
+    padding:26px 28px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:flex-start;
+}
+.modal-header-rad h2{ margin:0; font-size:22px; font-weight:800; color:var(--text); }
+.modal-header-rad p{ margin:5px 0 0; color:var(--text-soft); font-size:13px; }
+.modal-body-rad{ padding:28px; }
+.form-grid-rad{ display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+.form-group-rad{ display:flex; flex-direction:column; }
+.form-group-rad label{ margin-bottom:8px; font-size:13px; font-weight:700; color:var(--text-soft); }
+.form-group-rad input,
+.form-group-rad select,
+.form-group-rad textarea{
+    border:1px solid var(--border); border-radius:14px;
+    padding:13px 16px; font-size:14px; outline:none;
+    background:var(--surface-2); color:var(--text);
+    transition:.2s ease; font-family:inherit;
+}
+.form-group-rad input:focus,
+.form-group-rad select:focus,
+.form-group-rad textarea:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(13,92,99,.12);
+}
+.form-group-rad input[readonly]{ opacity:.6; cursor:not-allowed; }
+.form-group-rad.full{ grid-column:1/-1; }
+.modal-footer-rad{
+    padding:22px 28px; border-top:1px solid var(--border);
+    display:flex; justify-content:flex-end; gap:12px;
+}
+.modal-close{
+    width:40px; height:40px; border:none;
+    border-radius:12px; background:var(--surface-2);
+    color:var(--text); cursor:pointer; font-size:16px;
+    display:grid; place-items:center;
+}
+.modal-close:hover{ background:var(--surface-3); }
+
+@media(max-width:1200px){ .rad-layout{ grid-template-columns:1fr; } }
+@media(max-width:600px){ .form-grid-rad{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-folder-open"></i>{% endblock %}
+{% block header_title %}Radicación electrónica{% endblock %}
+{% block header_subtitle %}Gestión documental y envío de cuentas médicas a EPS{% endblock %}
+
+{% block header_actions %}
+<button class="btn-ax ghost" onclick="exportarExcel()">
+    <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
+    Exportar
+</button>
+<button class="btn-ax primary" onclick="abrirModalRadicacion()">
+    <i class="fa-solid fa-paper-plane"></i>
+    Nueva radicación
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# ── KPIs ─────────────────────────────────────── #}
+<div class="rad-kpis">
+    <div class="rad-kpi">
+        <div class="rad-kpi-icon brand"><i class="fa-solid fa-folder-open"></i></div>
+        <div>
+            <div class="rad-kpi-value">{{ kpis.sin_radicar }}</div>
+            <div class="rad-kpi-label">Por radicar</div>
+        </div>
+    </div>
+    <div class="rad-kpi">
+        <div class="rad-kpi-icon success"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+            <div class="rad-kpi-value">{{ kpis.radicadas }}</div>
+            <div class="rad-kpi-label">Radicadas</div>
+        </div>
+    </div>
+    <div class="rad-kpi">
+        <div class="rad-kpi-icon warning"><i class="fa-solid fa-clock"></i></div>
+        <div>
+            <div class="rad-kpi-value">{{ kpis.en_auditoria }}</div>
+            <div class="rad-kpi-label">En auditoría</div>
+        </div>
+    </div>
+    <div class="rad-kpi">
+        <div class="rad-kpi-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div>
+            <div class="rad-kpi-value">{{ kpis.devueltas }}</div>
+            <div class="rad-kpi-label">Devueltas</div>
+        </div>
+    </div>
+    <div class="rad-kpi">
+        <div class="rad-kpi-icon info"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div>
+            <div class="rad-kpi-value">${{ "{:,.0f}".format(kpis.valor_radicado).replace(",",".") }}</div>
+            <div class="rad-kpi-label">Valor radicado</div>
+        </div>
+    </div>
+</div>
+
+<div class="rad-layout">
+
+    {# ── PANEL PRINCIPAL ──────────────────────── #}
+    <div>
+
+        {# TABS #}
+        <div class="rad-tabs">
+            <button class="rad-tab active" id="tab-radicadas"
+                    onclick="mostrarTab('radicadas')">
+                <i class="fa-solid fa-circle-check"></i>
+                Radicaciones ({{ radicaciones|length }})
+            </button>
+            <button class="rad-tab" id="tab-pendientes"
+                    onclick="mostrarTab('pendientes')">
+                <i class="fa-solid fa-clock"></i>
+                Por radicar ({{ para_radicar|length }})
+            </button>
+        </div>
+
+        {# PANEL RADICACIONES #}
+        <div id="panel-radicadas" class="content-card">
+            <p class="card-title">Historial de radicaciones</p>
+            <p class="card-subtitle">Cuentas médicas enviadas a EPS</p>
+
+            <div class="rad-filters">
+                <div class="rad-group">
+                    <label>Buscar EPS</label>
+                    <input type="text" id="filtroEpsRad" placeholder="Nombre EPS...">
+                </div>
+                <div class="rad-group">
+                    <label>Estado</label>
+                    <select id="filtroEstadoRad">
+                        <option value="">Todos</option>
+                        <option value="radicada">Radicada</option>
+                        <option value="en_auditoria">En auditoría</option>
+                        <option value="devuelta">Devuelta</option>
+                        <option value="pagada">Pagada</option>
+                        <option value="objetada">Objetada</option>
+                    </select>
+                </div>
+                <div class="rad-group">
+                    <label>Buscar factura</label>
+                    <input type="text" id="filtroFacturaRad" placeholder="Ej: FV12...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-ax">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>EPS</th>
+                            <th>N° Radicado</th>
+                            <th>Canal</th>
+                            <th>Fecha rad.</th>
+                            <th>Valor</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaRadicadas">
+                    {% for r in radicaciones %}
+                        {% if r.estado == 'radicada' %}{% set pill = 'success' %}
+                        {% elif r.estado == 'en_auditoria' %}{% set pill = 'warning' %}
+                        {% elif r.estado == 'devuelta' %}{% set pill = 'danger' %}
+                        {% elif r.estado == 'pagada' %}{% set pill = 'success' %}
+                        {% elif r.estado == 'objetada' %}{% set pill = 'danger' %}
+                        {% else %}{% set pill = 'neutral' %}{% endif %}
+                        <tr data-eps="{{ (r.eps or '')|lower }}"
+                            data-estado="{{ r.estado }}"
+                            data-factura="{{ r.numero_factura|lower }}">
+                            <td><strong>{{ r.numero_factura }}</strong></td>
+                            <td>{{ r.eps }}</td>
+                            <td>
+                                {% if r.numero_radicado %}
+                                    <span style="font-family:monospace; font-size:12px;
+                                                 background:var(--surface-2);
+                                                 padding:3px 8px; border-radius:6px;">
+                                        {{ r.numero_radicado }}
+                                    </span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if r.canal == 'electronico' %}
+                                    <i class="fa-solid fa-wifi" style="color:#0284c7;"></i> Electrónico
+                                {% elif r.canal == 'portal_eps' %}
+                                    <i class="fa-solid fa-globe" style="color:#7c3aed;"></i> Portal
+                                {% elif r.canal == 'correo' %}
+                                    <i class="fa-solid fa-envelope" style="color:#f59e0b;"></i> Correo
+                                {% else %}
+                                    <i class="fa-solid fa-person-walking" style="color:#10b981;"></i> Presencial
+                                {% endif %}
+                            </td>
+                            <td>{{ r.fecha_radicacion or "—" }}</td>
+                            <td><strong>${{ "{:,.0f}".format(r.valor_factura or 0).replace(",",".") }}</strong></td>
+                            <td>
+                                <span class="status-pill {{ pill }}">
+                                    {{ r.estado|replace("_"," ")|title }}
+                                </span>
+                            </td>
+                            <td style="display:flex; gap:6px;">
+                                <button onclick="verRadicacion('{{ r.id }}')"
+                                        class="btn-ax-table">
+                                    <i class="fa-solid fa-eye"></i> Ver
+                                </button>
+                                <button onclick="cambiarEstado('{{ r.id }}', '{{ r.estado }}')"
+                                        class="btn-ax-table"
+                                        style="background:var(--surface-2); color:var(--text-soft);">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:32px; color:var(--text-faint);">
+                                <i class="fa-solid fa-inbox" style="font-size:28px; display:block; margin-bottom:10px;"></i>
+                                No hay radicaciones registradas
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# PANEL PENDIENTES #}
+        <div id="panel-pendientes" class="content-card" style="display:none;">
+            <p class="card-title">Facturas por radicar</p>
+            <p class="card-subtitle">Facturas en cartera listas para enviar a EPS</p>
+
+            <div class="rad-filters">
+                <div class="rad-group">
+                    <label>Buscar EPS</label>
+                    <input type="text" id="filtroEpsPend" placeholder="Nombre EPS...">
+                </div>
+                <div class="rad-group">
+                    <label>Buscar factura</label>
+                    <input type="text" id="filtroFacturaPend" placeholder="Ej: FV12...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table-ax">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>EPS / Cliente</th>
+                            <th>Valor</th>
+                            <th>Días mora</th>
+                            <th>F. expedición</th>
+                            <th>Radicación previa</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPendientes">
+                    {% for f in para_radicar %}
+                        <tr data-eps-pend="{{ (f.eps or '')|lower }}"
+                            data-factura-pend="{{ f.numero_factura|lower }}">
+                            <td><strong>{{ f.numero_factura }}</strong></td>
+                            <td>{{ f.eps or "—" }}</td>
+                            <td><strong>${{ "{:,.0f}".format(f.valor_factura or 0).replace(",",".") }}</strong></td>
+                            <td>
+                                {% if f.dias_mora and f.dias_mora > 30 %}
+                                    <span style="color:#dc2626; font-weight:700;">{{ f.dias_mora }} días</span>
+                                {% else %}
+                                    {{ f.dias_mora or 0 }} días
+                                {% endif %}
+                            </td>
+                            <td>{{ f.fecha_expedicion[:10] if f.fecha_expedicion else "—" }}</td>
+                            <td>
+                                {% if f.radicacion %}
+                                    <span class="status-pill danger">Devuelta</span>
+                                {% else %}
+                                    <span class="status-pill neutral">Sin radicar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button
+                                    onclick="abrirModalRadicacion(
+                                        '{{ f.numero_factura }}',
+                                        '{{ f.eps or "" }}',
+                                        '{{ f.nit_eps or "" }}',
+                                        {{ f.valor_factura or 0 }},
+                                        '{{ f.id }}'
+                                    )"
+                                    class="btn-ax-table">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    Radicar
+                                </button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:32px; color:var(--text-faint);">
+                                <i class="fa-solid fa-circle-check"
+                                   style="font-size:28px; display:block; margin-bottom:10px; color:#10b981;"></i>
+                                Todas las facturas han sido radicadas
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── PANEL DERECHO ────────────────────────── #}
+    <div class="rad-side">
+
+        {# ALERTAS #}
+        <div class="content-card">
+            <p class="card-title">Alertas operativas</p>
+
+            {% set devueltas_list = radicaciones | selectattr("estado","eq","devuelta") | list %}
+            {% if devueltas_list %}
+            <div class="rad-alert danger">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>{{ devueltas_list|length }} devuelta(s)</strong>
+                    <p>Requieren corrección y re-radicación</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if kpis.sin_radicar > 0 %}
+            <div class="rad-alert warning">
+                <i class="fa-solid fa-clock"></i>
+                <div>
+                    <strong>{{ kpis.sin_radicar }} sin radicar</strong>
+                    <p>Facturas pendientes de envío a EPS</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set auditoria_list = radicaciones | selectattr("estado","eq","en_auditoria") | list %}
+            {% if auditoria_list %}
+            <div class="rad-alert info">
+                <i class="fa-solid fa-folder-open"></i>
+                <div>
+                    <strong>{{ auditoria_list|length }} en auditoría</strong>
+                    <p>EPS revisando documentos</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not devueltas_list and kpis.sin_radicar == 0 %}
+            <div class="rad-alert success">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <strong>Todo al día</strong>
+                    <p>Sin alertas de radicación</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ACTIVIDAD RECIENTE #}
+        <div class="content-card">
+            <p class="card-title">Actividad reciente</p>
+            <div class="timeline-rad">
+                {% for r in radicaciones[:6] %}
+                <div class="timeline-item-rad">
+                    <div class="tl-dot {{ 'success' if r.estado == 'radicada' else 'danger' if r.estado == 'devuelta' else 'warning' if r.estado == 'en_auditoria' else 'info' }}"></div>
+                    <div>
+                        <strong>{{ r.numero_factura }}</strong>
+                        <p>{{ r.eps }} · ${{ "{:,.0f}".format(r.valor_factura or 0).replace(",",".") }}</p>
+                        <small>{{ r.estado|replace("_"," ")|title }} · {{ r.fecha_radicacion or "—" }}</small>
+                    </div>
+                </div>
+                {% else %}
+                <p style="color:var(--text-faint); font-size:13px; text-align:center; padding:16px 0;">
+                    Sin actividad reciente
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{# ── MODAL VER RADICACIÓN ─────────────────────── #}
+<div class="modal-overlay" id="modalVerRad">
+    <div class="modal-rad" style="max-width:600px;">
+        <div class="modal-header-rad">
+            <div>
+                <h2><i class="fa-solid fa-folder-open" style="color:var(--brand); margin-right:10px;"></i>Detalle radicación</h2>
+                <p id="vrad_subtitulo">Información completa del proceso</p>
+            </div>
+            <button class="modal-close" onclick="cerrarVerRad()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body-rad">
+            <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px;">
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Factura</span>
+                    <strong id="vrad_factura" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">EPS</span>
+                    <strong id="vrad_eps" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">N° Radicado</span>
+                    <strong id="vrad_numero" style="font-size:15px; color:var(--brand);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Fecha radicación</span>
+                    <strong id="vrad_fecha" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Valor</span>
+                    <strong id="vrad_valor" style="font-size:18px; color:var(--brand);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Canal</span>
+                    <strong id="vrad_canal" style="font-size:15px; color:var(--text);"></strong>
+                </div>
+                <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:14px; grid-column:1/-1;">
+                    <span style="display:block; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Estado</span>
+                    <span id="vrad_estado"></span>
+                </div>
+            </div>
+            <div id="vrad_obs_box" style="background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--brand); border-radius:14px; padding:14px; margin-bottom:12px; display:none;">
+                <span style="display:block; font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Observaciones</span>
+                <p id="vrad_obs" style="margin:0; font-size:14px; color:var(--text);"></p>
+            </div>
+            <div id="vrad_soporte_box" style="display:none;">
+                <a id="vrad_soporte_link" href="#" target="_blank" class="btn-ax ghost" style="width:100%; justify-content:center; text-decoration:none;">
+                    <i class="fa-solid fa-file-arrow-down"></i> Ver soporte adjunto
+                </a>
+            </div>
+        </div>
+        <div class="modal-footer-rad">
+            <button class="btn-ax ghost" onclick="cerrarVerRad()">Cerrar</button>
+            <button class="btn-ax primary" onclick="imprimirComprobante()">
+                <i class="fa-solid fa-print"></i> Imprimir comprobante
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── MODAL CAMBIAR ESTADO ─────────────────────── #}
+<div class="modal-overlay" id="modalCambiarEstado">
+    <div class="modal-rad" style="max-width:500px;">
+        <div class="modal-header-rad">
+            <div>
+                <h2><i class="fa-solid fa-rotate" style="color:var(--brand); margin-right:10px;"></i>Actualizar estado</h2>
+                <p id="ces_subtitulo">Cambiar estado de la radicación</p>
+            </div>
+            <button class="modal-close" onclick="cerrarCambiarEstado()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body-rad">
+            <input type="hidden" id="ces_id">
+            <div class="form-grid-rad" style="grid-template-columns:1fr;">
+                <div class="form-group-rad">
+                    <label>Nuevo estado *</label>
+                    <select id="ces_estado">
+                        <option value="radicada">Radicada</option>
+                        <option value="en_auditoria">En auditoría</option>
+                        <option value="devuelta">Devuelta</option>
+                        <option value="pagada">Pagada</option>
+                        <option value="objetada">Objetada</option>
+                    </select>
+                </div>
+                <div class="form-group-rad">
+                    <label>Motivo / Observación</label>
+                    <textarea rows="3" id="ces_motivo" placeholder="Detalle del cambio de estado..."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer-rad">
+            <button class="btn-ax ghost" onclick="cerrarCambiarEstado()">Cancelar</button>
+            <button class="btn-ax primary" id="btnActualizarEstado" onclick="guardarCambioEstado()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── MODAL NUEVA RADICACIÓN ───────────────────── #}
+<div class="modal-overlay" id="modalRadicacion">
+    <div class="modal-rad">
+        <div class="modal-header-rad">
+            <div>
+                <h2><i class="fa-solid fa-paper-plane" style="color:var(--brand); margin-right:10px;"></i>Nueva radicación</h2>
+                <p>Registrar envío de cuenta médica a EPS</p>
+            </div>
+            <button class="modal-close" onclick="cerrarModalRadicacion()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body-rad">
+            <div class="form-grid-rad">
+                <div class="form-group-rad">
+                    <label>Número factura *</label>
+                    <input type="text" id="nr_factura" placeholder="Ej: FV12" readonly
+                           style="background:var(--surface-3);">
+                </div>
+                <div class="form-group-rad">
+                    <label>EPS *</label>
+                    <input type="text" id="nr_eps" readonly
+                           style="background:var(--surface-3);">
+                </div>
+                <div class="form-group-rad">
+                    <label>Valor factura</label>
+                    <input type="text" id="nr_valor" readonly
+                           style="background:var(--surface-3);">
+                </div>
+                <div class="form-group-rad">
+                    <label>Fecha radicación *</label>
+                    <input type="date" id="nr_fecha">
+                </div>
+                <div class="form-group-rad">
+                    <label>Canal de radicación *</label>
+                    <select id="nr_canal">
+                        <option value="presencial">Presencial</option>
+                        <option value="electronico">Electrónico</option>
+                        <option value="portal_eps">Portal EPS</option>
+                        <option value="correo">Correo</option>
+                    </select>
+                </div>
+                <div class="form-group-rad">
+                    <label>Número radicado EPS</label>
+                    <input type="text" id="nr_numero_radicado"
+                           placeholder="Número asignado por la EPS">
+                </div>
+                <div class="form-group-rad full">
+                    <label>Observaciones</label>
+                    <textarea rows="3" id="nr_observaciones"
+                              placeholder="Detalle del proceso de radicación..."></textarea>
+                </div>
+                <div class="form-group-rad full">
+                    <label><i class="fa-solid fa-paperclip" style="margin-right:6px;"></i>Adjuntar soporte</label>
+                    <input type="file" id="nr_soporte"
+                           accept=".pdf,.png,.jpg,.jpeg,.xml"
+                           style="padding:10px 16px;">
+                    <small style="color:var(--text-faint); margin-top:6px; display:block;">
+                        PDF, PNG, JPG, XML · Máx. 5MB
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer-rad">
+            <button class="btn-ax ghost" onclick="cerrarModalRadicacion()">Cancelar</button>
+            <button class="btn-ax primary" id="btnGuardarRad" onclick="guardarRadicacion()">
+                <i class="fa-solid fa-floppy-disk"></i> Registrar radicación
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── DATOS ────────────────────────────────────
+const RADICACIONES_DATA = {{ radicaciones | tojson }};
+let   RADICACION_ACTUAL = null;
+
+// ── TABS ──────────────────────────────────────
+function mostrarTab(tab){
+    document.getElementById("panel-radicadas").style.display  = tab === "radicadas"  ? "block" : "none";
+    document.getElementById("panel-pendientes").style.display = tab === "pendientes" ? "block" : "none";
+    document.getElementById("tab-radicadas").classList.toggle("active",  tab === "radicadas");
+    document.getElementById("tab-pendientes").classList.toggle("active", tab === "pendientes");
+}
+
+// ── FILTROS RADICADAS ──────────────────────────
+const filaRad = document.querySelectorAll("#tablaRadicadas tr[data-eps]");
+document.getElementById("filtroEpsRad").addEventListener("input", filtrarRad);
+document.getElementById("filtroEstadoRad").addEventListener("change", filtrarRad);
+document.getElementById("filtroFacturaRad").addEventListener("input", filtrarRad);
+
+function filtrarRad(){
+    const eps     = document.getElementById("filtroEpsRad").value.toLowerCase();
+    const estado  = document.getElementById("filtroEstadoRad").value;
+    const factura = document.getElementById("filtroFacturaRad").value.toLowerCase();
+    filaRad.forEach(f => {
+        const ok = (!eps     || f.dataset.eps.includes(eps))
+                && (!estado  || f.dataset.estado === estado)
+                && (!factura || f.dataset.factura.includes(factura));
+        f.style.display = ok ? "" : "none";
+    });
+}
+
+// ── FILTROS PENDIENTES ─────────────────────────
+const filaPend = document.querySelectorAll("#tablaPendientes tr[data-eps-pend]");
+document.getElementById("filtroEpsPend").addEventListener("input", filtrarPend);
+document.getElementById("filtroFacturaPend").addEventListener("input", filtrarPend);
+
+function filtrarPend(){
+    const eps     = document.getElementById("filtroEpsPend").value.toLowerCase();
+    const factura = document.getElementById("filtroFacturaPend").value.toLowerCase();
+    filaPend.forEach(f => {
+        const ok = (!eps     || f.dataset.epsPend.includes(eps))
+                && (!factura || f.dataset.facturaPend.includes(factura));
+        f.style.display = ok ? "" : "none";
+    });
+}
+
+// ── MODAL NUEVA RADICACIÓN ─────────────────────
+let _nr_factura_id  = "";
+let _nr_nit_eps     = "";
+
+function abrirModalRadicacion(factura="", eps="", nit="", valor=0, facturaId=""){
+    const hoy = new Date().toISOString().split("T")[0];
+    document.getElementById("nr_fecha").value    = hoy;
+    document.getElementById("nr_factura").value  = factura;
+    document.getElementById("nr_eps").value      = eps;
+    document.getElementById("nr_valor").value    = valor > 0
+        ? "$" + Number(valor).toLocaleString("es-CO") : "";
+    _nr_factura_id = facturaId;
+    _nr_nit_eps    = nit;
+    document.getElementById("modalRadicacion").classList.add("active");
+}
+
+function cerrarModalRadicacion(){
+    document.getElementById("modalRadicacion").classList.remove("active");
+}
+
+async function guardarRadicacion(){
+    const factura = document.getElementById("nr_factura").value.trim();
+    const eps     = document.getElementById("nr_eps").value.trim();
+    const fecha   = document.getElementById("nr_fecha").value;
+
+    if(!factura || !eps || !fecha){
+        Toast.show("Completa los campos obligatorios", "warning");
+        return;
+    }
+
+    const btn = document.getElementById("btnGuardarRad");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    const formData = new FormData();
+    formData.append("numero_factura",   factura);
+    formData.append("eps",              eps);
+    formData.append("nit_eps",          _nr_nit_eps);
+    formData.append("valor_factura",    document.getElementById("nr_valor").value.replace(/[^0-9]/g,""));
+    formData.append("fecha_radicacion", fecha);
+    formData.append("canal",            document.getElementById("nr_canal").value);
+    formData.append("numero_radicado",  document.getElementById("nr_numero_radicado").value);
+    formData.append("observaciones",    document.getElementById("nr_observaciones").value);
+    formData.append("factura_id",       _nr_factura_id);
+
+    const soporte = document.getElementById("nr_soporte").files[0];
+    if(soporte) formData.append("soporte", soporte);
+
+    try {
+        const res    = await fetch("/financiero/radicacion/registrar", {
+            method: "POST", body: formData
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show(result.msg, "success");
+            cerrarModalRadicacion();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Registrar radicación';
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Registrar radicación';
+    }
+}
+
+// ── VER RADICACIÓN ─────────────────────────────
+function verRadicacion(id){
+    const r = RADICACIONES_DATA.find(x => x.id === id);
+    if(!r) return;
+    RADICACION_ACTUAL = r;
+
+    document.getElementById("vrad_subtitulo").textContent = r.numero_factura + " · " + r.eps;
+    document.getElementById("vrad_factura").textContent   = r.numero_factura;
+    document.getElementById("vrad_eps").textContent       = r.eps;
+    document.getElementById("vrad_numero").textContent    = r.numero_radicado || "Sin número";
+    document.getElementById("vrad_fecha").textContent     = r.fecha_radicacion || "—";
+    document.getElementById("vrad_valor").textContent     = "$" + Number(r.valor_factura||0).toLocaleString("es-CO");
+    document.getElementById("vrad_canal").textContent     = (r.canal||"").replace("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+
+    const pillMap = {
+        radicada:"success", en_auditoria:"warning",
+        devuelta:"danger",  pagada:"success", objetada:"danger"
+    };
+    const pill = pillMap[r.estado] || "neutral";
+    document.getElementById("vrad_estado").innerHTML =
+        `<span class="status-pill ${pill}">${(r.estado||"").replace("_"," ").replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
+
+    const obsBox = document.getElementById("vrad_obs_box");
+    if(r.observaciones){
+        obsBox.style.display = "block";
+        document.getElementById("vrad_obs").textContent = r.observaciones;
+    } else {
+        obsBox.style.display = "none";
+    }
+
+    const sopBox  = document.getElementById("vrad_soporte_box");
+    const sopLink = document.getElementById("vrad_soporte_link");
+    if(r.soporte_url){
+        sopBox.style.display = "block";
+        sopLink.href         = r.soporte_url;
+    } else {
+        sopBox.style.display = "none";
+    }
+
+    document.getElementById("modalVerRad").classList.add("active");
+}
+
+function cerrarVerRad(){
+    document.getElementById("modalVerRad").classList.remove("active");
+}
+
+// ── CAMBIAR ESTADO ─────────────────────────────
+function cambiarEstado(id, estadoActual){
+    document.getElementById("ces_id").value        = id;
+    document.getElementById("ces_estado").value    = estadoActual;
+    document.getElementById("ces_motivo").value    = "";
+    document.getElementById("ces_subtitulo").textContent = "ID: " + id.slice(0,8) + "...";
+    document.getElementById("modalCambiarEstado").classList.add("active");
+}
+
+function cerrarCambiarEstado(){
+    document.getElementById("modalCambiarEstado").classList.remove("active");
+}
+
+async function guardarCambioEstado(){
+    const id     = document.getElementById("ces_id").value;
+    const estado = document.getElementById("ces_estado").value;
+    const motivo = document.getElementById("ces_motivo").value;
+
+    const btn = document.getElementById("btnActualizarEstado");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    try {
+        const res    = await fetch("/financiero/radicacion/actualizar-estado", {
+            method:  "POST",
+            headers: {"Content-Type": "application/json"},
+            body:    JSON.stringify({ radicacion_id: id, estado, motivo })
+        });
+        const result = await res.json();
+
+        if(result.ok){
+            Toast.show("Estado actualizado correctamente", "success");
+            cerrarCambiarEstado();
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            Toast.show("Error: " + result.error, "error");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
+        }
+    } catch(e){
+        Toast.show("Error de conexión", "error");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
+    }
+}
+
+// ── IMPRIMIR COMPROBANTE ───────────────────────
+function imprimirComprobante(){
+    if(!RADICACION_ACTUAL) return;
+    const r       = RADICACION_ACTUAL;
+    const ahora   = new Date();
+    const fechaImp = ahora.toLocaleDateString("es-CO",{day:"2-digit",month:"long",year:"numeric"});
+    const horaImp  = ahora.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"});
+    const canal    = (r.canal||"").replace("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Comprobante ${r.numero_factura}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',Arial,sans-serif;font-size:13px;color:#132226;}
+.page{width:210mm;min-height:297mm;margin:0 auto;padding:18mm 18mm 14mm;}
+.header{display:flex;justify-content:space-between;align-items:flex-start;
+        padding-bottom:16px;border-bottom:3px solid #0d5c63;margin-bottom:24px;}
+.header h1{font-size:26px;font-weight:800;color:#0d5c63;margin-bottom:2px;}
+.header p{font-size:11px;color:#5e7278;font-weight:600;}
+.badge{display:inline-flex;align-items:center;padding:8px 18px;border-radius:999px;
+       font-size:14px;font-weight:800;background:#dcfce7;color:#16a34a;
+       border:2px solid #16a34a33;margin-bottom:22px;}
+.section-title{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+               color:#0d5c63;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #d9e4e7;}
+.data-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
+.data-item{background:#f4f7f8;border:1px solid #d9e4e7;border-radius:10px;padding:12px 14px;}
+.data-item .label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+                  color:#7d9096;margin-bottom:4px;display:block;}
+.data-item .value{font-size:14px;font-weight:700;color:#132226;}
+.data-item.full{grid-column:1/-1;}
+.info-box{background:#e6f3f4;border:1px solid #0d5c6333;border-radius:10px;
+          padding:14px 16px;margin-bottom:24px;}
+.info-box p{font-size:13px;line-height:1.6;color:#132226;}
+.firmas{display:grid;grid-template-columns:repeat(2,1fr);gap:40px;margin-top:48px;}
+.firma-item{text-align:center;}
+.firma-linea{border-top:1.5px solid #132226;margin-bottom:8px;}
+.firma-label{font-size:11px;font-weight:700;color:#5e7278;text-transform:uppercase;}
+.footer{border-top:2px solid #0d5c63;padding-top:12px;margin-top:20px;
+        display:flex;justify-content:space-between;}
+.footer p{font-size:10px;color:#7d9096;}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
+           font-size:80px;font-weight:900;color:rgba(13,92,99,.04);
+           pointer-events:none;white-space:nowrap;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
+</head>
+<body>
+<div class="watermark">VITACORE</div>
+<div class="page">
+<div class="header">
+    <div>
+        <h1>VITACORE</h1>
+        <p>HIS · ERP Hospitalario · Módulo Financiero</p>
+        <p style="margin-top:4px;color:#0d5c63;font-weight:700;">Radicación electrónica</p>
+    </div>
+    <div style="text-align:right;">
+        <p style="font-size:13px;font-weight:700;">${r.numero_factura}</p>
+        <p style="font-size:11px;color:#5e7278;">Impreso: ${fechaImp} ${horaImp}</p>
+    </div>
+</div>
+<div class="badge">✓ Factura Radicada</div>
+<p class="section-title">Datos de la radicación</p>
+<div class="data-grid">
+    <div class="data-item"><span class="label">Número factura</span><span class="value">${r.numero_factura}</span></div>
+    <div class="data-item"><span class="label">EPS</span><span class="value">${r.eps}</span></div>
+    <div class="data-item"><span class="label">N° Radicado EPS</span><span class="value">${r.numero_radicado||"Sin número"}</span></div>
+    <div class="data-item"><span class="label">Fecha radicación</span><span class="value">${r.fecha_radicacion||"—"}</span></div>
+    <div class="data-item"><span class="label">Canal</span><span class="value">${canal}</span></div>
+    <div class="data-item"><span class="label">Valor factura</span><span class="value" style="font-size:18px;color:#0d5c63;">$${Number(r.valor_factura||0).toLocaleString("es-CO")}</span></div>
+    <div class="data-item"><span class="label">Registrado por</span><span class="value">${r.registrado_por||"Sistema"}</span></div>
+    <div class="data-item"><span class="label">Fecha vencimiento</span><span class="value">${r.fecha_vencimiento||"—"}</span></div>
+    ${r.observaciones ? `<div class="data-item full"><span class="label">Observaciones</span><span class="value">${r.observaciones}</span></div>` : ""}
+</div>
+<div class="info-box">
+    <p>La factura <strong>${r.numero_factura}</strong> fue radicada exitosamente ante <strong>${r.eps}</strong> por canal <strong>${canal}</strong>. Este comprobante certifica el proceso de radicación en el sistema VITACORE HIS/ERP.</p>
+</div>
+<p class="section-title">Firmas</p>
+<div class="firmas">
+    <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">Responsable cartera</div><div style="font-size:12px;font-weight:800;color:#132226;margin-top:2px;">${r.registrado_por||"Sistema"}</div></div>
+    <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">Director financiero</div></div>
+</div>
+<div class="footer">
+    <div><p style="font-size:11px;font-weight:800;color:#0d5c63;">VITACORE HIS · ERP Hospitalario</p><p>Comprobante generado: ${fechaImp} ${horaImp}</p></div>
+    <div style="text-align:right;"><p style="font-weight:700;">${r.numero_factura}</p><p>Módulo: Radicación</p></div>
+</div>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+
+    const v = window.open("","_blank","width=900,height=700");
+    v.document.write(html);
+    v.document.close();
+}
+
+// Cerrar modales al click fuera
+["modalRadicacion","modalVerRad","modalCambiarEstado"].forEach(id => {
+    window.addEventListener("click", e => {
+        const m = document.getElementById(id);
+        if(e.target === m) m.classList.remove("active");
+    });
+});
+
+function exportarExcel(){
+    Toast.show("Función de exportación próximamente", "info");
+}
+</script>
+{% endblock %}

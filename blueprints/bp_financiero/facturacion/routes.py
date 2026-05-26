@@ -336,43 +336,41 @@ def api_facturar():
             modalidad_pago = "PAGO_POR_EVENTO"
 
         # Calcular totales
-        copago = float(data.get("copago", prefactura.get("valor_copago", 0)))
-        cuota_mod = float(data.get("cuota_moderadora", prefactura.get("valor_cuota_moderadora", 0)))
-        cuota_rec = float(data.get("cuota_recuperacion", prefactura.get("valor_cuota_recuperacion", 0)))
+        copago     = float(data.get("copago", prefactura.get("valor_copago", 0)))
+        cuota_mod  = float(data.get("cuota_moderadora", prefactura.get("valor_cuota_moderadora", 0)))
+        cuota_rec  = float(data.get("cuota_recuperacion", prefactura.get("valor_cuota_recuperacion", 0)))
         pagos_comp = float(data.get("pagos_compartidos", 0))
-        subtotal = float(prefactura.get("subtotal", 0))
-        descuento = float(prefactura.get("descuento", 0))
-        total = subtotal - descuento
+        subtotal   = float(prefactura.get("subtotal", 0))
+        descuento  = float(prefactura.get("descuento", 0))
+        total      = subtotal - descuento
 
         # Crear factura
         factura_data = {
-            "empresa_id": 1,
-            "consecutivo_id": consecutivo["id"],
-            "prefijo": consecutivo["prefijo"],
-            "numero_factura": numero_factura,
-            "prefactura_id": prefactura_id,
-            "paciente_id": prefactura["paciente_id"],
-            "cliente_id": prefactura["cliente_id"],
-            "contrato_id": prefactura["contrato_id"],
-            "sede_id": prefactura.get("sede_id"),
-            "subtotal": subtotal,
-            "descuento": descuento,
-            "total": total,
-            # 11 campos sector salud
+            "empresa_id":       1,
+            "consecutivo_id":   consecutivo["id"],
+            "prefijo":          consecutivo["prefijo"],
+            "numero_factura":   numero_factura,
+            "prefactura_id":    prefactura_id,
+            "paciente_id":      prefactura["paciente_id"],
+            "cliente_id":       prefactura["cliente_id"],
+            "contrato_id":      prefactura["contrato_id"],
+            "sede_id":          prefactura.get("sede_id"),
+            "subtotal":         subtotal,
+            "descuento":        descuento,
+            "total":            total,
             "codigo_prestador": (sede_data or {}).get("codigo", ""),
-            "modalidad_pago": modalidad_pago,
+            "modalidad_pago":   modalidad_pago,
             "cobertura_plan_beneficios": data.get("cobertura_plan_beneficios", "PBS_CONTRIBUTIVO"),
-            "numero_contrato": contrato.get("nro_contrato", ""),
-            "numero_poliza": data.get("numero_poliza", ""),
-            "copago": copago,
+            "numero_contrato":  contrato.get("nro_contrato", ""),
+            "numero_poliza":    data.get("numero_poliza", ""),
+            "copago":           copago,
             "cuota_moderadora": cuota_mod,
             "cuota_recuperacion": cuota_rec,
             "pagos_compartidos": pagos_comp,
             "periodo_facturacion_inicio": prefactura.get("periodo_inicio"),
-            "periodo_facturacion_fin": prefactura.get("periodo_fin"),
-            # Estado
-            "estado": "EMITIDA",
-            "observaciones": data.get("observaciones", ""),
+            "periodo_facturacion_fin":    prefactura.get("periodo_fin"),
+            "estado":           "EMITIDA",
+            "observaciones":    data.get("observaciones", ""),
         }
 
         factura = repo.crear_factura(factura_data)
@@ -381,8 +379,8 @@ def api_facturar():
 
         # Copiar ítems de prefactura a detalle de factura
         items_pref = repo.obtener_items_prefactura(prefactura_id)
-        detalle = []
-        cita_ids = set()
+        detalle    = []
+        cita_ids   = set()
 
         for item in items_pref:
             cita_id = item.get("cita_id")
@@ -390,16 +388,16 @@ def api_facturar():
                 cita_ids.add(cita_id)
 
             detalle.append({
-                "factura_id": factura["id"],
-                "cita_id": cita_id,
-                "cita_procedimiento_id": item.get("cita_procedimiento_id"),
-                "codigo_cups": item["codigo_cups"],
-                "descripcion": item["descripcion"],
-                "cantidad": item["cantidad"],
-                "valor_unitario": item["valor_unitario"],
-                "valor_total": item["valor_total"],
-                "diagnostico_principal": item.get("diagnostico_principal"),
-                "tipo_diagnostico": item.get("tipo_diagnostico"),
+                "factura_id":              factura["id"],
+                "cita_id":                 cita_id,
+                "cita_procedimiento_id":   item.get("cita_procedimiento_id"),
+                "codigo_cups":             item["codigo_cups"],
+                "descripcion":             item["descripcion"],
+                "cantidad":                item["cantidad"],
+                "valor_unitario":          item["valor_unitario"],
+                "valor_total":             item["valor_total"],
+                "diagnostico_principal":   item.get("diagnostico_principal"),
+                "tipo_diagnostico":        item.get("tipo_diagnostico"),
             })
 
         if detalle:
@@ -414,23 +412,28 @@ def api_facturar():
 
         # ── Registrar cobro automático en caja ──
         try:
-            from repositories import fin_caja_repo as caja_repo
-            user = session.get("user", {})
             caja = caja_repo.obtener_caja_abierta(user.get("id", 0))
             if caja:
-                medio_pago = data.get("medio_pago", "EFECTIVO")
-                # Obtener datos completos de la factura para el cobro
+                medio_pago       = data.get("medio_pago", "EFECTIVO")
                 factura_completa = repo.obtener_factura(factura["id"])
                 caja_repo.registrar_cobro_factura(caja["id"], factura_completa, medio_pago)
         except Exception as e_caja:
-            # No bloquear la factura si falla el registro en caja
             print(f"[WARN] Error registrando cobro en caja: {e_caja}")
 
+        # ── Sincronizar automáticamente a Cartera ──
+        try:
+            from repositories.fin_cartera_repo import sincronizar_factura_a_cartera
+            factura_completa = repo.obtener_factura(factura["id"])
+            if factura_completa:
+                sincronizar_factura_a_cartera(factura_completa)
+        except Exception as e_cartera:
+            print(f"[WARN] Error sincronizando a cartera: {e_cartera}")
+
         return jsonify({
-            "ok": True,
-            "factura_id": factura["id"],
+            "ok":             True,
+            "factura_id":     factura["id"],
             "numero_factura": numero_factura,
-            "total": total,
+            "total":          total,
         })
 
     except Exception as e:

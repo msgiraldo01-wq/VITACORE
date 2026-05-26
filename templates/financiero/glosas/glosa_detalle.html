@@ -384,11 +384,9 @@
                                 {% endif %}
                             </td>
                             <td>{{ r.registrado_por or "—" }}</td>
-                            <td style="display:flex; gap:6px; align-items:center;">
+                            <td>
                                 <button
-                                <td>
-                                    <button
-                                        onclick="verRespuesta({{ loop.index0 }})"
+                                    onclick="verRespuesta({{ loop.index0 }})"
                                     style="border:none; background:var(--brand-soft);
                                            color:var(--brand); cursor:pointer;
                                            font-size:13px; padding:7px 12px;

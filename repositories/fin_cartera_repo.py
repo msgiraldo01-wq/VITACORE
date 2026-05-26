@@ -43,9 +43,80 @@ def obtener_pagos_por_factura(numero_factura: str):
     return response.data or []
 
 
-def subir_soporte_storage(archivo_bytes: bytes, nombre_archivo: str, tipo_mime: str) -> str:
+def sincronizar_factura_a_cartera(factura: dict) -> bool:
+    """
+    Sincroniza una factura emitida desde fin_facturas
+    hacia fin_cartera_facturas.
+    Llamar después de emitir una factura.
+    """
     supabase = get_supabase_admin()
-    extension   = nombre_archivo.rsplit(".", 1)[-1] if "." in nombre_archivo else "bin"
+
+    # Obtener nombre EPS desde hc_clientes
+    eps_nombre = ""
+    nit_eps    = ""
+    if factura.get("cliente_id"):
+        cli = (
+            supabase.table("hc_clientes")
+            .select("nombre, nit")
+            .eq("id", factura["cliente_id"])
+            .single()
+            .execute()
+        ).data
+        if cli:
+            eps_nombre = cli.get("nombre", "")
+            nit_eps    = cli.get("nit", "")
+
+    # Calcular fecha vencimiento (30 días desde expedición por defecto)
+    from datetime import timedelta
+    fecha_exp = factura.get("fecha_expedicion")
+    if fecha_exp:
+        if isinstance(fecha_exp, str):
+            fecha_exp_dt = datetime.fromisoformat(fecha_exp[:10]).date()
+        else:
+            fecha_exp_dt = fecha_exp
+        fecha_venc = (fecha_exp_dt + timedelta(days=30)).isoformat()
+        fecha_exp_str = fecha_exp_dt.isoformat()
+    else:
+        fecha_venc    = None
+        fecha_exp_str = None
+
+    registro = {
+        "factura_id":       factura.get("id"),
+        "numero_factura":   factura.get("numero_factura"),
+        "prefijo":          factura.get("prefijo"),
+        "eps":              eps_nombre,
+        "nit_eps":          nit_eps,
+        "cliente_id":       factura.get("cliente_id"),
+        "contrato_id":      factura.get("contrato_id"),
+        "paciente_id":      factura.get("paciente_id"),
+        "valor_factura":    float(factura.get("total", 0) or 0),
+        "valor_pagado":     0,
+        "valor_glosas":     0,
+        "notas_credito":    0,
+        "copago":           float(factura.get("copago", 0) or 0),
+        "cuota_moderadora": float(factura.get("cuota_moderadora", 0) or 0),
+        "fecha_expedicion": fecha_exp_str,
+        "fecha_vencimiento": fecha_venc,
+        "fecha_radicacion": fecha_exp_str,
+        "dias_mora":        0,
+        "estado":           "pendiente",
+        "estado_factura":   factura.get("estado"),
+        "estado_dian":      factura.get("estado_dian"),
+        "updated_at":       date.today().isoformat(),
+    }
+
+    # Upsert por factura_id
+    supabase.table("fin_cartera_facturas").upsert(
+        registro,
+        on_conflict="factura_id"
+    ).execute()
+
+    return True
+
+
+def subir_soporte_storage(archivo_bytes: bytes, nombre_archivo: str, tipo_mime: str) -> str:
+    supabase   = get_supabase_admin()
+    extension  = nombre_archivo.rsplit(".", 1)[-1] if "." in nombre_archivo else "bin"
     nombre_unico = f"pagos/{uuid.uuid4()}.{extension}"
 
     supabase.storage.from_("soportes-cartera").upload(
@@ -53,7 +124,6 @@ def subir_soporte_storage(archivo_bytes: bytes, nombre_archivo: str, tipo_mime: 
         file=archivo_bytes,
         file_options={"content-type": tipo_mime}
     )
-
     signed = supabase.storage.from_("soportes-cartera").create_signed_url(
         nombre_unico, 31536000
     )
@@ -86,6 +156,7 @@ def registrar_pago(data: dict, archivo=None):
 
     supabase.table("fin_cartera_pagos").insert(pago).execute()
 
+    # Actualizar valor pagado en cartera
     factura = obtener_factura_por_numero(data.get("numero_factura"))
     if factura:
         nuevo_valor_pagado = float(factura.get("valor_pagado", 0)) + float(data.get("valor_pago", 0))
@@ -101,7 +172,7 @@ def registrar_pago(data: dict, archivo=None):
             "ultimo_pago":  data.get("fecha_pago"),
             "estado":       nuevo_estado,
             "updated_at":   date.today().isoformat(),
-        }).eq("id", data.get("factura_id")).execute()
+        }).eq("numero_factura", data.get("numero_factura")).execute()
 
     return True
 
@@ -114,6 +185,7 @@ def actualizar_dias_mora():
         supabase.table("fin_cartera_facturas")
         .select("id, fecha_vencimiento, estado")
         .neq("estado", "pagada")
+        .neq("estado", "anulada")
         .execute()
     ).data or []
 
