@@ -1,0 +1,461 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Prefacturas{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-lines"></i>{% endblock %}
+{% block header_title %}Prefacturas Pendientes{% endblock %}
+{% block header_subtitle %}Revisa y factura las prefacturas generadas pendientes de facturación.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
+  <i class="fa-solid fa-plus"></i> Nueva prefactura
+</a>
+<a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
+  <i class="fa-solid fa-list"></i> Ver facturas
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+.pf-container { display: flex; flex-direction: column; gap: 18px; }
+.pf-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+.pf-filtro { height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; min-width: 140px; }
+.pf-filtro:focus { outline: none; border-color: var(--brand); }
+.pf-btn-filtrar { height: 42px; padding: 0 18px; border: none; border-radius: var(--radius-sm); background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.pf-btn-filtrar:hover { background: var(--brand-strong); }
+.pf-btn-limpiar { height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-soft); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.pf-btn-limpiar:hover { border-color: var(--danger); color: var(--danger); }
+.pf-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pf-stat { padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-2); }
+.pf-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 6px; }
+.pf-stat-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.pf-stat-sub { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+.pf-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.pf-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pf-table th { background: var(--surface-3); padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.pf-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.pf-table tr:last-child td { border-bottom: none; }
+.pf-table tbody tr { cursor: pointer; transition: background .15s; }
+.pf-table tbody tr:hover td { background: rgba(13,92,99,.03); }
+.pf-numero { font-weight: 800; color: var(--brand); font-size: 15px; }
+.pf-tipo { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.pf-tipo.INDIVIDUAL { background: var(--info-soft); color: var(--info); }
+.pf-tipo.CONSOLIDADA { background: var(--warn-soft); color: var(--warn); }
+.pf-valor { font-weight: 700; white-space: nowrap; color: var(--brand); }
+.pf-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-faint); gap: 14px; }
+.pf-empty i { font-size: 3rem; opacity: .3; }
+.pf-empty p { font-size: 15px; margin: 0; }
+
+/* Modal */
+.pf-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.pf-modal-overlay.active { opacity: 1; pointer-events: all; }
+.pf-modal { background: var(--surface); border-radius: var(--radius-xl); width: 92%; max-width: 700px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0,0,0,.1); transform: translateY(20px) scale(.98); transition: transform .3s; }
+.pf-modal-overlay.active .pf-modal { transform: translateY(0) scale(1); }
+.pf-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.pf-modal-header h2 { margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.pf-modal-close { background: none; border: none; font-size: 20px; color: var(--text-faint); cursor: pointer; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.pf-modal-close:hover { background: var(--surface-3); color: var(--text); }
+.pf-modal-body { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.pf-det-section { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
+.pf-det-section i { color: var(--brand); }
+.pf-det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-det-item { display: flex; flex-direction: column; gap: 2px; }
+.pf-det-label { font-size: 11px; color: var(--text-faint); font-weight: 700; }
+.pf-det-value { font-size: 14px; font-weight: 600; color: var(--text); }
+.pf-det-table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.pf-det-table th { background: var(--surface-3); padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); }
+.pf-det-table td { padding: 8px 12px; border-top: 1px solid var(--border); }
+.pf-det-totals { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
+.pf-det-total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.pf-det-total-row.main { border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 800; color: var(--brand); }
+.pf-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.pf-btn { height: 40px; padding: 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.pf-btn:hover { border-color: var(--brand); color: var(--brand); }
+.pf-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pf-btn.primary:hover { background: #256d28; border-color: #256d28; color: #fff; }
+.pf-copago-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.pf-copago-grid label { display: block; font-size: 11px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.pf-copago-grid input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; }
+.pf-copago-grid input:focus { outline: none; border-color: var(--brand); }
+@media (max-width: 768px) { .pf-stats { grid-template-columns: 1fr 1fr; } .pf-det-grid { grid-template-columns: 1fr; } .pf-filtros { flex-direction: column; } .pf-filtro { min-width: 100%; } .pf-copago-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="pf-container">
+
+  <!-- STATS -->
+  <div class="pf-stats">
+    <div class="pf-stat">
+      <div class="pf-stat-label">Prefacturas pendientes</div>
+      <div class="pf-stat-value" id="statPendientes">—</div>
+    </div>
+    <div class="pf-stat">
+      <div class="pf-stat-label">Individuales</div>
+      <div class="pf-stat-value" id="statIndividuales" style="color:var(--info);">—</div>
+      <div class="pf-stat-sub" id="statValorIndividuales"></div>
+    </div>
+    <div class="pf-stat">
+      <div class="pf-stat-label">Consolidadas</div>
+      <div class="pf-stat-value" id="statConsolidadas" style="color:var(--warn);">—</div>
+      <div class="pf-stat-sub" id="statValorConsolidadas"></div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="pf-filtros">
+    <input type="text" class="pf-filtro" id="filtroPaciente" placeholder="Buscar paciente...">
+    <select class="pf-filtro" id="filtroTipo">
+      <option value="">Todos los tipos</option>
+      <option value="INDIVIDUAL">Individual</option>
+      <option value="CONSOLIDADA">Consolidada</option>
+    </select>
+    <input type="date" class="pf-filtro" id="filtroDesde" title="Fecha desde">
+    <input type="date" class="pf-filtro" id="filtroHasta" title="Fecha hasta">
+    <button class="pf-btn-filtrar" onclick="filtrarPrefacturas()">
+      <i class="fa-solid fa-filter"></i> Filtrar
+    </button>
+    <button class="pf-btn-limpiar" onclick="limpiarFiltros()">
+      <i class="fa-solid fa-xmark"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- TABLA -->
+  <div class="pf-table-wrap">
+    <table class="pf-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Paciente</th>
+          <th>Entidad</th>
+          <th>Tipo factura</th>
+          <th>Subtotal</th>
+          <th>Valor neto</th>
+        </tr>
+      </thead>
+      <tbody id="prefacturasBody"></tbody>
+    </table>
+  </div>
+  <div class="pf-empty" id="emptyPrefacturas" style="display:none;">
+    <i class="fa-solid fa-file-circle-check"></i>
+    <p>No hay prefacturas pendientes</p>
+  </div>
+
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="pf-modal-overlay" id="modalDetalle">
+  <div class="pf-modal">
+    <div class="pf-modal-header">
+      <h2>
+        <i class="fa-solid fa-file-lines" style="color:var(--brand);"></i>
+        Prefactura <span id="detId">—</span>
+      </h2>
+      <button class="pf-modal-close" onclick="cerrarDetalle()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="pf-modal-body" id="detalleBody">
+      <p style="text-align:center; color:var(--text-faint);">
+        <i class="fa-solid fa-spinner fa-spin"></i> Cargando...
+      </p>
+    </div>
+    <div class="pf-modal-footer" id="detalleFooter" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+let prefacturasData = [];
+let prefacturaActualId = null;
+let prefacturaActualTipo = 'INDIVIDUAL';
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarPrefacturas();
+  document.getElementById('modalDetalle').addEventListener('click', (e) => {
+    if (e.target.id === 'modalDetalle') cerrarDetalle();
+  });
+});
+
+// ===== CARGAR PREFACTURAS =====
+async function cargarPrefacturas() {
+  try {
+    const res = await fetch('/facturacion/api/prefacturas?estado=ABIERTA&limit=100');
+    const data = await res.json();
+    if (!data.ok) { Toast.show('Error cargando prefacturas', 'error'); return; }
+
+    prefacturasData = data.data || [];
+    calcularStats(prefacturasData);
+    renderPrefacturas(prefacturasData);
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  }
+}
+
+function calcularStats(lista) {
+  const individuales = lista.filter(p => (p.tipo_factura || 'INDIVIDUAL').toUpperCase() === 'INDIVIDUAL');
+  const consolidadas = lista.filter(p => (p.tipo_factura || '').toUpperCase() === 'CONSOLIDADA');
+
+  document.getElementById('statPendientes').textContent = lista.length;
+  document.getElementById('statIndividuales').textContent = individuales.length;
+  document.getElementById('statValorIndividuales').textContent =
+    `$${fm(individuales.reduce((s, p) => s + parseFloat(p.subtotal || 0), 0))}`;
+  document.getElementById('statConsolidadas').textContent = consolidadas.length;
+  document.getElementById('statValorConsolidadas').textContent =
+    `$${fm(consolidadas.reduce((s, p) => s + parseFloat(p.subtotal || 0), 0))}`;
+}
+
+function renderPrefacturas(lista) {
+  const tbody = document.getElementById('prefacturasBody');
+  const empty = document.getElementById('emptyPrefacturas');
+
+  if (!lista.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = lista.map(p => {
+    const pac = p.hc_pacientes || {};
+    const cli = p.hc_clientes || {};
+    const con = p.hc_contratos || {};
+    const nombre = `${pac.primer_nombre || ''} ${pac.primer_apellido || ''}`.trim() || '—';
+    const fecha = p.created_at ? p.created_at.split('T')[0] : '—';
+    const tipo = (con.tipo_factura || 'INDIVIDUAL').toUpperCase();
+
+    return `<tr onclick="abrirDetalle(${p.id}, '${tipo}')">
+      <td><span class="pf-numero">#${p.id}</span></td>
+      <td>${fecha}</td>
+      <td>
+        <div style="font-weight:600;">${nombre}</div>
+        <div style="font-size:12px; color:var(--text-soft);">${pac.numero_documento || ''}</div>
+      </td>
+      <td style="font-size:13px;">
+        ${cli.nombre || '—'}
+        <div style="font-size:11px; color:var(--text-faint);">${con.nro_contrato || ''}</div>
+      </td>
+      <td><span class="pf-tipo ${tipo}">${tipo}</span></td>
+      <td class="pf-valor">$${fm(p.subtotal)}</td>
+      <td class="pf-valor" style="color:var(--text);">$${fm(p.valor_neto)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== FILTROS =====
+function filtrarPrefacturas() {
+  const textoPaciente = document.getElementById('filtroPaciente').value.toLowerCase().trim();
+  const tipo = document.getElementById('filtroTipo').value.toUpperCase();
+  const desde = document.getElementById('filtroDesde').value;
+  const hasta = document.getElementById('filtroHasta').value;
+
+  const filtradas = prefacturasData.filter(p => {
+    const pac = p.hc_pacientes || {};
+    const con = p.hc_contratos || {};
+    const nombre = `${pac.primer_nombre || ''} ${pac.primer_apellido || ''} ${pac.numero_documento || ''}`.toLowerCase();
+    const tipoPref = (con.tipo_factura || 'INDIVIDUAL').toUpperCase();
+    const fecha = p.created_at ? p.created_at.split('T')[0] : '';
+
+    if (textoPaciente && !nombre.includes(textoPaciente)) return false;
+    if (tipo && tipoPref !== tipo) return false;
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+    return true;
+  });
+
+  renderPrefacturas(filtradas);
+}
+
+function limpiarFiltros() {
+  document.getElementById('filtroPaciente').value = '';
+  document.getElementById('filtroTipo').value = '';
+  document.getElementById('filtroDesde').value = '';
+  document.getElementById('filtroHasta').value = '';
+  renderPrefacturas(prefacturasData);
+}
+
+// ===== DETALLE =====
+async function abrirDetalle(prefacturaId, tipo) {
+  prefacturaActualId = prefacturaId;
+  prefacturaActualTipo = tipo;
+
+  document.getElementById('modalDetalle').classList.add('active');
+  document.getElementById('detalleBody').innerHTML =
+    '<p style="text-align:center; color:var(--text-faint);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p>';
+  document.getElementById('detalleFooter').style.display = 'none';
+
+  try {
+    const res = await fetch(`/facturacion/api/prefactura/${prefacturaId}`);
+    const data = await res.json();
+    if (!data.ok) { Toast.show(data.error || 'Error', 'error'); cerrarDetalle(); return; }
+    renderDetalle(data.data, data.items, tipo);
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+    cerrarDetalle();
+  }
+}
+
+function renderDetalle(pf, items, tipo) {
+  document.getElementById('detId').textContent = `#${pf.id}`;
+
+  const pac = pf.hc_pacientes || {};
+  const cli = pf.hc_clientes || {};
+  const con = pf.hc_contratos || {};
+  const nombre = `${pac.primer_nombre || ''} ${pac.primer_apellido || ''}`.trim() || '—';
+  const fecha = pf.created_at ? pf.created_at.split('T')[0] : '—';
+
+  const itemsHTML = (items || []).map(i => `
+    <tr>
+      <td><strong>${i.codigo_cups}</strong></td>
+      <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${i.descripcion}">${i.descripcion}</td>
+      <td style="text-align:center;">${i.cantidad}</td>
+      <td style="text-align:right;">$${fm(i.valor_unitario)}</td>
+      <td style="text-align:right; font-weight:700;">$${fm(i.valor_total)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('detalleBody').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="pf-tipo ${tipo}">${tipo}</span>
+      <span style="font-size:13px; color:var(--text-soft);">${fecha}</span>
+    </div>
+
+    <div class="pf-det-section"><i class="fa-solid fa-user"></i> Paciente</div>
+    <div class="pf-det-grid">
+      <div class="pf-det-item"><span class="pf-det-label">Nombre</span><span class="pf-det-value">${nombre}</span></div>
+      <div class="pf-det-item"><span class="pf-det-label">Documento</span><span class="pf-det-value">${pac.numero_documento || '—'}</span></div>
+    </div>
+
+    <div class="pf-det-section"><i class="fa-solid fa-building"></i> Entidad y contrato</div>
+    <div class="pf-det-grid">
+      <div class="pf-det-item"><span class="pf-det-label">Cliente</span><span class="pf-det-value">${cli.nombre || '—'}</span></div>
+      <div class="pf-det-item"><span class="pf-det-label">Contrato</span><span class="pf-det-value">${con.nro_contrato || '—'}</span></div>
+    </div>
+
+    <div class="pf-det-section"><i class="fa-solid fa-list"></i> Servicios</div>
+    <table class="pf-det-table">
+      <thead>
+        <tr>
+          <th>Código</th><th>Descripción</th>
+          <th style="text-align:center;">Cant.</th>
+          <th style="text-align:right;">V. Unit.</th>
+          <th style="text-align:right;">V. Total</th>
+        </tr>
+      </thead>
+      <tbody>${itemsHTML || '<tr><td colspan="5" style="text-align:center; color:var(--text-faint);">Sin ítems</td></tr>'}</tbody>
+    </table>
+
+    <div class="pf-det-totals">
+      <div class="pf-det-total-row"><span>Subtotal</span><span>$${fm(pf.subtotal)}</span></div>
+      ${pf.descuento > 0 ? `<div class="pf-det-total-row"><span>Descuento</span><span>-$${fm(pf.descuento)}</span></div>` : ''}
+      ${pf.valor_copago > 0 ? `<div class="pf-det-total-row"><span>Copago</span><span>$${fm(pf.valor_copago)}</span></div>` : ''}
+      ${pf.valor_cuota_moderadora > 0 ? `<div class="pf-det-total-row"><span>Cuota moderadora</span><span>$${fm(pf.valor_cuota_moderadora)}</span></div>` : ''}
+      ${pf.valor_cuota_recuperacion > 0 ? `<div class="pf-det-total-row"><span>Cuota recuperación</span><span>$${fm(pf.valor_cuota_recuperacion)}</span></div>` : ''}
+      <div class="pf-det-total-row main"><span>Valor neto</span><span>$${fm(pf.valor_neto)}</span></div>
+    </div>
+
+    ${tipo === 'INDIVIDUAL' ? `
+    <div class="pf-det-section"><i class="fa-solid fa-coins"></i> Ajustes antes de facturar</div>
+    <div class="pf-copago-grid">
+      <div><label>Copago</label><input type="number" id="modalCopago" value="${pf.valor_copago || 0}" min="0"></div>
+      <div><label>Cuota moderadora</label><input type="number" id="modalCuotaMod" value="${pf.valor_cuota_moderadora || 0}" min="0"></div>
+      <div><label>Cuota recuperación</label><input type="number" id="modalCuotaRec" value="${pf.valor_cuota_recuperacion || 0}" min="0"></div>
+      <div><label>Descuento</label><input type="number" id="modalDescuento" value="${pf.descuento || 0}" min="0"></div>
+    </div>` : ''}
+  `;
+
+  // Footer según tipo
+  const footer = document.getElementById('detalleFooter');
+  footer.style.display = 'flex';
+
+  if (tipo === 'INDIVIDUAL') {
+    footer.innerHTML = `
+      <button class="pf-btn" onclick="cerrarDetalle()">
+        <i class="fa-solid fa-xmark"></i> Cerrar
+      </button>
+      <button class="pf-btn primary" onclick="facturarPrefactura()">
+        <i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora
+      </button>`;
+  } else {
+    footer.innerHTML = `
+      <button class="pf-btn" onclick="cerrarDetalle()">
+        <i class="fa-solid fa-xmark"></i> Cerrar
+      </button>
+      <button class="pf-btn" style="border-color:var(--warn); color:var(--warn); cursor:default;">
+        <i class="fa-solid fa-layer-group"></i> Pendiente de consolidación
+      </button>`;
+  }
+}
+
+function cerrarDetalle() {
+  document.getElementById('modalDetalle').classList.remove('active');
+  prefacturaActualId = null;
+}
+
+// ===== FACTURAR DESDE MODAL =====
+async function facturarPrefactura() {
+  if (!prefacturaActualId) return;
+
+  const copago    = parseFloat(document.getElementById('modalCopago')?.value)    || 0;
+  const cuotaMod  = parseFloat(document.getElementById('modalCuotaMod')?.value)  || 0;
+  const cuotaRec  = parseFloat(document.getElementById('modalCuotaRec')?.value)  || 0;
+  const descuento = parseFloat(document.getElementById('modalDescuento')?.value) || 0;
+
+  const confirm = await Swal.fire({
+    title: '¿Facturar esta prefactura?',
+    text: 'Se generará la factura definitiva.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, facturar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#2f7d32',
+  });
+  if (!confirm.isConfirmed) return;
+
+  const btn = document.querySelector('#detalleFooter .pf-btn.primary');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Facturando...';
+
+  try {
+    // Ajustar copagos primero
+    await fetch(`/facturacion/api/prefactura/${prefacturaActualId}/ajustar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        valor_copago:             copago,
+        valor_cuota_moderadora:   cuotaMod,
+        valor_cuota_recuperacion: cuotaRec,
+        descuento:                descuento,
+      })
+    });
+
+    // Facturar
+    const res = await fetch('/facturacion/api/facturar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prefactura_id:    prefacturaActualId,
+        copago,
+        cuota_moderadora: cuotaMod,
+      })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      Toast.show(`Factura ${data.numero_factura} generada correctamente`, 'success');
+      cerrarDetalle();
+      cargarPrefacturas(); // refrescar lista
+    } else {
+      Toast.show(data.error || 'Error al facturar', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
+    }
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
+  }
+}
+
+function fm(v) {
+  return (parseFloat(v) || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+</script>
+{% endblock %}

@@ -109,7 +109,7 @@
       <table class="fl-table">
         <thead>
           <tr>
-            <th>Nro. factura</th><th>Fecha</th><th>Paciente</th>
+            <th>Nro. factura</th><th>Prefactura</th><th>Fecha</th><th>Paciente</th>
             <th>Entidad</th><th>Total</th><th>Copago</th><th>Estado</th>
           </tr>
         </thead>
@@ -246,6 +246,7 @@ function appendFacturas(nuevas) {
     tr.onclick = () => abrirDetalle(f.id);
     tr.innerHTML = `
       <td><span class="fl-numero">${f.numero_factura}</span></td>
+      <td><span style="font-size:12px; color:var(--text-soft);">${f.prefactura_id ? `#${f.prefactura_id}` : '—'}</span></td>
       <td>${fecha}</td>
       <td>
         <div style="font-weight:600;">${f.paciente_nombre || '—'}</div>
@@ -336,6 +337,7 @@ function renderDetalle(f, detalle, notas) {
       <div class="fl-det-item"><span class="fl-det-label">NIT</span><span class="fl-det-value">${cli.nit || '—'}</span></div>
       <div class="fl-det-item"><span class="fl-det-label">Contrato</span><span class="fl-det-value">${con.nro_contrato || '—'}</span></div>
       <div class="fl-det-item"><span class="fl-det-label">Manual</span><span class="fl-det-value">${con.manual_tarifario || '—'}</span></div>
+      <div class="fl-det-item"><span class="fl-det-label">Prefactura origen</span><span class="fl-det-value" style="color:var(--brand); font-weight:700;">${f.prefactura_id ? `#${f.prefactura_id}` : '—'}</span></div>
     </div>
     <div class="fl-det-section"><i class="fa-solid fa-hospital"></i> Sede y datos FEV</div>
     <div class="fl-det-grid">

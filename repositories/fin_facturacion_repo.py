@@ -51,7 +51,7 @@ def buscar_citas_facturables(numero_documento: str):
             "hc_profesionales(nombre_completo), "
             "hc_sedes(nombre), "
             "hc_clientes(nombre, nit), "
-            "hc_contratos(nro_contrato, manual_tarifario, tipo_contrato)"
+            "hc_contratos(nro_contrato, manual_tarifario, tipo_contrato, tipo_factura)"
         )
         .eq("paciente_id", paciente["id"])
         .in_("estado", ["CONFIRMADA", "EN_ATENCION", "FINALIZADA"])
@@ -194,17 +194,17 @@ def listar_prefacturas(empresa_id: int = 1, estado: str = None):
         .table("fin_prefacturas")
         .select(
             "*, hc_pacientes(primer_nombre, primer_apellido, numero_documento), "
-            "hc_clientes(nombre)"
+            "hc_clientes(nombre), "
+            "hc_contratos(nro_contrato, tipo_factura)"  # ← agregar tipo_factura
         )
         .eq("empresa_id", empresa_id)
         .order("created_at", desc=True)
-        .limit(50)
+        .limit(100)
     )
     if estado:
         q = q.eq("estado", estado)
     res = q.execute()
     return res.data or []
-
 
 def actualizar_prefactura(prefactura_id: int, data: dict):
     res = (
@@ -274,7 +274,7 @@ def listar_facturas(empresa_id: int = 1, estado: str = None,
         _sb()
         .table("fin_facturas")
         .select(
-            "id, numero_factura, fecha_expedicion, total, estado, "
+            "id, numero_factura, prefactura_id, fecha_expedicion, total, estado, "
             "copago, cuota_moderadora, estado_dian, "
             "hc_pacientes(primer_nombre, primer_apellido, numero_documento), "
             "hc_clientes(nombre, nit)"
@@ -294,7 +294,6 @@ def listar_facturas(empresa_id: int = 1, estado: str = None,
 
     res = q.execute()
     return res.data or []
-
 
 def actualizar_factura(factura_id: int, data: dict):
     res = (
@@ -516,3 +515,139 @@ def buscar_cups_por_texto(query: str, limite: int = 15):
         .execute()
     )
     return res.data or []
+
+# =============================================================
+# FACTURACIÓN CONSOLIDADA
+# =============================================================
+
+def listar_prefacturas_consolidables(cliente_id: int, contrato_id: int = None):
+    """
+    Lista prefacturas ABIERTA de un cliente con tipo_factura CONSOLIDADA.
+    """
+    q = (
+        _sb()
+        .table("fin_prefacturas")
+        .select(
+            "*, hc_pacientes(primer_nombre, primer_apellido, numero_documento), "
+            "hc_contratos(nro_contrato, tipo_factura, periodicidad_facturacion)"
+        )
+        .eq("cliente_id", cliente_id)
+        .eq("estado", "ABIERTA")
+        .order("created_at")
+    )
+    if contrato_id:
+        q = q.eq("contrato_id", contrato_id)
+
+    res = q.execute()
+
+    # Filtrar solo las de contratos CONSOLIDADA
+    prefacturas = []
+    for pf in (res.data or []):
+        contrato = pf.get("hc_contratos", {}) or {}
+        if contrato.get("tipo_factura", "").upper() == "CONSOLIDADA":
+            prefacturas.append(pf)
+
+    return prefacturas
+
+
+def crear_factura_consolidada(
+    prefactura_ids: list,
+    consecutivo_id: int,
+    numero_factura: str,
+    extra: dict,
+):
+    """
+    Agrupa varias prefacturas ABIERTA en una sola factura consolidada.
+    Retorna la factura creada.
+    """
+    sb = _sb()
+
+    # 1. Obtener todas las prefacturas y sus ítems
+    prefacturas = []
+    todos_items = []
+    cita_ids = set()
+    subtotal_total = 0.0
+
+    for pf_id in prefactura_ids:
+        pf = obtener_prefactura(pf_id)
+        if not pf:
+            raise ValueError(f"Prefactura {pf_id} no encontrada")
+        if pf["estado"] != "ABIERTA":
+            raise ValueError(f"Prefactura {pf_id} no está en estado ABIERTA")
+
+        prefacturas.append(pf)
+        items = obtener_items_prefactura(pf_id)
+        todos_items.extend(items)
+        subtotal_total += float(pf.get("subtotal", 0))
+
+        for item in items:
+            if item.get("cita_id"):
+                cita_ids.add(item["cita_id"])
+
+    if not prefacturas:
+        raise ValueError("No hay prefacturas válidas para consolidar")
+
+    # Tomar datos comunes de la primera prefactura
+    primera = prefacturas[0]
+    contrato = primera.get("hc_contratos", {}) or {}
+
+    # 2. Crear la factura consolidada
+    factura_data = {
+        "empresa_id":        extra.get("empresa_id", 1),
+        "consecutivo_id":    consecutivo_id,
+        "prefijo":           extra.get("prefijo", ""),
+        "numero_factura":    numero_factura,
+        "tipo_factura":      "CONSOLIDADA",
+        "paciente_id":       None,  # consolidada no tiene un solo paciente
+        "cliente_id":        primera["cliente_id"],
+        "contrato_id":       primera["contrato_id"],
+        "sede_id":           primera.get("sede_id"),
+        "subtotal":          subtotal_total,
+        "descuento":         float(extra.get("descuento", 0)),
+        "total":             subtotal_total - float(extra.get("descuento", 0)),
+        "copago":            0,
+        "cuota_moderadora":  0,
+        "cuota_recuperacion": 0,
+        "pagos_compartidos": 0,
+        "numero_contrato":   contrato.get("nro_contrato", ""),
+        "modalidad_pago":    extra.get("modalidad_pago", "PAGO_POR_EVENTO"),
+        "estado":            "EMITIDA",
+        "observaciones":     extra.get("observaciones", ""),
+        "periodo_facturacion_inicio": extra.get("periodo_inicio"),
+        "periodo_facturacion_fin":    extra.get("periodo_fin"),
+    }
+
+    factura = crear_factura(factura_data)
+    if not factura:
+        raise Exception("Error al crear la factura consolidada")
+
+    # 3. Copiar ítems de todas las prefacturas al detalle
+    detalle = []
+    for item in todos_items:
+        detalle.append({
+            "factura_id":            factura["id"],
+            "cita_id":               item.get("cita_id"),
+            "cita_procedimiento_id": item.get("cita_procedimiento_id"),
+            "codigo_cups":           item["codigo_cups"],
+            "descripcion":           item["descripcion"],
+            "cantidad":              item["cantidad"],
+            "valor_unitario":        item["valor_unitario"],
+            "valor_total":           item["valor_total"],
+            "diagnostico_principal": item.get("diagnostico_principal"),
+            "tipo_diagnostico":      item.get("tipo_diagnostico"),
+            # Referencia a qué prefactura vino este ítem
+            "prefactura_id":         item["prefactura_id"],
+        })
+
+    if detalle:
+        agregar_detalle_factura(detalle)
+
+    # 4. Marcar todas las prefacturas como FACTURADA
+    for pf in prefacturas:
+        actualizar_prefactura(pf["id"], {"estado": "FACTURADA"})
+
+    # 5. Marcar citas como FACTURADA
+    if cita_ids:
+        marcar_citas_facturadas(list(cita_ids))
+
+    return factura

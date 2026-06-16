@@ -29,6 +29,10 @@ def lista_facturas():
     """Listado de facturas emitidas."""
     return render_template("financiero/facturacion/facturas_lista.html")
 
+@bp_facturacion.route("/prefacturas")
+def lista_prefacturas():
+    return render_template("financiero/facturacion/prefacturas_lista.html")
+
 
 @bp_facturacion.route("/configuracion")
 def configuracion():
@@ -89,6 +93,7 @@ def api_buscar_paciente():
             cita["contrato_nro"] = contrato.get("nro_contrato", "")
             cita["manual_tarifario"] = contrato.get("manual_tarifario", "")
             cita["tipo_contrato"] = contrato.get("tipo_contrato", "")
+            cita["tipo_factura"] = contrato.get("tipo_factura", "INDIVIDUAL")
 
         # Nombre completo del paciente
         nombre = " ".join(filter(None, [
@@ -304,6 +309,15 @@ def api_facturar():
         if prefactura["estado"] == "FACTURADA":
             return jsonify({"ok": False, "error": "Esta prefactura ya fue facturada"}), 400
 
+        # ── Bloquear contratos de facturación CONSOLIDADA ──
+        contrato = prefactura.get("hc_contratos", {}) or {}
+        if contrato.get("tipo_factura", "").upper() == "CONSOLIDADA":
+            return jsonify({
+                "ok": False,
+                "error": "Este contrato es de facturación consolidada. "
+                         "Use el módulo de consolidación para facturar."
+            }), 400
+
         # Obtener consecutivo
         consecutivo = repo.obtener_consecutivo_activo(sede_id=prefactura.get("sede_id"))
         if not consecutivo:
@@ -313,8 +327,7 @@ def api_facturar():
         if error:
             return jsonify({"ok": False, "error": error}), 400
 
-        # Obtener datos del contrato para campos FEV
-        contrato = prefactura.get("hc_contratos", {}) or {}
+        # Obtener datos de sede para campos FEV
         sede_data = (
             repo._sb()
             .table("hc_sedes")
@@ -346,31 +359,31 @@ def api_facturar():
 
         # Crear factura
         factura_data = {
-            "empresa_id":       1,
-            "consecutivo_id":   consecutivo["id"],
-            "prefijo":          consecutivo["prefijo"],
-            "numero_factura":   numero_factura,
-            "prefactura_id":    prefactura_id,
-            "paciente_id":      prefactura["paciente_id"],
-            "cliente_id":       prefactura["cliente_id"],
-            "contrato_id":      prefactura["contrato_id"],
-            "sede_id":          prefactura.get("sede_id"),
-            "subtotal":         subtotal,
-            "descuento":        descuento,
-            "total":            total,
-            "codigo_prestador": (sede_data or {}).get("codigo", ""),
-            "modalidad_pago":   modalidad_pago,
+            "empresa_id":                1,
+            "consecutivo_id":            consecutivo["id"],
+            "prefijo":                   consecutivo["prefijo"],
+            "numero_factura":            numero_factura,
+            "prefactura_id":             prefactura_id,
+            "paciente_id":               prefactura["paciente_id"],
+            "cliente_id":                prefactura["cliente_id"],
+            "contrato_id":               prefactura["contrato_id"],
+            "sede_id":                   prefactura.get("sede_id"),
+            "subtotal":                  subtotal,
+            "descuento":                 descuento,
+            "total":                     total,
+            "codigo_prestador":          (sede_data or {}).get("codigo", ""),
+            "modalidad_pago":            modalidad_pago,
             "cobertura_plan_beneficios": data.get("cobertura_plan_beneficios", "PBS_CONTRIBUTIVO"),
-            "numero_contrato":  contrato.get("nro_contrato", ""),
-            "numero_poliza":    data.get("numero_poliza", ""),
-            "copago":           copago,
-            "cuota_moderadora": cuota_mod,
-            "cuota_recuperacion": cuota_rec,
-            "pagos_compartidos": pagos_comp,
+            "numero_contrato":           contrato.get("nro_contrato", ""),
+            "numero_poliza":             data.get("numero_poliza", ""),
+            "copago":                    copago,
+            "cuota_moderadora":          cuota_mod,
+            "cuota_recuperacion":        cuota_rec,
+            "pagos_compartidos":         pagos_comp,
             "periodo_facturacion_inicio": prefactura.get("periodo_inicio"),
             "periodo_facturacion_fin":    prefactura.get("periodo_fin"),
-            "estado":           "EMITIDA",
-            "observaciones":    data.get("observaciones", ""),
+            "estado":                    "EMITIDA",
+            "observaciones":             data.get("observaciones", ""),
         }
 
         factura = repo.crear_factura(factura_data)
@@ -388,25 +401,25 @@ def api_facturar():
                 cita_ids.add(cita_id)
 
             detalle.append({
-                "factura_id":              factura["id"],
-                "cita_id":                 cita_id,
-                "cita_procedimiento_id":   item.get("cita_procedimiento_id"),
-                "codigo_cups":             item["codigo_cups"],
-                "descripcion":             item["descripcion"],
-                "cantidad":                item["cantidad"],
-                "valor_unitario":          item["valor_unitario"],
-                "valor_total":             item["valor_total"],
-                "diagnostico_principal":   item.get("diagnostico_principal"),
-                "tipo_diagnostico":        item.get("tipo_diagnostico"),
+                "factura_id":            factura["id"],
+                "cita_id":               cita_id,
+                "cita_procedimiento_id": item.get("cita_procedimiento_id"),
+                "codigo_cups":           item["codigo_cups"],
+                "descripcion":           item["descripcion"],
+                "cantidad":              item["cantidad"],
+                "valor_unitario":        item["valor_unitario"],
+                "valor_total":           item["valor_total"],
+                "diagnostico_principal": item.get("diagnostico_principal"),
+                "tipo_diagnostico":      item.get("tipo_diagnostico"),
             })
 
         if detalle:
             repo.agregar_detalle_factura(detalle)
 
-        # Marcar prefactura como facturada
+        # Marcar prefactura como FACTURADA
         repo.actualizar_prefactura(prefactura_id, {"estado": "FACTURADA"})
 
-        # Marcar citas como facturadas
+        # Marcar citas como FACTURADA
         if cita_ids:
             repo.marcar_citas_facturadas(list(cita_ids))
 
@@ -438,7 +451,6 @@ def api_facturar():
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
 # =============================================================
 # API — LISTAR FACTURAS
@@ -785,5 +797,136 @@ def api_tarifa_cups():
 
         return jsonify({"ok": True, "data": tarifa})
 
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+
+# =============================================================
+# API — FACTURACIÓN CONSOLIDADA
+# =============================================================
+
+@bp_facturacion.route("/api/prefacturas-consolidables", methods=["GET"])
+def api_prefacturas_consolidables():
+    """
+    Lista prefacturas ABIERTA de contratos CONSOLIDADA para un cliente.
+    Query params: cliente_id, contrato_id (opcional)
+    """
+    try:
+        cliente_id = request.args.get("cliente_id", type=int)
+        contrato_id = request.args.get("contrato_id", type=int)
+
+        if not cliente_id:
+            return jsonify({"ok": False, "error": "cliente_id es requerido"}), 400
+
+        prefacturas = repo.listar_prefacturas_consolidables(cliente_id, contrato_id)
+
+        # Aplanar joins para el frontend
+        for pf in prefacturas:
+            pac = pf.pop("hc_pacientes", None) or {}
+            pf["paciente_nombre"] = f"{pac.get('primer_nombre','')} {pac.get('primer_apellido','')}".strip()
+            pf["paciente_documento"] = pac.get("numero_documento", "")
+            contrato = pf.get("hc_contratos", {}) or {}
+            pf["nro_contrato"] = contrato.get("nro_contrato", "")
+
+        return jsonify({
+            "ok": True,
+            "data": prefacturas,
+            "total": sum(float(p.get("subtotal", 0)) for p in prefacturas),
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp_facturacion.route("/api/facturar-consolidado", methods=["POST"])
+def api_facturar_consolidado():
+    """
+    Genera una factura consolidada desde múltiples prefacturas.
+    Body: {
+        cliente_id,
+        prefactura_ids: [1, 2, 3, ...],
+        periodo_inicio, periodo_fin,
+        observaciones,
+        sede_id  (opcional, para buscar consecutivo)
+    }
+    """
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+
+        cliente_id    = data.get("cliente_id")
+        prefactura_ids = data.get("prefactura_ids", [])
+
+        if not cliente_id:
+            return jsonify({"ok": False, "error": "cliente_id es requerido"}), 400
+        if not prefactura_ids:
+            return jsonify({"ok": False, "error": "Seleccione al menos una prefactura"}), 400
+
+        # Validar caja abierta
+        from repositories import fin_caja_repo as caja_repo
+        user = session.get("user", {})
+        caja = caja_repo.obtener_caja_abierta(user.get("id", ""))
+        if not caja:
+            return jsonify({"ok": False, "error": "Debe abrir una caja antes de facturar"}), 400
+
+        # Obtener consecutivo
+        sede_id = data.get("sede_id")
+        consecutivo = repo.obtener_consecutivo_activo(sede_id=sede_id)
+        if not consecutivo:
+            return jsonify({"ok": False, "error": "No hay consecutivo de facturación activo"}), 400
+
+        numero_factura, error = repo.incrementar_consecutivo(consecutivo["id"])
+        if error:
+            return jsonify({"ok": False, "error": error}), 400
+
+        # Crear factura consolidada
+        factura = repo.crear_factura_consolidada(
+            prefactura_ids=prefactura_ids,
+            consecutivo_id=consecutivo["id"],
+            numero_factura=numero_factura,
+            extra={
+                "empresa_id":      1,
+                "prefijo":         consecutivo["prefijo"],
+                "descuento":       float(data.get("descuento", 0)),
+                "observaciones":   data.get("observaciones", ""),
+                "periodo_inicio":  data.get("periodo_inicio"),
+                "periodo_fin":     data.get("periodo_fin"),
+                "modalidad_pago":  data.get("modalidad_pago", "PAGO_POR_EVENTO"),
+            }
+        )
+
+        # Sincronizar a cartera
+        try:
+            from repositories.fin_cartera_repo import sincronizar_factura_a_cartera
+            factura_completa = repo.obtener_factura(factura["id"])
+            if factura_completa:
+                sincronizar_factura_a_cartera(factura_completa)
+        except Exception as e_cartera:
+            print(f"[WARN] Error sincronizando a cartera: {e_cartera}")
+
+        return jsonify({
+            "ok":             True,
+            "factura_id":     factura["id"],
+            "numero_factura": numero_factura,
+            "total":          factura["total"],
+            "prefacturas_consolidadas": len(prefactura_ids),
+        })
+
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    
+
+@bp_facturacion.route("/api/prefacturas", methods=["GET"])
+def api_listar_prefacturas():
+    try:
+        estado = request.args.get("estado", "ABIERTA")
+        prefacturas = repo.listar_prefacturas(estado=estado)
+
+        for pf in prefacturas:
+            con = pf.get("hc_contratos", {}) or {}
+            pf["tipo_factura"] = con.get("tipo_factura", "INDIVIDUAL")
+
+        return jsonify({"ok": True, "data": prefacturas})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
