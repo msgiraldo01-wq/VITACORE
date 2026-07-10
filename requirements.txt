@@ -5,3 +5,4 @@ playwright
 xhtml2pdf
 openpyxl
 groq
+requests

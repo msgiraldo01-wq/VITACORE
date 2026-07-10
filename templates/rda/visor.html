@@ -1,0 +1,305 @@
+{% extends "hc/base.html" %}
+
+{% block title %}RDA · Visor del Ministerio{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-magnifying-glass-chart"></i>{% endblock %}
+{% block topbar_title %}Visor RDA{% endblock %}
+{% block topbar_subtitle %}Historia clínica interoperable{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-magnifying-glass-chart"></i>{% endblock %}
+{% block header_title %}Visor de RDA del Ministerio{% endblock %}
+{% block header_subtitle %}Consulta el resumen digital de atención de un paciente en la red nacional{% endblock %}
+
+{% block extra_css %}
+<style>
+  .vs-search{ background:var(--surface,#fff); border:1px solid var(--border,#e3ebe9);
+              border-radius:14px; padding:18px 20px; margin-bottom:22px;
+              display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
+  .vs-field{ display:flex; flex-direction:column; gap:5px; }
+  .vs-field label{ font-size:.78rem; color:var(--text-muted,#6e8693); }
+  .vs-field select, .vs-field input{ padding:9px 12px; border:1px solid var(--border,#e3ebe9);
+    border-radius:8px; font-size:.9rem; background:var(--surface,#fff); color:var(--text,#0b1f2a); }
+  .vs-btn{ background:#0a8c81; color:#fff; border:none; border-radius:8px;
+    padding:10px 18px; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .vs-btn:disabled{ opacity:.5; cursor:default; }
+
+  /* Ficha del paciente */
+  .vs-patient{ background:linear-gradient(0deg,var(--surface,#fff),var(--surface,#fff));
+    border:1px solid var(--border,#e3ebe9); border-left:4px solid #0a8c81;
+    border-radius:12px; padding:16px 20px; margin-bottom:8px; }
+  .vs-patient h3{ margin:0 0 4px; font-size:1.05rem; }
+  .vs-patient .sub{ font-size:.82rem; color:var(--text-muted,#6e8693); }
+
+  .vs-count{ font-size:.82rem; color:var(--text-muted,#6e8693); margin:14px 2px 10px; }
+
+  /* Tarjeta de atención */
+  .vs-aten{ background:var(--surface,#fff); border:1px solid var(--border,#e3ebe9);
+    border-radius:12px; margin-bottom:12px; overflow:hidden; }
+  .vs-aten > summary{ padding:15px 18px; cursor:pointer; list-style:none;
+    display:flex; justify-content:space-between; align-items:center; gap:12px; user-select:none; }
+  .vs-aten > summary:hover{ background:var(--surface-2,#f6faf9); }
+  .vs-aten > summary::-webkit-details-marker{ display:none; }
+  .vs-aten-head .t{ font-weight:700; font-size:.98rem; }
+  .vs-aten-head .s{ font-size:.8rem; color:var(--text-muted,#6e8693); margin-top:2px; }
+  .vs-aten-badges{ display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+  .vs-badge{ font-size:.7rem; padding:3px 9px; border-radius:7px; background:#eef1f4;
+    color:#5a6b7a; white-space:nowrap; }
+  .vs-badge.dx{ background:#e7f0fb; color:#2a5fa5; }
+  .vs-badge.med{ background:#eaf4ee; color:#0a8c81; }
+  .vs-badge.doc{ background:#f9f2df; color:#8a6d22; }
+  .vs-chev{ transition:transform .2s; color:var(--text-muted,#9aa); }
+  .vs-aten[open] .vs-chev{ transform:rotate(90deg); }
+
+  .vs-aten-body{ padding:4px 18px 18px; border-top:1px solid var(--border,#eef2f1); }
+
+  /* Bloques dentro de una atención */
+  .vs-block{ margin-top:16px; }
+  .vs-block-title{ font-size:.8rem; font-weight:700; color:#0a8c81;
+    text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;
+    display:flex; align-items:center; gap:7px; }
+  .vs-row{ border:1px solid var(--border,#eef2f1); border-radius:9px;
+    padding:10px 13px; margin-bottom:7px; font-size:.86rem; }
+  .vs-row h4{ margin:0 0 5px; font-size:.9rem; }
+  .vs-kv{ display:grid; grid-template-columns:auto 1fr; gap:2px 14px; font-size:.81rem;
+    color:var(--text-muted,#57707d); align-items:start; }
+  .vs-kv b{ color:var(--text,#0b1f2a); font-weight:600; }
+  .vs-chip{ display:inline-block; font-size:.7rem; padding:2px 9px; border-radius:6px;
+    background:#eef1f4; color:#5a6b7a; margin:2px 4px 2px 0; }
+  .vs-chip.warn{ background:#f9f2df; color:#8a6d22; }
+  .vs-doc-link{ color:#0a8c81; text-decoration:none; font-weight:600; }
+
+  .vs-empty{ padding:34px; text-align:center; color:var(--text-muted,#6e8693); }
+  .vs-error{ background:#fbeae9; border:1px solid #f0c9c6; color:#b33; border-radius:10px;
+    padding:10px 14px; font-size:.84rem; margin-bottom:12px; }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:.72rem; }
+  #vsLoading{ display:none; padding:30px; text-align:center; color:var(--text-muted,#6e8693); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rda-visor">
+
+  {% if not ihce_activo %}
+  <div class="vs-error" style="background:#f9f2df;border-color:#e6d9a8;color:#8a6d22;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    La conexión con el Ministerio está deshabilitada (IHCE_ENABLED=0). El visor no podrá consultar.
+  </div>
+  {% endif %}
+
+  <div class="vs-search">
+    <div class="vs-field">
+      <label>Tipo de documento</label>
+      <select id="vsTipo">
+        <option value="CC">Cédula de ciudadanía</option>
+        <option value="TI">Tarjeta de identidad</option>
+        <option value="CE">Cédula de extranjería</option>
+        <option value="RC">Registro civil</option>
+        <option value="PA">Pasaporte</option>
+        <option value="MS">Menor sin identificación</option>
+        <option value="AS">Adulto sin identificación</option>
+      </select>
+    </div>
+    <div class="vs-field" style="flex:1;min-width:180px;">
+      <label>Número de documento</label>
+      <input id="vsDoc" placeholder="Ej: 1049502124" inputmode="numeric" />
+    </div>
+    <button class="vs-btn" id="vsBuscar" onclick="vsConsultar()">
+      <i class="fa-solid fa-magnifying-glass"></i> Consultar al Ministerio
+    </button>
+  </div>
+
+  <div id="vsLoading"><i class="fa-solid fa-spinner fa-spin"></i> Consultando la red nacional…</div>
+  <div id="vsResultado"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const POR_PAGINA = 10;
+let vsEstado = { atenciones: [], pacienteRef: null, paciente: null, detalles: {}, pagina: 0 };
+
+function esc(s){return (s==null?'':s).toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function kv(pairs){
+  let h='<div class="vs-kv">';
+  for(const [k,v] of pairs){ if(v!=null && v!=='') h+='<span>'+esc(k)+'</span><b>'+esc(v)+'</b>'; }
+  return h+'</div>';
+}
+function chips(arr, cls){ return (arr||[]).map(x=>'<span class="vs-chip '+(cls||'')+'">'+esc(x)+'</span>').join(''); }
+
+const BLOQUES = [
+  ['diagnosticos','Diagnósticos','fa-notes-medical', c=>
+     '<h4>'+esc(c.codigo||'')+(c.codigo?' · ':'')+esc(c.descripcion||'Diagnóstico')+'</h4>'+
+     kv([['Estado',c.estado_clinico],['Verificación',c.verificacion],['Inicio',c.inicio]])],
+  ['procedimientos','Procedimientos','fa-briefcase-medical', p=>
+     '<h4>'+esc(p.codigo||'')+(p.codigo?' · ':'')+esc(p.procedimiento||'Procedimiento')+'</h4>'+
+     kv([['Estado',p.estado],['Fecha',p.fecha]])],
+  ['prescripciones','Medicamentos formulados','fa-prescription', m=>
+     '<h4>'+esc(m.medicamento||'Medicamento')+'</h4>'+kv([['Dosis',m.dosis],['Estado',m.estado],['Fecha',m.fecha]])],
+  ['medicamentos','Medicamentos (uso reportado)','fa-pills', m=>
+     '<h4>'+esc(m.medicamento||'Medicamento')+'</h4>'+kv([['Dosis',m.dosis],['Estado',m.estado],['Periodo',m.periodo]])],
+  ['administraciones','Medicamentos administrados','fa-syringe', m=>
+     '<h4>'+esc(m.medicamento||'Medicamento')+'</h4>'+kv([['Estado',m.estado],['Fecha',m.fecha]])],
+  ['alergias','Alergias','fa-triangle-exclamation', a=>
+     '<h4>'+esc(a.sustancia)+'</h4>'+kv([['Criticidad',a.criticidad],['Estado',a.estado_clinico]])+
+     (a.reacciones&&a.reacciones.length?'<div style="margin-top:6px">'+chips(a.reacciones,'warn')+'</div>':'')],
+  ['observaciones','Observaciones y resultados','fa-vial', o=>
+     '<h4>'+esc(o.observacion||'Observación')+'</h4>'+kv([['Valor',o.valor],['Estado',o.estado],['Fecha',o.fecha]])],
+  ['factores_riesgo','Factores de riesgo','fa-heart-pulse', f=>
+     kv([['Código',f.codigo],['Estado',f.estado],['Fecha',f.fecha]])+
+     (f.predicciones&&f.predicciones.length?'<div style="margin-top:6px">'+chips(f.predicciones,'warn')+'</div>':'')],
+  ['ordenes','Órdenes de servicio','fa-file-medical', s=>
+     '<h4>'+esc(s.codigo||'')+(s.codigo?' · ':'')+esc(s.servicio||'Orden')+'</h4>'+
+     kv([['Estado',s.estado],['Intención',s.intencion],['Fecha',s.fecha]])],
+  ['antecedentes_familiares','Antecedentes familiares','fa-people-roof', a=>
+     '<h4>'+esc(a.parentesco||'Familiar')+'</h4>'+(a.condiciones&&a.condiciones.length?chips(a.condiciones):'—')],
+  ['organizaciones','Entidades','fa-hospital', o=> kv([['Nombre',o.nombre],['Identificador',o.identificador]])],
+  ['documentos','Documentos clínicos','fa-file-pdf', d=>
+     kv([['Tipo',d.tipo],['Fecha',d.fecha],['Estado',d.estado]])+
+     (d.tiene_pdf && d.id ? '<div style="margin-top:8px"><a class="vs-doc-link" href="/rda/visor/epicrisis/'+encodeURIComponent(d.id)+'" target="_blank"><i class="fa-solid fa-file-pdf"></i> Ver epicrisis (PDF)</a></div>' : '')],
+];
+
+// ---------- Fase 1: listar atenciones ----------
+async function vsConsultar(){
+  const doc = document.getElementById('vsDoc').value.trim();
+  const tipo = document.getElementById('vsTipo').value;
+  const out = document.getElementById('vsResultado');
+  const load = document.getElementById('vsLoading');
+  const btn = document.getElementById('vsBuscar');
+  if(!/^\d+$/.test(doc)){ out.innerHTML='<div class="vs-error">Escribe un número de documento válido.</div>'; return; }
+
+  out.innerHTML=''; load.style.display='block'; btn.disabled=true;
+  vsEstado = { atenciones: [], pacienteRef: null, paciente: null, detalles: {}, pagina: 0 };
+
+  try{
+    const r = await fetch('/rda/visor/atenciones', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify({tipo_doc:tipo, num_doc:doc})
+    });
+    const d = await r.json();
+    load.style.display='none'; btn.disabled=false;
+    if(!d.ok){ out.innerHTML='<div class="vs-error">'+esc(d.message||'No se pudo consultar')+'</div>'; return; }
+
+    vsEstado.atenciones = d.atenciones||[];
+    vsEstado.pacienteRef = d.paciente_ref||null;
+
+    let err='';
+    if(d.errores){ for(const k in d.errores){ if(d.errores[k] && !/404/.test(d.errores[k])) err+='<div class="vs-error">Fuente "'+esc(k)+'": '+esc(d.errores[k])+'</div>'; } }
+
+    if(!vsEstado.atenciones.length){ out.innerHTML=err+'<div class="vs-empty">Sin atenciones registradas para este paciente en el Ministerio.</div>'; return; }
+
+    out.innerHTML = err + '<div id="vsPaciente"></div><div id="vsResumen" class="vs-count"></div><div id="vsLista"></div><div id="vsPager"></div>';
+    vsMostrarPagina(0);
+  }catch(e){
+    load.style.display='none'; btn.disabled=false;
+    out.innerHTML='<div class="vs-error">Error de conexión.</div>';
+  }
+}
+
+// ---------- Render de una página ----------
+async function vsMostrarPagina(pagina){
+  vsEstado.pagina = pagina;
+  const total = vsEstado.atenciones.length;
+  const inicio = pagina*POR_PAGINA;
+  const visibles = vsEstado.atenciones.slice(inicio, inicio+POR_PAGINA);
+
+  document.getElementById('vsResumen').textContent =
+    total+' atención(es) · mostrando '+(inicio+1)+'–'+(inicio+visibles.length);
+
+  // pintar las tarjetas (aún sin detalle -> con "cargando")
+  const lista = document.getElementById('vsLista');
+  lista.innerHTML = visibles.map((a,i)=>vsCardHTML(a, inicio+i)).join('');
+  vsPager(total, pagina);
+
+  // fase 2: pedir detalle solo de las visibles que no tengamos
+  const faltan = visibles.filter(a=>!vsEstado.detalles[a.id]);
+  if(faltan.length){
+    try{
+      const r = await fetch('/rda/visor/detalle', {
+        method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+        body: JSON.stringify({
+          atenciones: faltan.map(a=>({id:a.id, refs:a.refs})),
+          paciente_ref: vsEstado.paciente ? null : vsEstado.pacienteRef
+        })
+      });
+      const d = await r.json();
+      if(d.ok){
+        if(d.paciente && !vsEstado.paciente){ vsEstado.paciente = d.paciente; vsPintarPaciente(); }
+        Object.assign(vsEstado.detalles, d.detalles||{});
+        // rellenar cada tarjeta visible
+        visibles.forEach((a,i)=>vsRellenar(a, inicio+i));
+      }
+    }catch(e){ /* si falla el detalle, las tarjetas quedan con lo básico */ }
+  } else {
+    if(vsEstado.paciente) vsPintarPaciente();
+    visibles.forEach((a,i)=>vsRellenar(a, inicio+i));
+  }
+}
+
+function vsPintarPaciente(){
+  const p = vsEstado.paciente; if(!p) return;
+  document.getElementById('vsPaciente').innerHTML =
+    '<div class="vs-patient"><h3><i class="fa-solid fa-user"></i> '+esc(p.nombre||'Paciente')+'</h3>'+
+    '<div class="sub">'+esc(p.documento||'')+(p.sexo?' · '+esc(p.sexo):'')+(p.nacimiento?' · Nac. '+esc(p.nacimiento):'')+'</div></div>';
+}
+
+// tarjeta con lo básico + placeholder de detalle
+function vsCardHTML(a, idx){
+  const cn = a.conteo||{};
+  let badges='';
+  if(cn.diagnosticos) badges+='<span class="vs-badge dx">'+cn.diagnosticos+' dx</span>';
+  if(cn.medicamentos) badges+='<span class="vs-badge med">'+cn.medicamentos+' medic.</span>';
+  if(cn.documentos) badges+='<span class="vs-badge doc">'+cn.documentos+' doc.</span>';
+  const abierto = idx===0 ? ' open' : '';
+  return '<details class="vs-aten" id="aten-'+esc(a.id)+'"'+abierto+'>'+
+    '<summary><div class="vs-aten-head"><div class="t">'+esc(a.titulo||a.tipo)+'</div>'+
+    '<div class="s">'+esc(a.fecha||'')+(a.subtipo?' · '+esc(a.subtipo):'')+'</div></div>'+
+    '<div class="vs-aten-badges">'+badges+'<i class="fa-solid fa-chevron-right vs-chev"></i></div></summary>'+
+    '<div class="vs-aten-body" id="body-'+esc(a.id)+'"><div style="padding:16px 0;color:var(--text-muted,#9aa);font-size:.84rem"><i class="fa-solid fa-spinner fa-spin"></i> Cargando detalle…</div></div>'+
+    '</details>';
+}
+
+// rellenar el cuerpo de una tarjeta con su detalle ya cargado
+function vsRellenar(a){
+  const det = vsEstado.detalles[a.id];
+  const body = document.getElementById('body-'+a.id);
+  if(!body) return;
+  if(!det){ return; }
+
+  const enc = det.encuentro||{};
+  const c = det.contenido||{};
+  let html='';
+
+  if((enc.inicio||enc.motivo||enc.estado) || det.medico){
+    html+='<div class="vs-block"><div class="vs-block-title"><i class="fa-solid fa-stethoscope"></i> Atención</div><div class="vs-row">';
+    const filas=[['Inicio',enc.inicio],['Fin',enc.fin],['Estado',enc.estado],['Motivo',enc.motivo]];
+    if(det.medico) filas.push(['Médico', det.medico.nombre+(det.medico.documento?' ('+det.medico.documento+')':'')]);
+    html+=kv(filas)+(enc.tipos&&enc.tipos.length?'<div style="margin-top:6px">'+chips(enc.tipos)+'</div>':'')+'</div></div>';
+  }
+
+  BLOQUES.forEach(([clave,titulo,icono,pintar])=>{
+    const items=c[clave]||[]; if(!items.length) return;
+    html+='<div class="vs-block"><div class="vs-block-title"><i class="fa-solid '+icono+'"></i> '+esc(titulo)+' ('+items.length+')</div>';
+    items.forEach(it=>{ html+='<div class="vs-row">'+pintar(it)+'</div>'; });
+    html+='</div>';
+  });
+
+  body.innerHTML = html || '<div style="padding:12px 0;color:var(--text-muted,#9aa);font-size:.84rem">Sin detalle adicional.</div>';
+}
+
+// paginación
+function vsPager(total, pagina){
+  const paginas = Math.ceil(total/POR_PAGINA);
+  const el = document.getElementById('vsPager');
+  if(paginas<=1){ el.innerHTML=''; return; }
+  let h='<div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap">';
+  h+='<button class="vs-btn" style="padding:7px 12px" '+(pagina===0?'disabled':'')+' onclick="vsMostrarPagina('+(pagina-1)+')">Anterior</button>';
+  for(let i=0;i<paginas;i++){
+    h+='<button class="vs-btn" style="padding:7px 13px;'+(i===pagina?'':'background:transparent;color:#0a8c81;border:1px solid #0a8c81')+'" onclick="vsMostrarPagina('+i+')">'+(i+1)+'</button>';
+  }
+  h+='<button class="vs-btn" style="padding:7px 12px" '+(pagina===paginas-1?'disabled':'')+' onclick="vsMostrarPagina('+(pagina+1)+')">Siguiente</button>';
+  el.innerHTML=h+'</div>';
+}
+
+document.getElementById('vsDoc').addEventListener('keydown', e=>{ if(e.key==='Enter') vsConsultar(); });
+</script>
+{% endblock %}

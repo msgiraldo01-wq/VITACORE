@@ -63,6 +63,9 @@ def evolucion_nuevo(paciente_id):
         sedes=sedes 
     )
 
+# =========================
+# CREAR EVOLUCION
+# =========================
 
 # =========================
 # CREAR EVOLUCION
@@ -71,7 +74,6 @@ def evolucion_nuevo(paciente_id):
 @bp_hc_evoluciones.route("/crear/<int:paciente_id>", methods=["POST"])
 def evolucion_crear(paciente_id):
 
-    
     # =========================
     # VALIDAR PACIENTE
     # =========================
@@ -172,6 +174,28 @@ def evolucion_crear(paciente_id):
 
         flash("Evolución registrada correctamente", "success")
 
+        # =========================================================
+        # 🏛️ TRANSMITIR RDA AL MINISTERIO (Resolución 1888)
+        # ---------------------------------------------------------
+        # Se lanza EN SEGUNDO PLANO: el médico no espera. La evolución
+        # ya está guardada; el RDA viaja aparte y su resultado queda
+        # registrado en rda_envios, visible en el panel /rda/.
+        # Un fallo del RDA nunca afecta la atención clínica.
+        # =========================================================
+        try:
+            from blueprints.rda import rda_service
+
+            empresa_id = session.get("empresa_id")
+            if empresa_id:
+                rda_service.transmitir_en_segundo_plano(evolucion_id, empresa_id)
+                flash("El RDA se está transmitiendo al Ministerio (ver panel de RDA).", "info")
+            else:
+                print("[RDA] Sin empresa activa en sesión; no se transmite.")
+
+        except Exception as rda_err:
+            # Nunca propagar: la evolución ya está guardada.
+            print("[RDA] No se pudo lanzar la transmisión:", rda_err)
+
         return redirect(
             url_for("hc_evoluciones.evoluciones_paciente", paciente_id=paciente_id)
         )
@@ -180,8 +204,6 @@ def evolucion_crear(paciente_id):
         flash(f"Error al guardar la evolución: {str(e)}", "error")
         print("ERROR creando evolución:", e)
         return redirect(request.referrer)
-    
-
 # =========================
 # BUSCADOR CIE10
 # =========================

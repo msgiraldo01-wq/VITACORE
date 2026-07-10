@@ -24,6 +24,8 @@ from blueprints.bp_financiero.tesoreria import bp_financiero_tesoreria
 from blueprints.bp_financiero.caja.routes import bp_caja
 from blueprints.bp_financiero.radicacion.radicacion import bp_financiero_radicacion
 from blueprints.bp_financiero.configuracion.configuracion import bp_financiero_configuracion
+from blueprints.rda.routes import bp_rda
+from blueprints.rda.visor_ihce.routes import bp_visor_minsalud
 
 
 
@@ -58,7 +60,8 @@ app.register_blueprint(bp_financiero_tesoreria)
 app.register_blueprint(bp_caja)
 app.register_blueprint(bp_financiero_radicacion)
 app.register_blueprint(bp_financiero_configuracion)
-
+app.register_blueprint(bp_rda)
+app.register_blueprint(bp_visor_minsalud)
 
 @app.route("/")
 def inicio():

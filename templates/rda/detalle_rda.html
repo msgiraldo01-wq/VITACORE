@@ -1,0 +1,42 @@
+{% extends "hc/base.html" %}
+
+{% block title %}VITACORE · Detalle RDA{% endblock %}
+
+{% block topbar_icon %}
+<i class="fa-solid fa-file-medical"></i>
+{% endblock %}
+
+{% block topbar_title %}Resumen Digital de Atención (RDA){% endblock %}
+{% block topbar_subtitle %}Consulta de estado de transmisión ante Minsalud{% endblock %}
+
+{% block header_icon %}
+<i class="fa-solid fa-file-waveform"></i>
+{% endblock %}
+
+{% block header_title %}Detalle del Registro RDA{% endblock %}
+{% block header_subtitle %}
+  Visualización y auditoría del Bundle HL7 FHIR transmitido para interoperabilidad.
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/">
+  <i class="fa-solid fa-arrow-left"></i> Volver al módulo
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="content-block" style="margin-bottom: 16px;">
+  <h3 style="margin:0 0 8px;"><i class="fa-solid fa-circle-info" style="color: var(--brand);"></i> Información General</h3>
+  <p style="margin:0; color:var(--text-soft);">
+    Aquí puedes renderizar las variables que le pases desde tu ruta de Flask (ej. datos del paciente, el JSON enviado, o el ID de confirmación).
+  </p>
+</div>
+
+<!-- Puedes crear tantas tarjetas o bloques de contenido como necesites -->
+<div class="content-block">
+  <h3 style="margin:0 0 8px;"><i class="fa-solid fa-code" style="color: var(--accent);"></i> Estado de la Transmisión</h3>
+  <p style="margin:0; color:var(--text-soft);">
+    Logs técnicos del API Gateway y validación del identificador VIDA.
+  </p>
+</div>
+{% endblock %}

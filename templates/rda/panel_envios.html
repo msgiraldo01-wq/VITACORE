@@ -1,0 +1,230 @@
+{% extends "hc/base.html" %}
+
+{% block title %}RDA · Envíos al Ministerio{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-share-from-square"></i>{% endblock %}
+{% block topbar_title %}Interoperabilidad RDA{% endblock %}
+{% block topbar_subtitle %}Transmisiones al Ministerio{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-share-from-square"></i>{% endblock %}
+{% block header_title %}Envíos del RDA{% endblock %}
+{% block header_subtitle %}Control de transmisiones del Resumen Digital de Atención · Resolución 1888{% endblock %}
+
+{% block extra_css %}
+<style>
+  .rda-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .rda-mc{ background:var(--surface,#fff); border:1px solid var(--border,#e3ebe9);
+           border-radius:14px; padding:18px 20px; }
+  .rda-mc .lbl{ font-size:.8rem; color:var(--text-muted,#6e8693); margin:0 0 6px; }
+  .rda-mc .num{ font-size:1.8rem; font-weight:700; margin:0; }
+  .rda-mc.ok .num{ color:#0a8c81; } .rda-mc.err .num{ color:#d9534f; }
+  .rda-mc.warn .num{ color:#c9a24b; }
+
+  .rda-toolbar{ display:flex; justify-content:space-between; align-items:center;
+                gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .rda-filtros a{ font-size:.82rem; padding:6px 12px; border-radius:8px;
+                  border:1px solid var(--border,#e3ebe9); text-decoration:none;
+                  color:var(--text,#0b1f2a); margin-right:6px; }
+  .rda-filtros a.activo{ background:#0a8c81; color:#fff; border-color:#0a8c81; }
+
+  .rda-consulta{ display:flex; gap:8px; align-items:center; }
+  .rda-consulta input{ padding:8px 12px; border:1px solid var(--border,#e3ebe9);
+                       border-radius:8px; font-size:.85rem; }
+  .rda-btn{ background:#0a8c81; color:#fff; border:none; border-radius:8px;
+            padding:8px 14px; font-size:.85rem; font-weight:600; cursor:pointer; }
+  .rda-btn.ghost{ background:transparent; color:#0a8c81; border:1px solid #0a8c81; }
+
+  .rda-table{ width:100%; border-collapse:collapse; background:var(--surface,#fff);
+              border:1px solid var(--border,#e3ebe9); border-radius:14px; overflow:hidden; }
+  .rda-table th{ text-align:left; padding:12px 16px; font-size:.78rem;
+                 color:var(--text-muted,#6e8693); background:var(--surface-2,#f0f5f4); }
+  .rda-table td{ padding:12px 16px; border-top:1px solid var(--border,#e3ebe9);
+                 font-size:.85rem; }
+  .pill{ padding:3px 11px; border-radius:8px; font-size:.75rem; font-weight:600; white-space:nowrap; }
+  .pill.ok{ background:#e7f5f1; color:#0a8c81; }
+  .pill.err{ background:#fbeae9; color:#d9534f; }
+  .pill.warn{ background:#f9f2df; color:#8a6d22; }
+  .pill.pend{ background:#eef1f4; color:#5a6b7a; }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:.72rem; color:var(--text-muted,#6e8693); }
+  .rda-empty{ padding:40px; text-align:center; color:var(--text-muted,#6e8693); }
+  #rdaResultado{ margin-top:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rda-page">
+
+  {% if not ihce_activo %}
+  <div style="background:#f9f2df;border:1px solid #e6d9a8;border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:.85rem;color:#8a6d22;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    La transmisión al Ministerio está deshabilitada (IHCE_ENABLED=0). Los RDA se generan pero no se envían.
+  </div>
+  {% endif %}
+
+  <!-- Tarjetas de resumen -->
+  <div class="rda-cards">
+    <div class="rda-mc"><p class="lbl">Total enviados</p><p class="num" id="c-total">{{ resumen.total }}</p></div>
+    <div class="rda-mc ok"><p class="lbl">Aceptados</p><p class="num" id="c-ok">{{ resumen.aceptados }}</p></div>
+    <div class="rda-mc err"><p class="lbl">Rechazados</p><p class="num" id="c-err">{{ resumen.rechazados }}</p></div>
+    <div class="rda-mc warn"><p class="lbl">Pendientes</p><p class="num" id="c-pend">{{ resumen.pendientes }}</p></div>
+  </div>
+
+  <!-- Consulta al Ministerio -->
+  <div class="rda-toolbar">
+    <div class="rda-filtros">
+      <a href="/rda/" class="{{ 'activo' if not estado_filtro }}">Todos</a>
+      <a href="/rda/?estado=aceptado" class="{{ 'activo' if estado_filtro=='aceptado' }}">Aceptados</a>
+      <a href="/rda/?estado=rechazado" class="{{ 'activo' if estado_filtro=='rechazado' }}">Rechazados</a>
+      <a href="/rda/?estado=excepcion_identidad" class="{{ 'activo' if estado_filtro=='excepcion_identidad' }}">Excepciones</a>
+    </div>
+    <div class="rda-consulta">
+      <input id="qDoc" placeholder="Cédula del paciente" />
+      <button class="rda-btn ghost" onclick="consultarMinisterio()">
+        <i class="fa-solid fa-magnifying-glass"></i> Consultar al Ministerio
+      </button>
+    </div>
+  </div>
+  <div id="rdaResultado"></div>
+
+  <!-- Tabla de envíos -->
+  <table class="rda-table">
+    <thead>
+      <tr>
+        <th>Fecha</th><th>Paciente</th><th>Documento</th><th>Dx</th>
+        <th>Estado</th><th>Detalle</th><th>ID RDA</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="rdaRows">
+      {% for e in envios %}
+      <tr>
+        <td>{{ (e.created_at or '')[:16]|replace('T',' ') }}</td>
+        <td>{{ e.paciente_nombre }}</td>
+        <td class="mono">{{ e.paciente_doc }}</td>
+        <td>{{ e.dx_codigo }}</td>
+        <td>
+          {% if e.estado == 'aceptado' %}<span class="pill ok">Aceptado</span>
+          {% elif e.estado == 'rechazado' %}<span class="pill err">Rechazado</span>
+          {% elif e.estado == 'excepcion_identidad' %}<span class="pill warn">Excepción</span>
+          {% elif e.estado == 'error' %}<span class="pill err">Error</span>
+          {% else %}<span class="pill pend">Pendiente</span>{% endif %}
+        </td>
+        <td style="color:var(--text-muted,#6e8693)">{{ e.motivo }}</td>
+        <td class="mono">{{ (e.composition_id or '')[:16] }}</td>
+        <td>
+          {% if e.estado != 'aceptado' %}
+          <button class="rda-btn" style="padding:5px 10px;font-size:.78rem"
+                  onclick="reintentar({{ e.id }}, this)">
+            <i class="fa-solid fa-rotate-right"></i> Reintentar
+          </button>
+          {% else %}
+          <a href="/rda/detalle/{{ e.id }}" class="rda-btn ghost" style="padding:5px 10px;font-size:.78rem;text-decoration:none">Ver</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="rda-empty">Aún no hay envíos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+async function reintentar(id, btn){
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try{
+    const r = await fetch('/rda/reintentar/'+id, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const d = await r.json();
+    if (window.Swal){
+      Swal.fire({ icon: d.ok ? 'success':'warning',
+        title: d.ok ? 'RDA aceptado' : 'No se pudo enviar',
+        text: d.motivo || '', timer: d.ok ? 1800 : undefined });
+    }
+    setTimeout(()=>location.reload(), d.ok ? 1200 : 400);
+  }catch(e){ location.reload(); }
+}
+
+async function consultarMinisterio(){
+  const doc = document.getElementById('qDoc').value.trim();
+  const out = document.getElementById('rdaResultado');
+  if(!doc){ out.innerHTML = '<div style="color:#c9a24b">Escribe una cédula.</div>'; return; }
+  
+  out.innerHTML = '<div style="color:#6e8693"><i class="fa-solid fa-spinner fa-spin"></i> Consultando al Ministerio (Extrayendo recursos FHIR)…</div>';
+  
+  // 1. Construimos el payload en formato Parameters exigido por el nuevo servicio interno
+  const fhirPayload = {
+    "payload": {
+      "resourceType": "Parameters",
+      "parameter": [
+        {
+          "name": "identifier",
+          "part": [
+            { "name": "type", "valueString": "CC" },
+            { "name": "value", "valueString": doc }
+          ]
+        }
+      ]
+    }
+  };
+
+  try{
+    // 2. Apuntamos al prefijo único de tu nuevo Blueprint (/api/composition)
+    const r = await fetch('/api/composition', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(fhirPayload)
+    });
+    
+    const d = await r.json();
+    
+    // Si el backend reporta un error estructurado
+    if(d.error){ 
+      out.innerHTML = '<div style="color:#d9534f">No se pudo consultar: ' + esc(d.error) + '</div>'; 
+      return; 
+    }
+    
+    // El nuevo backend organiza las composiciones dentro de 'entriesBySource'
+    const rdasEncontrados = d.entriesBySource?.encuentros || [];
+    
+    if(!rdasEncontrados.length){ 
+      out.innerHTML = '<div style="color:#6e8693">Sin registros de RDA activos en el Ministerio para esta cédula.</div>'; 
+      return; 
+    }
+    
+    // 3. Pintamos las tarjetas con el enlace ajustado al Visor de tu compañero
+    let html = '<div style="font-weight:700;color:#0a8c81;margin:6px 0">' + rdasEncontrados.length + ' RDA en el Ministerio:</div>';
+    
+    rdasEncontrados.forEach(e => {
+      const recurso = e.resource || {};
+      const idOficial = recurso.id || '—';
+      const titulo = esc(recurso.title || 'Resumen Digital de Atención');
+      const fecha = esc((recurso.date || '—').substring(0, 16).replace('T', ' '));
+      const estado = esc(recurso.status || '—');
+      
+      html += '<div style="background:#eaf4f2;border:1px solid #cfe6e0;border-radius:10px;padding:12px;margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">'
+        + '  <div>'
+        + '    <div style="font-weight:600">' + titulo + '</div>'
+        + '    <div style="font-size:.78rem;color:#6e8693">Fecha: ' + fecha + ' · Estado: ' + estado + '</div>'
+        + '    <div class="mono" style="font-size:.7rem">id: ' + idOficial + '</div>'
+        + '  </div>'
+        + '  <div>'
+        // Este botón redirige directamente a la pantalla del visor de tu compañero pasando el ID oficial del recurso
+        + '    <a href="/visor/' + idOficial + '" class="rda-btn ghost" style="padding:5px 12px; font-size:.78rem; text-decoration:none; display:inline-block;">Ver en Visor</a>'
+        + '  </div>'
+        + '</div>';
+    });
+    
+    out.innerHTML = html;
+    
+  } catch(e) { 
+    out.innerHTML = '<div style="color:#d9534f">Error de conexión con el API Gateway local de Vitacore.</div>'; 
+  }
+}
+</script>
+{% endblock %}
