@@ -1,0 +1,73 @@
+{% extends "hc/base.html" %}
+{% block title %}Salida de inventario · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-arrow-right-from-bracket"></i>{% endblock %}
+{% block topbar_title %}Salida de inventario{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-arrow-right-from-bracket"></i>{% endblock %}
+{% block header_title %}Registrar salida{% endblock %}
+{% block header_subtitle %}El sistema descuenta automáticamente por FEFO: primero el lote que vence primero.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.entrada') }}">
+    <i class="fa-solid fa-arrow-left"></i> Ir a entradas</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="post" class="inv-form">
+  <div class="inv-campo">
+    <label>Tipo de salida *</label>
+    <select name="tipo" required>
+      <option value="SALIDA_CONSUMO">Consumo interno de servicio</option>
+      <option value="SALIDA_AJUSTE">Ajuste negativo (conteo físico)</option>
+      <option value="SALIDA_VENCIMIENTO">Baja por vencimiento</option>
+      <option value="SALIDA_AVERIA">Baja por avería</option>
+    </select>
+  </div>
+
+  <div class="inv-campo">
+    <label>Bodega origen *</label>
+    <select name="bodega_id" required>
+      <option value="">Seleccione…</option>
+      {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <div class="inv-campo completo">
+    <label>Producto *</label>
+    <input list="lista-productos" id="buscador" placeholder="Escribe para buscar…" autocomplete="off" required>
+    <datalist id="lista-productos">
+      {% for p in productos if p.estado == 'ACTIVO' %}
+      <option data-id="{{ p.id }}"
+        value="{{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}"></option>
+      {% endfor %}
+    </datalist>
+    <input type="hidden" name="producto_id" id="producto_id">
+  </div>
+
+  <div class="inv-campo">
+    <label>Cantidad *</label>
+    <input type="number" name="cantidad" step="1" min="1" required>
+    <div class="inv-ayuda">Si la cantidad cubre varios lotes, el sistema los descuenta en orden FEFO.</div>
+  </div>
+
+  <div class="inv-campo completo">
+    <label>Justificación / observaciones *</label>
+    <textarea name="observaciones" rows="2"
+      placeholder="Obligatoria para ajustes y averías (queda en el kardex)"></textarea>
+  </div>
+
+  <div class="inv-campo completo">
+    <button type="submit" class="btn-ax primary">
+      <i class="fa-solid fa-floppy-disk"></i> Registrar salida</button>
+  </div>
+</form>
+
+<script>
+document.getElementById('buscador').addEventListener('change', function () {
+  const opcion = [...document.querySelectorAll('#lista-productos option')]
+    .find(o => o.value === this.value);
+  document.getElementById('producto_id').value = opcion ? opcion.dataset.id : '';
+});
+</script>
+{% endblock %}

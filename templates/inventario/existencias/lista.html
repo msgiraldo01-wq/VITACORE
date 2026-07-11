@@ -1,0 +1,62 @@
+{% extends "hc/base.html" %}
+{% block title %}Existencias · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-boxes-stacked"></i>{% endblock %}
+{% block topbar_title %}Existencias{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-boxes-stacked"></i>{% endblock %}
+{% block header_title %}Existencias{% endblock %}
+{% block header_subtitle %}Stock por bodega, producto y lote, con semáforo de vencimientos.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.entrada') }}">
+    <i class="fa-solid fa-plus"></i> Registrar entrada</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="get" class="inv-filtros">
+  <div class="inv-campo">
+    <label>Bodega</label>
+    <select name="bodega_id" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for b in bodegas %}
+      <option value="{{ b.id }}" {{ 'selected' if bodega_id == b.id }}>{{ b.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+{% if filas %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead>
+      <tr><th>Producto</th><th>Bodega</th><th>Lote</th><th>Vence</th>
+          <th style="text-align:right">Cantidad</th>
+          <th style="text-align:right">Costo prom.</th>
+          <th style="text-align:right">Valor</th><th>Semáforo</th></tr>
+    </thead>
+    <tbody>
+      {% for f in filas %}
+      <tr>
+        <td><strong>{{ f.producto }}</strong> {{ f.concentracion or '' }}
+            <br><small><span class="inv-insignia gris">{{ f.tipo_producto }}</span></small></td>
+        <td>{{ f.bodega }}</td>
+        <td>{{ f.numero_lote or '—' }}</td>
+        <td>{{ f.fecha_vencimiento or '—' }}</td>
+        <td style="text-align:right"><strong>{{ f.cantidad }}</strong></td>
+        <td style="text-align:right">${{ "{:,.2f}".format(f.costo_promedio) }}</td>
+        <td style="text-align:right">${{ "{:,.2f}".format(f.valor) }}</td>
+        <td>
+          {% set clase = {'VERDE':'verde','AMARILLO':'amarillo','ROJO':'rojo','VENCIDO':'rojo'} %}
+          <span class="inv-insignia {{ clase[f.semaforo] }}">{{ f.semaforo }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin existencias registradas en este filtro.
+  <a href="{{ url_for('inventario.entrada') }}">Registra la primera entrada</a>.</div>
+{% endif %}
+{% endblock %}

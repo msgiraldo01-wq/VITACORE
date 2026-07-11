@@ -1,0 +1,99 @@
+{% extends "hc/base.html" %}
+{% block title %}Farmacia · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-pills"></i>{% endblock %}
+{% block topbar_title %}Farmacia{% endblock %}
+{% block topbar_subtitle %}Inventarios y servicio farmacéutico{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-pills"></i>{% endblock %}
+{% block header_title %}Farmacia e inventarios{% endblock %}
+{% block header_subtitle %}Resumen del servicio farmacéutico: existencias, vencimientos y últimos movimientos.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.entrada') }}">
+    <i class="fa-solid fa-plus"></i> Registrar entrada</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.productos_lista') }}">
+    <i class="fa-solid fa-book-medical"></i> Catálogo</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.existencias') }}">
+    <i class="fa-solid fa-boxes-stacked"></i> Existencias</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<style>
+  .inv-menu { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px; margin-bottom:16px; }
+  .inv-menu a { display:flex; align-items:center; gap:10px; padding:12px 14px;
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-md); color:var(--text); font-size:13px; font-weight:600;
+    transition:border-color .15s, background .15s; }
+  .inv-menu a:hover { border-color:var(--brand); background:var(--brand-soft); }
+  .inv-menu a i { color:var(--brand); width:18px; text-align:center; }
+</style>
+
+<div class="inv-menu">
+  <a href="{{ url_for('inventario.productos_lista') }}"><i class="fa-solid fa-book-medical"></i> Catálogo</a>
+  <a href="{{ url_for('inventario.principios') }}"><i class="fa-solid fa-flask"></i> Principios activos</a>
+  <a href="{{ url_for('inventario.bodegas') }}"><i class="fa-solid fa-warehouse"></i> Bodegas</a>
+  <a href="{{ url_for('inventario.entrada') }}"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entradas</a>
+  <a href="{{ url_for('inventario.salida') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i> Salidas</a>
+  <a href="{{ url_for('inventario.existencias') }}"><i class="fa-solid fa-boxes-stacked"></i> Existencias</a>
+  <a href="{{ url_for('inventario.kardex') }}"><i class="fa-solid fa-clock-rotate-left"></i> Kardex</a>
+  <a href="{{ url_for('inventario.movimientos_lista') }}"><i class="fa-solid fa-list-check"></i> Movimientos</a>
+  <a href="{{ url_for('inventario.traslados_lista') }}"><i class="fa-solid fa-truck-ramp-box"></i> Traslados</a>
+  <a href="{{ url_for('inventario.condiciones') }}"><i class="fa-solid fa-temperature-half"></i> Temp/Humedad</a>
+</div>
+
+<div class="inv-kpis">
+  <div class="inv-kpi">
+    <div class="valor">{{ resumen.total_productos or 0 }}</div>
+    <div class="titulo"><i class="fa-solid fa-book-medical"></i> Productos activos</div>
+  </div>
+  <div class="inv-kpi">
+    <div class="valor">${{ "{:,.0f}".format(resumen.valor_inventario or 0) }}</div>
+    <div class="titulo"><i class="fa-solid fa-coins"></i> Valor del inventario</div>
+  </div>
+  <div class="inv-kpi {{ 'alerta' if (resumen.bajo_minimo or 0) > 0 }}">
+    <div class="valor">{{ resumen.bajo_minimo or 0 }}</div>
+    <div class="titulo"><i class="fa-solid fa-arrow-trend-down"></i> Bajo stock mínimo</div>
+  </div>
+  <div class="inv-kpi {{ 'alerta' if (resumen.vencidos or 0) > 0 }}">
+    <div class="valor">{{ resumen.vencidos or 0 }}</div>
+    <div class="titulo"><i class="fa-solid fa-circle-xmark"></i> Lotes vencidos</div>
+  </div>
+  <div class="inv-kpi {{ 'alerta' if (resumen.rojo or 0) > 0 }}">
+    <div class="valor">{{ resumen.rojo or 0 }}</div>
+    <div class="titulo"><i class="fa-solid fa-hourglass-half"></i> Vencen en ≤ 3 meses</div>
+  </div>
+  <div class="inv-kpi {{ 'aviso' if (resumen.amarillo or 0) > 0 }}">
+    <div class="valor">{{ resumen.amarillo or 0 }}</div>
+    <div class="titulo"><i class="fa-solid fa-hourglass"></i> Vencen en ≤ 6 meses</div>
+  </div>
+</div>
+
+<div class="content-block inv-seccion">
+  <h3><i class="fa-solid fa-clock-rotate-left"></i> Últimos movimientos</h3>
+  {% if movimientos %}
+  <table class="inv-tabla">
+    <thead>
+      <tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Bodega</th>
+          <th style="text-align:right">Cantidad</th><th style="text-align:right">Saldo</th></tr>
+    </thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.fecha[:16].replace('T',' ') }}</td>
+        <td><span class="inv-insignia {{ 'verde' if m.cantidad > 0 else 'rojo' }}">
+            {{ m.tipo.replace('_',' ') }}</span></td>
+        <td>{{ m.inv_productos.nombre }} {{ m.inv_productos.concentracion or '' }}</td>
+        <td>{{ m.inv_bodegas.nombre }}</td>
+        <td style="text-align:right">{{ m.cantidad }}</td>
+        <td style="text-align:right"><strong>{{ m.saldo_cantidad }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="inv-vacio">Aún no hay movimientos.
+    <a href="{{ url_for('inventario.entrada') }}">Registra la primera entrada</a> para comenzar.</div>
+  {% endif %}
+</div>
+{% endblock %}

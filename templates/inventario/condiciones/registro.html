@@ -1,0 +1,77 @@
+{% extends "hc/base.html" %}
+{% block title %}Temperatura y humedad · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-temperature-half"></i>{% endblock %}
+{% block topbar_title %}Temperatura y humedad{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-temperature-half"></i>{% endblock %}
+{% block header_title %}Condiciones de almacenamiento{% endblock %}
+{% block header_subtitle %}Registro de temperatura y humedad por bodega/equipo — evidencia de habilitación (Res. 3100).{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <form method="post" class="inv-form">
+    <div class="inv-campo">
+      <label>Bodega *</label>
+      <select name="bodega_id" required>
+        <option value="">Seleccione…</option>
+        {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="inv-campo">
+      <label>Equipo / área</label>
+      <input type="text" name="equipo" placeholder="Ej.: Nevera 1, Termohigrómetro área A">
+    </div>
+    <div class="inv-campo">
+      <label>Temperatura (°C)</label>
+      <input type="number" step="0.1" name="temperatura">
+    </div>
+    <div class="inv-campo">
+      <label>Humedad (%)</label>
+      <input type="number" step="0.1" name="humedad">
+    </div>
+    <div class="inv-campo">
+      <label style="margin-top:26px"><input type="checkbox" name="fuera_de_rango"> Fuera de rango</label>
+    </div>
+    <div class="inv-campo completo">
+      <label>Acciones correctivas (obligatorias si está fuera de rango)</label>
+      <input type="text" name="acciones_correctivas">
+    </div>
+    <div class="inv-campo">
+      <button class="btn-ax primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Guardar registro</button>
+    </div>
+  </form>
+</div>
+<form method="get" class="inv-filtros">
+  <div class="inv-campo"><label>Filtrar bodega</label>
+    <select name="bodega_id" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for b in bodegas %}<option value="{{ b.id }}" {{ 'selected' if bodega_id == b.id }}>{{ b.nombre }}</option>{% endfor %}
+    </select></div>
+</form>
+{% if registros %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>Fecha y hora</th><th>Bodega</th><th>Equipo</th>
+      <th style="text-align:right">T°</th><th style="text-align:right">Humedad</th>
+      <th>Estado</th><th>Acciones correctivas</th><th>Registró</th></tr></thead>
+    <tbody>
+      {% for r in registros %}
+      <tr>
+        <td>{{ r.fecha_hora[:16].replace('T',' ') }}</td>
+        <td>{{ r.inv_bodegas.nombre }}</td>
+        <td>{{ r.equipo or '—' }}</td>
+        <td style="text-align:right">{{ r.temperatura if r.temperatura is not none else '—' }}</td>
+        <td style="text-align:right">{{ r.humedad if r.humedad is not none else '—' }}</td>
+        <td><span class="inv-insignia {{ 'rojo' if r.fuera_de_rango else 'verde' }}">
+            {{ 'FUERA DE RANGO' if r.fuera_de_rango else 'CONFORME' }}</span></td>
+        <td><small>{{ r.acciones_correctivas or '' }}</small></td>
+        <td><small>{{ r.registrado_por or '—' }}</small></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin registros con este filtro.</div>
+{% endif %}
+{% endblock %}

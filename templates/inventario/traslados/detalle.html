@@ -1,0 +1,47 @@
+{% extends "hc/base.html" %}
+{% block title %}Traslado #{{ t.consecutivo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block topbar_title %}Traslado #{{ t.consecutivo }}{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block header_title %}Traslado #{{ t.consecutivo }} — {{ t.estado.replace('_',' ') }}{% endblock %}
+{% block header_subtitle %}{{ t.origen.nombre }} → {{ t.destino.nombre }}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.traslados_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <table class="inv-tabla">
+    <thead><tr><th>Producto</th><th style="text-align:right">Enviado</th>
+      <th style="text-align:right">Recibido</th><th>Obs.</th></tr></thead>
+    <tbody>
+      {% for i in items %}
+      <tr>
+        <td><strong>{{ i.inv_productos.codigo_interno }}</strong>
+            {{ i.inv_productos.nombre }} {{ i.inv_productos.concentracion or '' }}</td>
+        <td style="text-align:right">{{ i.cantidad_enviada }}</td>
+        <td style="text-align:right">{{ i.cantidad_recibida if i.cantidad_recibida is not none else '—' }}</td>
+        <td><small>{{ i.observaciones or '' }}</small></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="inv-ayuda" style="margin-top:10px">
+    Solicitó: {{ t.solicitado_por or '—' }}
+    {% if t.despachado_por %} · Despachó: {{ t.despachado_por }} ({{ t.fecha_despacho[:16].replace('T',' ') }}){% endif %}
+    {% if t.recibido_por %} · Recibió: {{ t.recibido_por }} ({{ t.fecha_recepcion[:16].replace('T',' ') }}){% endif %}
+  </p>
+</div>
+{% if t.estado == 'PENDIENTE' %}
+<form method="post"><input type="hidden" name="accion" value="despachar">
+  <button class="btn-ax primary"><i class="fa-solid fa-truck-fast"></i> Despachar (descuenta del origen por FEFO)</button>
+</form>
+{% elif t.estado == 'EN_TRANSITO' %}
+<form method="post"><input type="hidden" name="accion" value="recibir">
+  <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Confirmar recepción en {{ t.destino.nombre }}</button>
+</form>
+<p class="inv-ayuda" style="margin-top:8px">Si hay diferencias físicas al recibir, confirma y registra luego un ajuste con justificación en la bodega destino.</p>
+{% endif %}
+{% endblock %}

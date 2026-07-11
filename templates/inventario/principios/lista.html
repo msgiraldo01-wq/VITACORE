@@ -1,0 +1,54 @@
+{% extends "hc/base.html" %}
+{% block title %}Principios activos · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-flask"></i>{% endblock %}
+{% block topbar_title %}Principios activos{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-flask"></i>{% endblock %}
+{% block header_title %}Principios activos{% endblock %}
+{% block header_subtitle %}Denominación común internacional (DCI) de los medicamentos del catálogo.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.productos_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver al catálogo</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="post" class="inv-filtros">
+  <div class="inv-campo">
+    <label>Nombre (DCI) *</label>
+    <input type="text" name="nombre" required placeholder="Ej.: ÁCIDO ACETILSALICÍLICO">
+  </div>
+  <div class="inv-campo">
+    <label>Código ATC (opcional)</label>
+    <input type="text" name="codigo_atc" placeholder="Ej.: B01AC06">
+  </div>
+  <button class="btn-ax primary" type="submit"><i class="fa-solid fa-plus"></i> Agregar</button>
+</form>
+
+{% if principios %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>Principio activo</th><th>ATC</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for pa in principios %}
+      <tr>
+        <td><strong>{{ pa.nombre }}</strong></td>
+        <td>{{ pa.codigo_atc or '—' }}</td>
+        <td><span class="inv-insignia {{ 'verde' if pa.estado=='ACTIVO' else 'gris' }}">{{ pa.estado }}</span></td>
+        <td>
+          <form method="post" action="{{ url_for('inventario.principios_estado', principio_id=pa.id) }}" style="display:inline">
+            <input type="hidden" name="estado" value="{{ 'INACTIVO' if pa.estado=='ACTIVO' else 'ACTIVO' }}">
+            <button type="submit" class="btn-ax ghost" style="min-height:30px;padding:0 10px;font-size:11.5px">
+              {{ 'Inactivar' if pa.estado=='ACTIVO' else 'Activar' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Aún no hay principios activos. Agrega el primero con el formulario de arriba.</div>
+{% endif %}
+{% endblock %}

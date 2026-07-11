@@ -25,6 +25,7 @@ from blueprints.bp_financiero.caja.routes import bp_caja
 from blueprints.bp_financiero.radicacion.radicacion import bp_financiero_radicacion
 from blueprints.bp_financiero.configuracion.configuracion import bp_financiero_configuracion
 from blueprints.rda.routes import bp_rda
+from blueprints.inventario import inventario_bp
 
 
 
@@ -61,7 +62,7 @@ app.register_blueprint(bp_caja)
 app.register_blueprint(bp_financiero_radicacion)
 app.register_blueprint(bp_financiero_configuracion)
 app.register_blueprint(bp_rda)
-
+app.register_blueprint(inventario_bp)
 
 @app.route("/")
 def inicio():

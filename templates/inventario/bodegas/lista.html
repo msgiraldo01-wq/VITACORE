@@ -1,0 +1,104 @@
+{% extends "hc/base.html" %}
+{% block title %}Bodegas · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-warehouse"></i>{% endblock %}
+{% block topbar_title %}Bodegas{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-warehouse"></i>{% endblock %}
+{% block header_title %}Bodegas y puntos de stock{% endblock %}
+{% block header_subtitle %}Bodega principal, farmacia, satélites y carros de paro.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.dashboard') }}">
+    <i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<div class="content-block inv-seccion">
+  <h3><i class="fa-solid fa-plus"></i> Nueva bodega</h3>
+  <form method="post" class="inv-form" id="form-bodega">
+    <input type="hidden" name="bodega_id" id="bodega_id">
+    <div class="inv-campo">
+      <label>Nombre *</label>
+      <input type="text" name="nombre" id="b-nombre" required placeholder="Ej.: BODEGA PRINCIPAL">
+    </div>
+    <div class="inv-campo">
+      <label>Tipo *</label>
+      <select name="tipo" id="b-tipo" required>
+        <option value="">Seleccione…</option>
+        {% for t in tipos %}
+        <option value="{{ t }}">{{ t.replace('_',' ').title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="inv-campo">
+      <label>Ubicación física</label>
+      <input type="text" name="ubicacion" id="b-ubicacion" placeholder="Ej.: Piso 1, ala norte">
+    </div>
+    <div class="inv-campo">
+      <label>Estado</label>
+      <select name="estado" id="b-estado">
+        <option value="ACTIVA">ACTIVA</option>
+        <option value="INACTIVA">INACTIVA</option>
+      </select>
+    </div>
+    <div class="inv-campo">
+      <label style="margin-top:26px">
+        <input type="checkbox" name="permite_dispensacion" id="b-dispensa"> Permite dispensación a pacientes
+      </label>
+      <div class="inv-ayuda">Márcalo en la farmacia; no en la bodega principal.</div>
+    </div>
+    <div class="inv-campo" style="display:flex; gap:8px; align-items:end">
+      <button class="btn-ax primary" type="submit" id="b-guardar" style="margin-top:22px">
+        <i class="fa-solid fa-plus"></i> Crear bodega</button>
+      <button class="btn-ax ghost" type="button" id="b-cancelar" style="margin-top:22px; display:none"
+        onclick="cancelarEdicion()">Cancelar</button>
+    </div>
+  </form>
+</div>
+
+{% if bodegas %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>Bodega</th><th>Tipo</th><th>Ubicación</th><th>Dispensa</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for b in bodegas %}
+      <tr>
+        <td><strong>{{ b.nombre }}</strong></td>
+        <td><span class="inv-insignia gris">{{ b.tipo.replace('_',' ') }}</span></td>
+        <td>{{ b.ubicacion or '—' }}</td>
+        <td>{{ 'Sí' if b.permite_dispensacion else 'No' }}</td>
+        <td><span class="inv-insignia {{ 'verde' if b.estado=='ACTIVA' else 'gris' }}">{{ b.estado }}</span></td>
+        <td><a href="#form-bodega" onclick='editarBodega({{ {
+              "id": b.id, "nombre": b.nombre, "tipo": b.tipo,
+              "ubicacion": b.ubicacion or "", "estado": b.estado,
+              "dispensa": b.permite_dispensacion } | tojson }})'>
+            <i class="fa-solid fa-pen"></i> Editar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Crea tu primera bodega. Recomendado para arrancar: una PRINCIPAL,
+  una FARMACIA (con dispensación) y un CARRO DE PARO.</div>
+{% endif %}
+<script>
+function editarBodega(b) {
+  document.getElementById('bodega_id').value = b.id;
+  document.getElementById('b-nombre').value = b.nombre;
+  document.getElementById('b-tipo').value = b.tipo;
+  document.getElementById('b-ubicacion').value = b.ubicacion;
+  document.getElementById('b-estado').value = b.estado;
+  document.getElementById('b-dispensa').checked = b.dispensa;
+  document.getElementById('b-guardar').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar cambios';
+  document.getElementById('b-cancelar').style.display = '';
+}
+function cancelarEdicion() {
+  document.getElementById('form-bodega').reset();
+  document.getElementById('bodega_id').value = '';
+  document.getElementById('b-guardar').innerHTML = '<i class="fa-solid fa-plus"></i> Crear bodega';
+  document.getElementById('b-cancelar').style.display = 'none';
+}
+</script>
+{% endblock %}

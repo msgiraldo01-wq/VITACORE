@@ -1,0 +1,251 @@
+{% extends "hc/base.html" %}
+{% block title %}{{ 'Editar' if producto and producto.id else 'Nuevo' }} producto · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-book-medical"></i>{% endblock %}
+{% block topbar_title %}{{ 'Editar producto' if producto and producto.id else 'Nuevo producto' }}{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-book-medical"></i>{% endblock %}
+{% block header_title %}{{ 'Editar producto' if producto and producto.id else 'Nuevo producto' }}{% endblock %}
+{% block header_subtitle %}Registro en el maestro de medicamentos, dispositivos e insumos.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.productos_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver al catálogo</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="post">
+  <div class="inv-form">
+
+    <div class="inv-campo">
+      <label>Tipo de producto *</label>
+      <select name="tipo" id="tipo" required onchange="alternarCampos()">
+        <option value="">Seleccione…</option>
+        <option value="MEDICAMENTO" {{ 'selected' if producto and producto.tipo=='MEDICAMENTO' }}>Medicamento</option>
+        <option value="DISPOSITIVO" {{ 'selected' if producto and producto.tipo=='DISPOSITIVO' }}>Dispositivo médico</option>
+        <option value="INSUMO" {{ 'selected' if producto and producto.tipo=='INSUMO' }}>Insumo</option>
+      </select>
+    </div>
+
+    <div class="inv-campo">
+      <label>Nombre comercial / descripción *</label>
+      <input type="text" name="nombre" id="nombre" required
+             value="{{ producto.nombre if producto else '' }}" placeholder="Ej.: ASAWIN 500 MG">
+      <div class="inv-ayuda" id="ayuda-cum" style="display:none">
+        Escribe 3+ letras y busca en el catálogo INVIMA para autollenar ↓</div>
+      <div id="resultados-cum"></div>
+    </div>
+
+    <!-- ===== Solo medicamentos ===== -->
+    <div class="inv-campo solo-med">
+      <label>Principio activo *</label>
+      <select name="principio_activo_id">
+        <option value="">Seleccione…</option>
+        {% for pa in principios if pa.estado == 'ACTIVO' %}
+        <option value="{{ pa.id }}"
+          {{ 'selected' if producto and producto.principio_activo_id == pa.id }}>{{ pa.nombre }}</option>
+        {% endfor %}
+      </select>
+      <div class="inv-ayuda">¿No está en la lista?
+        <a href="{{ url_for('inventario.principios') }}" target="_blank" style="color:var(--brand)">Créalo aquí</a> y recarga.</div>
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>Concentración</label>
+      <input type="text" name="concentracion" id="concentracion"
+             value="{{ producto.concentracion if producto else '' }}" placeholder="500 mg">
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>Forma farmacéutica</label>
+      <select name="forma_farmaceutica" id="forma_farmaceutica">
+        <option value="">Seleccione…</option>
+        {% for f in formas %}
+        <option value="{{ f }}" {{ 'selected' if producto and producto.forma_farmaceutica==f }}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>Vía de administración</label>
+      <select name="via_administracion" id="via_administracion_select">
+        <option value="">Seleccione…</option>
+        {% for v in vias %}
+        <option value="{{ v }}" {{ 'selected' if producto and producto.via_administracion==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>CUM</label>
+      <input type="text" name="cum" id="cum" value="{{ producto.cum if producto else '' }}">
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>Registro INVIMA *</label>
+      <input type="text" name="registro_invima" id="registro_invima"
+             value="{{ producto.registro_invima if producto else '' }}">
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>Laboratorio</label>
+      <input type="text" name="laboratorio" id="laboratorio"
+             value="{{ producto.laboratorio if producto else '' }}">
+    </div>
+
+    <div class="inv-campo solo-med">
+      <label>
+        <input type="checkbox" name="es_control_especial" onchange="alternarControl()"
+               id="chk-control" {{ 'checked' if producto and producto.es_control_especial }}>
+        Medicamento de control especial
+      </label>
+      <select name="tipo_control" id="tipo_control" style="margin-top:8px; display:none">
+        <option value="CONTROL_ESPECIAL">Control especial</option>
+        <option value="MONOPOLIO_ESTADO"
+          {{ 'selected' if producto and producto.tipo_control=='MONOPOLIO_ESTADO' }}>Monopolio del Estado</option>
+      </select>
+      <div class="inv-ayuda">Sus movimientos alimentarán automáticamente el libro de control.</div>
+    </div>
+
+    <!-- ===== Solo dispositivos ===== -->
+    <div class="inv-campo solo-disp" style="display:none">
+      <label>Clasificación de riesgo</label>
+      <select name="clasificacion_riesgo">
+        <option value="">Seleccione…</option>
+        {% for c in ['I','IIA','IIB','III'] %}
+        <option value="{{ c }}" {{ 'selected' if producto and producto.clasificacion_riesgo==c }}>Clase {{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- ===== Logística (todos) ===== -->
+    <div class="inv-campo">
+      <label>Unidad de medida</label>
+      <select name="unidad_medida">
+        {% for u in unidades %}
+        <option value="{{ u }}" {{ 'selected' if producto and producto.unidad_medida==u }}>{{ u }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="inv-campo">
+      <label>Stock mínimo</label>
+      <input type="number" step="1" min="0" name="stock_minimo"
+             value="{{ producto.stock_minimo if producto else 0 }}">
+      <div class="inv-ayuda">Al caer bajo este valor aparecerá en alertas del dashboard.</div>
+    </div>
+
+    <div class="inv-campo">
+      <label>Stock máximo</label>
+      <input type="number" step="1" min="0" name="stock_maximo"
+             value="{{ producto.stock_maximo if producto else '' }}">
+    </div>
+
+    <div class="inv-campo">
+      <label>
+        <input type="checkbox" name="requiere_cadena_frio" id="chk-frio"
+               onchange="alternarFrio()" {{ 'checked' if producto and producto.requiere_cadena_frio }}>
+        Requiere cadena de frío
+      </label>
+      <div id="rango-frio" style="display:none; margin-top:8px; gap:8px">
+        <input type="number" step="0.1" name="temperatura_min" placeholder="T° mín (°C)"
+               value="{{ producto.temperatura_min if producto else '' }}">
+        <input type="number" step="0.1" name="temperatura_max" placeholder="T° máx (°C)"
+               value="{{ producto.temperatura_max if producto else '' }}">
+      </div>
+    </div>
+
+    <div class="inv-campo">
+      <label>
+        <input type="checkbox" name="requiere_lote"
+               {{ 'checked' if not producto or producto.requiere_lote }}>
+        Exige lote y fecha de vencimiento
+      </label>
+      <div class="inv-ayuda">Desmárcalo solo para insumos sin vencimiento.</div>
+    </div>
+
+    <div class="inv-campo">
+      <label>Código CUPS/tarifa para cargo a cuenta</label>
+      <input type="text" name="codigo_cups_cargo"
+             value="{{ producto.codigo_cups_cargo if producto else '' }}">
+    </div>
+
+    <div class="inv-campo">
+      <label>Estado</label>
+      <select name="estado">
+        <option value="ACTIVO">ACTIVO</option>
+        <option value="INACTIVO" {{ 'selected' if producto and producto.estado=='INACTIVO' }}>INACTIVO</option>
+      </select>
+    </div>
+
+    <div class="inv-campo completo">
+      <label>Descripción / observaciones</label>
+      <textarea name="descripcion" rows="2">{{ producto.descripcion if producto else '' }}</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap">
+    <button type="submit" class="btn-ax primary"><i class="fa-solid fa-floppy-disk"></i> Guardar producto</button>
+    <a class="btn-ax ghost" href="{{ url_for('inventario.productos_lista') }}">Cancelar</a>
+  </div>
+</form>
+
+<script>
+function alternarCampos() {
+  const tipo = document.getElementById('tipo').value;
+  document.querySelectorAll('.solo-med').forEach(e =>
+    e.style.display = tipo === 'MEDICAMENTO' ? '' : 'none');
+  document.querySelectorAll('.solo-disp').forEach(e =>
+    e.style.display = tipo === 'DISPOSITIVO' ? '' : 'none');
+  document.getElementById('ayuda-cum').style.display = tipo === 'MEDICAMENTO' ? '' : 'none';
+}
+function alternarControl() {
+  document.getElementById('tipo_control').style.display =
+    document.getElementById('chk-control').checked ? '' : 'none';
+}
+function alternarFrio() {
+  document.getElementById('rango-frio').style.display =
+    document.getElementById('chk-frio').checked ? 'flex' : 'none';
+}
+alternarCampos(); alternarControl(); alternarFrio();
+
+// Autocompletar desde el catálogo oficial INVIMA (tabla farm_cum_catalogo)
+let temporizador;
+document.getElementById('nombre').addEventListener('input', function () {
+  if (document.getElementById('tipo').value !== 'MEDICAMENTO') return;
+  clearTimeout(temporizador);
+  const q = this.value.trim();
+  if (q.length < 3) { document.getElementById('resultados-cum').innerHTML = ''; return; }
+  temporizador = setTimeout(async () => {
+    const r = await fetch(`{{ url_for('inventario.api_buscar_cum') }}?q=${encodeURIComponent(q)}`);
+    const datos = await r.json();
+    const caja = document.getElementById('resultados-cum');
+    caja.innerHTML = datos.map(d =>
+      `<div style="padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+        margin-top:6px;cursor:pointer;font-size:12px;background:var(--surface)"
+        onclick='usarCum(${JSON.stringify(d)})'>
+        <strong>${d.producto || ''}</strong> · ${d.concentracion || ''}<br>
+        <small style="color:var(--text-soft)">${d.descripcion_comercial || ''}</small><br>
+        <small style="color:var(--text-soft)">CUM ${d.cum} · ${d.titular || ''}</small></div>`).join('');
+  }, 350);
+});
+function usarCum(d) {
+  document.getElementById('cum').value = d.cum || '';
+  document.getElementById('registro_invima').value = d.registro_sanitario || '';
+  document.getElementById('concentracion').value = d.concentracion || '';
+  document.getElementById('laboratorio').value = d.titular || '';
+  seleccionarOpcion('forma_farmaceutica', d.forma_farmaceutica);
+  seleccionarOpcion('via_administracion_select', d.via_administracion);
+  document.getElementById('resultados-cum').innerHTML = '';
+}
+function seleccionarOpcion(idSelect, valorCum) {
+  if (!valorCum) return;
+  const select = document.getElementById(idSelect);
+  if (!select) return;
+  const texto = valorCum.toUpperCase();
+  [...select.options].forEach(o => {
+    if (o.value && (texto.includes(o.value) || o.value.includes(texto))) o.selected = true;
+  });
+}
+</script>
+{% endblock %}

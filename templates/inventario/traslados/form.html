@@ -1,0 +1,66 @@
+{% extends "hc/base.html" %}
+{% block title %}Nuevo traslado · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block topbar_title %}Nuevo traslado{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block header_title %}Nuevo traslado{% endblock %}
+{% block header_subtitle %}Se crea PENDIENTE; el stock solo sale al despacharlo.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.traslados_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="inv-form">
+    <div class="inv-campo">
+      <label>Bodega origen *</label>
+      <select name="bodega_origen_id" required>
+        <option value="">Seleccione…</option>
+        {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="inv-campo">
+      <label>Bodega destino *</label>
+      <select name="bodega_destino_id" required>
+        <option value="">Seleccione…</option>
+        {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="inv-campo completo">
+      <label>Observaciones</label>
+      <input type="text" name="observaciones" placeholder="Ej.: reposición semanal carro de paro">
+    </div>
+  </div>
+  <h3 style="margin:18px 0 8px">Productos</h3>
+  <div id="filas"></div>
+  <button type="button" class="btn-ax ghost" onclick="agregarFila()" style="margin-top:8px">
+    <i class="fa-solid fa-plus"></i> Agregar producto</button>
+  <datalist id="lista-productos">
+    {% for p in productos if p.estado == 'ACTIVO' %}
+    <option data-id="{{ p.id }}" value="{{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}"></option>
+    {% endfor %}
+  </datalist>
+  <div style="margin-top:20px">
+    <button type="submit" class="btn-ax primary"><i class="fa-solid fa-floppy-disk"></i> Crear traslado</button>
+  </div>
+</form>
+<script>
+function agregarFila() {
+  const d = document.createElement('div');
+  d.style.cssText = 'display:flex;gap:10px;margin-top:8px;align-items:center';
+  d.innerHTML = `
+    <input list="lista-productos" placeholder="Buscar producto…" autocomplete="off"
+      style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)"
+      onchange="const o=[...document.querySelectorAll('#lista-productos option')].find(x=>x.value===this.value);this.nextElementSibling.value=o?o.dataset.id:''">
+    <input type="hidden" name="producto_id[]">
+    <input type="number" name="cantidad[]" placeholder="Cantidad" min="1" step="1"
+      style="width:120px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)">
+    <button type="button" class="btn-ax ghost" onclick="this.parentElement.remove()" style="min-height:34px">
+      <i class="fa-solid fa-trash"></i></button>`;
+  document.getElementById('filas').appendChild(d);
+}
+agregarFila();
+</script>
+{% endblock %}

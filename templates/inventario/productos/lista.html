@@ -1,0 +1,65 @@
+{% extends "hc/base.html" %}
+{% block title %}Catálogo de productos · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-book-medical"></i>{% endblock %}
+{% block topbar_title %}Catálogo de productos{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-book-medical"></i>{% endblock %}
+{% block header_title %}Catálogo de productos{% endblock %}
+{% block header_subtitle %}Maestro de medicamentos, dispositivos médicos e insumos.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.productos_form') }}">
+    <i class="fa-solid fa-plus"></i> Nuevo producto</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.principios') }}">
+    <i class="fa-solid fa-flask"></i> Principios activos</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="get" class="inv-filtros">
+  <div class="inv-campo">
+    <label>Buscar</label>
+    <input type="text" name="q" value="{{ busqueda }}" placeholder="Nombre, CUM o código interno">
+  </div>
+  <div class="inv-campo">
+    <label>Tipo</label>
+    <select name="tipo">
+      <option value="">Todos</option>
+      <option value="MEDICAMENTO" {{ 'selected' if tipo=='MEDICAMENTO' }}>Medicamentos</option>
+      <option value="DISPOSITIVO" {{ 'selected' if tipo=='DISPOSITIVO' }}>Dispositivos</option>
+      <option value="INSUMO" {{ 'selected' if tipo=='INSUMO' }}>Insumos</option>
+    </select>
+  </div>
+  <button class="btn-ax primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+</form>
+
+{% if productos %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead>
+      <tr><th>Código</th><th>Producto</th><th>Tipo</th><th>Principio activo</th>
+          <th>CUM</th><th>Control</th><th>Estado</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in productos %}
+      <tr>
+        <td>{{ p.codigo_interno }}</td>
+        <td><strong>{{ p.nombre }}</strong>
+            {% if p.concentracion %}<br><small style="color:var(--text-soft)">{{ p.concentracion }} · {{ p.forma_farmaceutica or '' }}</small>{% endif %}</td>
+        <td><span class="inv-insignia gris">{{ p.tipo }}</span></td>
+        <td>{{ p.farm_principios_activos.nombre if p.farm_principios_activos else '—' }}</td>
+        <td>{{ p.cum or '—' }}</td>
+        <td>{% if p.es_control_especial %}<span class="inv-insignia morado">CONTROL</span>{% else %}—{% endif %}</td>
+        <td><span class="inv-insignia {{ 'verde' if p.estado=='ACTIVO' else 'gris' }}">{{ p.estado }}</span></td>
+        <td><a href="{{ url_for('inventario.productos_form', producto_id=p.id) }}">
+            <i class="fa-solid fa-pen"></i> Editar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">No hay productos que coincidan.
+  <a href="{{ url_for('inventario.productos_form') }}">Crea el primero</a>.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "hc/base.html" %}
+{% block title %}Movimientos · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-list-check"></i>{% endblock %}
+{% block topbar_title %}Movimientos{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-list-check"></i>{% endblock %}
+{% block header_title %}Diario de movimientos{% endblock %}
+{% block header_subtitle %}Todas las transacciones del inventario, filtrables por fecha, tipo y bodega.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.kardex') }}">
+    <i class="fa-solid fa-clock-rotate-left"></i> Kardex por producto</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="get" class="inv-filtros">
+  <div class="inv-campo" style="min-width:160px">
+    <label>Desde</label>
+    <input type="date" name="desde" value="{{ filtros.desde }}">
+  </div>
+  <div class="inv-campo" style="min-width:160px">
+    <label>Hasta</label>
+    <input type="date" name="hasta" value="{{ filtros.hasta }}">
+  </div>
+  <div class="inv-campo">
+    <label>Tipo</label>
+    <select name="tipo">
+      <option value="">Todos</option>
+      {% for t in tipos %}
+      <option value="{{ t }}" {{ 'selected' if filtros.tipo == t }}>{{ t.replace('_',' ').title() }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="inv-campo">
+    <label>Bodega</label>
+    <select name="bodega_id">
+      <option value="">Todas</option>
+      {% for b in bodegas %}
+      <option value="{{ b.id }}" {{ 'selected' if filtros.bodega_id == b.id }}>{{ b.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn-ax primary" type="submit"><i class="fa-solid fa-filter"></i> Filtrar</button>
+</form>
+
+{% if movimientos %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead>
+      <tr><th>#</th><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Bodega</th><th>Lote</th>
+          <th style="text-align:right">Cantidad</th>
+          <th style="text-align:right">Saldo</th>
+          <th style="text-align:right">Costo prom.</th>
+          <th>Usuario</th><th>Obs.</th></tr>
+    </thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.consecutivo }}</td>
+        <td>{{ m.fecha[:16].replace('T',' ') }}</td>
+        <td><span class="inv-insignia {{ 'verde' if m.cantidad > 0 else 'rojo' }}">
+            {{ m.tipo.replace('_',' ') }}</span></td>
+        <td><strong>{{ m.inv_productos.codigo_interno }}</strong>
+            {{ m.inv_productos.nombre }} {{ m.inv_productos.concentracion or '' }}</td>
+        <td>{{ m.inv_bodegas.nombre }}</td>
+        <td>{{ m.inv_lotes.numero_lote if m.inv_lotes else '—' }}</td>
+        <td style="text-align:right">{{ m.cantidad }}</td>
+        <td style="text-align:right"><strong>{{ m.saldo_cantidad }}</strong></td>
+        <td style="text-align:right">${{ "{:,.2f}".format(m.saldo_costo_promedio) }}</td>
+        <td><small>{{ m.usuario_id or '—' }}</small></td>
+        <td><small>{{ m.observaciones or '' }}</small></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="inv-ayuda" style="margin-top:10px">
+    <i class="fa-solid fa-shield-halved"></i>
+    Los movimientos no se editan ni se eliminan: los errores se corrigen con
+    movimientos de ajuste que dejan trazabilidad (exigencia de auditoría).
+  </p>
+</div>
+{% else %}
+<div class="inv-vacio">No hay movimientos con estos filtros.</div>
+{% endif %}
+{% endblock %}

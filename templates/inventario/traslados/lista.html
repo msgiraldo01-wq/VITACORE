@@ -1,0 +1,38 @@
+{% extends "hc/base.html" %}
+{% block title %}Traslados · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block topbar_title %}Traslados{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-truck-ramp-box"></i>{% endblock %}
+{% block header_title %}Traslados entre bodegas{% endblock %}
+{% block header_subtitle %}Movimiento de stock con despacho y confirmación de recepción.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.traslados_nuevo') }}">
+    <i class="fa-solid fa-plus"></i> Nuevo traslado</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+{% if traslados %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>#</th><th>Fecha</th><th>Origen</th><th>Destino</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for t in traslados %}
+      <tr>
+        <td>{{ t.consecutivo }}</td>
+        <td>{{ t.created_at[:16].replace('T',' ') }}</td>
+        <td>{{ t.origen.nombre }}</td>
+        <td>{{ t.destino.nombre }}</td>
+        <td>{% set c = {'PENDIENTE':'amarillo','EN_TRANSITO':'morado','RECIBIDO':'verde','ANULADO':'gris'} %}
+            <span class="inv-insignia {{ c[t.estado] }}">{{ t.estado.replace('_',' ') }}</span></td>
+        <td><a href="{{ url_for('inventario.traslados_detalle', traslado_id=t.id) }}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin traslados aún.
+  <a href="{{ url_for('inventario.traslados_nuevo') }}">Crea el primero</a>.</div>
+{% endif %}
+{% endblock %}

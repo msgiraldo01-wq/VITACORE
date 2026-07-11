@@ -1,0 +1,73 @@
+{% extends "hc/base.html" %}
+{% block title %}Kardex · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clock-rotate-left"></i>{% endblock %}
+{% block topbar_title %}Kardex{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clock-rotate-left"></i>{% endblock %}
+{% block header_title %}Kardex{% endblock %}
+{% block header_subtitle %}Historial de movimientos con saldos y costo promedio: el soporte de auditoría del inventario.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.existencias') }}">
+    <i class="fa-solid fa-boxes-stacked"></i> Existencias</a>
+{% endblock %}
+
+{% block content %}
+{% include "inventario/_estilos.html" %}
+
+<form method="get" class="inv-filtros">
+  <div class="inv-campo" style="min-width:320px">
+    <label>Producto *</label>
+    <select name="producto_id" onchange="this.form.submit()">
+      <option value="">Seleccione un producto…</option>
+      {% for p in productos %}
+      <option value="{{ p.id }}" {{ 'selected' if producto_id == p.id }}>
+        {{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="inv-campo">
+    <label>Bodega</label>
+    <select name="bodega_id" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for b in bodegas %}
+      <option value="{{ b.id }}" {{ 'selected' if bodega_id == b.id }}>{{ b.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+{% if movimientos %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead>
+      <tr><th>#</th><th>Fecha</th><th>Tipo</th><th>Bodega</th><th>Lote</th>
+          <th style="text-align:right">Entrada</th>
+          <th style="text-align:right">Salida</th>
+          <th style="text-align:right">Saldo</th>
+          <th style="text-align:right">Costo prom.</th><th>Obs.</th></tr>
+    </thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.consecutivo }}</td>
+        <td>{{ m.fecha[:16].replace('T',' ') }}</td>
+        <td><span class="inv-insignia {{ 'verde' if m.cantidad > 0 else 'rojo' }}">
+            {{ m.tipo.replace('_',' ') }}</span></td>
+        <td>{{ m.inv_bodegas.nombre }}</td>
+        <td>{{ m.inv_lotes.numero_lote if m.inv_lotes else '—' }}</td>
+        <td style="text-align:right">{{ m.cantidad if m.cantidad > 0 else '' }}</td>
+        <td style="text-align:right">{{ -m.cantidad if m.cantidad < 0 else '' }}</td>
+        <td style="text-align:right"><strong>{{ m.saldo_cantidad }}</strong></td>
+        <td style="text-align:right">${{ "{:,.2f}".format(m.saldo_costo_promedio) }}</td>
+        <td><small>{{ m.observaciones or '' }}</small></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif producto_id %}
+<div class="inv-vacio">Este producto aún no tiene movimientos en el filtro seleccionado.</div>
+{% else %}
+<div class="inv-vacio">Selecciona un producto para ver su kardex.</div>
+{% endif %}
+{% endblock %}
