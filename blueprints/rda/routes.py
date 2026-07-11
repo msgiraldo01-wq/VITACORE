@@ -6,6 +6,7 @@ from . import rda_service
 from . import visor_service
 from .fhir import client as ihce
 from repositories import rda_envios_repo as repo_envios
+from repositories import rda_catalogos_repo as repo_catalogos
 
 bp_rda = Blueprint(
     "bp_rda",
@@ -251,3 +252,52 @@ def visor_epicrisis(doc_id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{nombre}"'},
     )
+
+
+# =========================
+# CONFIGURACIÓN DE CATÁLOGOS RDA
+# =========================
+
+# Tipos de catálogo que se administran, con su etiqueta para la pantalla.
+CATALOGOS_ADMIN = [
+    ("causa_externa", "Causa externa", "Motivo por el que el paciente recibe la atención."),
+    ("tipo_diagnostico", "Tipo de diagnóstico", "Cómo se clasifica el diagnóstico principal."),
+    ("entorno", "Entorno de atención", "Dónde se presta la atención."),
+]
+
+
+@bp_rda.route("/catalogos")
+def catalogos():
+    """Pantalla para activar/desactivar las opciones de cada catálogo del RDA."""
+    if not _empresa_id():
+        return redirect("/")
+
+    grupos = []
+    for tipo, titulo, descripcion in CATALOGOS_ADMIN:
+        opciones = repo_catalogos.listar(tipo, solo_activos=False)
+        grupos.append({
+            "tipo": tipo,
+            "titulo": titulo,
+            "descripcion": descripcion,
+            "opciones": opciones,
+            "activas": sum(1 for o in opciones if o["activo"]),
+            "total": len(opciones),
+        })
+
+    return render_template("rda/catalogos.html", grupos=grupos)
+
+
+@bp_rda.route("/catalogos/estado/<int:catalogo_id>", methods=["POST"])
+def catalogos_estado(catalogo_id):
+    """Activa o desactiva una opción del catálogo (toggle)."""
+    if not _empresa_id():
+        return jsonify({"ok": False, "message": "Sin empresa activa"}), 403
+
+    data = request.get_json(silent=True) or {}
+    activo = bool(data.get("activo"))
+
+    actualizado = repo_catalogos.cambiar_estado(catalogo_id, activo)
+    if not actualizado:
+        return jsonify({"ok": False, "message": "No se pudo actualizar"}), 500
+
+    return jsonify({"ok": True, "activo": actualizado["activo"]})

@@ -1115,6 +1115,18 @@ input::placeholder, textarea::placeholder {
             <input type="hidden" name="cie10_nombre" id="cie10_nombre_hidden">
           </div>
 
+
+          <!-- TIPO DE DIAGNÓSTICO (RDA) -->
+          <div class="field">
+            <label><i class="fa-solid fa-tag"></i> Tipo de diagnóstico principal <span class="required">*</span></label>
+            <select name="tipo_diagnostico_codigo" id="tipo_diagnostico_select" required>
+              <option value="">Seleccione…</option>
+              {% for op in rda_tipos_diagnostico %}
+              <option value="{{ op.codigo }}">{{ op.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <!-- DIAGNÓSTICOS SECUNDARIOS (nuevo) -->
           <div class="field">
             <label><i class="fa-solid fa-list"></i> Diagnósticos secundarios</label>
@@ -1239,6 +1251,41 @@ input::placeholder, textarea::placeholder {
                 <div>No hay medicamentos agregados</div>
                 <small style="color: #94a3b8;">Busca y agrega medicamentos</small>
               </div>
+            </div>
+          </div>
+
+          <!-- DATOS PARA EL MINISTERIO (RDA) -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <i class="fa-solid fa-share-from-square"></i>
+              Datos para el Ministerio (RDA)
+            </div>
+
+            <!-- Causa externa -->
+            <div class="field">
+              <label><i class="fa-solid fa-triangle-exclamation"></i> Causa externa <span class="required">*</span></label>
+              <select name="causa_externa_codigo" id="causa_externa_select" required>
+                <option value="">Seleccione…</option>
+                {% for op in rda_causas_externas %}
+                <option value="{{ op.codigo }}">{{ op.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- CUPS del servicio prestado -->
+            <div class="field">
+              <label><i class="fa-solid fa-briefcase-medical"></i> Procedimiento / servicio (CUPS)</label>
+              <select name="cups_id" id="cups_select"></select>
+            </div>
+
+            <!-- Entorno de atención -->
+            <div class="field">
+              <label><i class="fa-solid fa-hospital"></i> Entorno de atención</label>
+              <select name="entorno_codigo" id="entorno_select">
+                {% for op in rda_entornos %}
+                <option value="{{ op.codigo }}" {{ 'selected' if op.codigo == '05' }}>{{ op.nombre }}</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
 
@@ -1598,6 +1645,31 @@ const Wizard = {
         document.getElementById('cie10_nombre_hidden').value = option?.textContent.split(' - ')[1] || '';
       }
     });
+
+    // CUPS del servicio (RDA) — búsqueda como el CIE-10.
+    // Nota: ajusta la URL si tu ruta de búsqueda de CUPS es otra.
+    if (document.getElementById('cups_select')) {
+      new TomSelect("#cups_select", {
+        valueField: "id",
+        labelField: "texto",
+        searchField: ["texto"],
+        placeholder: "Buscar procedimiento CUPS...",
+        load: function(query, callback) {
+          if (query.length < 2) return callback();
+          fetch(`/hc/configuracion/cups/buscar?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => callback(
+              data.map(c => ({ id: c.id, texto: (c.codigo || '') + ' - ' + (c.descripcion || c.nombre || '') }))
+            ))
+            .catch(() => callback());
+        },
+        render: {
+          option: function(item, escape) {
+            return `<div>${escape(item.texto)}</div>`;
+          }
+        }
+      });
+    }
   }
 };
 

@@ -18,6 +18,8 @@ from repositories import hc_paises_repo as repo_pais
 from repositories import hc_municipios_repo as repo_muni
 from repositories import hc_tipos_documento_repo as repo_tdoc
 from repositories import rda_envios_repo as repo_envios
+from repositories import rda_catalogos_repo as repo_cat
+from repositories import hc_cups_repo as repo_cups
 
 from .fhir import builders as B
 from .fhir import client as ihce
@@ -112,18 +114,51 @@ def _zona(zona_texto):
 
 
 def _municipio(municipio_id):
-    """Devuelve (codigo_divipola, nombre) del municipio, o ("", "") si no hay."""
+    """Devuelve (codigo_divipola, nombre) del municipio, o ("", "") si no hay
+    o si el código no tiene formato DIVIPOLA válido.
+
+    DIVIPOLA de municipio son siempre 5 dígitos (2 de departamento + 3 de
+    municipio). Un código con otro formato es un dato corrupto en el
+    catálogo -- no se envía al Ministerio, se bloquea el RDA en
+    construir_bundle() para no transmitir un municipio falso."""
     if not municipio_id:
         return "", ""
     m = repo_muni.obtener(municipio_id)
     if not m:
         return "", ""
-    return (m.get("codigo") or ""), (m.get("nombre") or "")
-
+    codigo = (m.get("codigo") or "").strip()
+    if not (codigo.isdigit() and len(codigo) == 5):
+        return "", ""
+    return codigo, (m.get("nombre") or "")
 
 # =========================
 # ARMADO DEL BUNDLE
 # =========================
+
+def _catalogo(tipo, codigo, cod_default, nom_default):
+    """Traduce un código de catálogo RDA a (codigo, nombre oficial).
+    Si la evolución no trae el código (evoluciones antiguas), usa el
+    respaldo verificado para no romper el envío."""
+    if not codigo:
+        return cod_default, nom_default
+    op = repo_cat.obtener(tipo, str(codigo))
+    if op and op.get("nombre"):
+        return str(codigo), op["nombre"]
+    return cod_default, nom_default
+
+
+def _cups(cups_id):
+    """Devuelve (codigo, descripcion) del CUPS de la evolución.
+    Respaldo: consulta de medicina general (verificado con acuse 200)."""
+    if cups_id:
+        try:
+            c = repo_cups.obtener(cups_id)
+            if c and c.get("codigo"):
+                return c["codigo"], (c.get("descripcion") or c["codigo"])
+        except Exception:
+            pass
+    return "890201", "CONSULTA DE PRIMERA VEZ POR MEDICINA GENERAL"
+
 
 def construir_bundle(evolucion_id, empresa_id):
     """Construye el Bundle FHIR del RDA a partir de una evolución. Devuelve
@@ -236,11 +271,25 @@ def construir_bundle(evolucion_id, empresa_id):
     fin = ahora - timedelta(minutes=2)
     inicio = fin - timedelta(minutes=25)
     fmt = "%Y-%m-%dT%H:%M:%S-05:00"
+
+    # Datos de la atención tomados de la evolución (con respaldo verificado
+    # para evoluciones antiguas que aún no tienen estos campos).
+    causa_cod, causa_nom = _catalogo(
+        "causa_externa", evo.get("causa_externa_codigo"), "38", "ENFERMEDAD GENERAL")
+    tipo_dx_cod, tipo_dx_nom = _catalogo(
+        "tipo_diagnostico", evo.get("tipo_diagnostico_codigo"), "02", "Confirmado Nuevo")
+    # entorno: por ahora el builder fija "05" (único verificado); cuando se
+    # confirmen los demás códigos, se pasará este valor al build_encounter.
+    cups_cod, cups_nom = _cups(evo.get("cups_id"))
+
     encounter = B.build_encounter(
         fhir_id="Encounter-0",
         patient_ref=refs["patient"], practitioner_ref=refs["practitioner"],
         condition_ref=refs["conditions"][0],
         inicio=inicio.strftime(fmt), fin=fin.strftime(fmt),
+        causa_externa_cod=causa_cod, causa_externa_nombre=causa_nom,
+        tipo_dx_cod=tipo_dx_cod, tipo_dx_nombre=tipo_dx_nom,
+        cups_codigo=cups_cod, cups_nombre=cups_nom,
     )
 
     # --- Diagnóstico ---
@@ -426,16 +475,24 @@ def transmitir_en_segundo_plano(evolucion_id, empresa_id):
     Lanza la transmisión del RDA en un hilo aparte, sin bloquear la respuesta
     al médico. El resultado queda registrado en rda_envios y visible en /rda/.
 
-    Nota: se pasa empresa_id como parámetro porque el hilo no tiene acceso
-    a la sesión de Flask.
+    El hilo recibe el contexto de aplicación de Flask (app_context), porque
+    los repositories necesitan current_app para leer la configuración de
+    Supabase. Sin esto, el hilo falla con "Working outside of application
+    context". Se pasa empresa_id como parámetro porque el hilo no tiene
+    acceso a la sesión de la petición.
     """
     import threading
+    from flask import current_app
+
+    # obtener la app REAL (no el proxy current_app, que no vive fuera de la petición)
+    app = current_app._get_current_object()
 
     def _worker():
-        try:
-            transmitir_evolucion(evolucion_id, empresa_id)
-        except Exception as e:
-            print(f"[RDA][hilo] Error transmitiendo evolución {evolucion_id}: {e}")
+        with app.app_context():
+            try:
+                transmitir_evolucion(evolucion_id, empresa_id)
+            except Exception as e:
+                print(f"[RDA][hilo] Error transmitiendo evolución {evolucion_id}: {e}")
 
     hilo = threading.Thread(target=_worker, daemon=True)
     hilo.start()

@@ -3,6 +3,7 @@ from repositories import hc_evoluciones_repo as repo
 from repositories import hc_evolucion_medicamentos_repo as repo_meds
 from repositories import hc_profesionales_repo as repo_prof
 from repositories import hc_sedes_repo as repo_sedes
+from repositories import rda_catalogos_repo as repo_rda_cat
 
 
 
@@ -60,7 +61,10 @@ def evolucion_nuevo(paciente_id):
         paciente=paciente,
         paciente_id=paciente_id,
         medicos=medicos,
-        sedes=sedes 
+        sedes=sedes,
+        rda_causas_externas=repo_rda_cat.listar("causa_externa"),
+        rda_tipos_diagnostico=repo_rda_cat.listar("tipo_diagnostico"),
+        rda_entornos=repo_rda_cat.listar("entorno"),
     )
 
 # =========================
@@ -106,6 +110,11 @@ def evolucion_crear(paciente_id):
             "recomendaciones": request.form.get("recomendaciones", ""),
             "proximo_control_fecha": request.form.get("proximo_control_fecha"),
             "proximo_control_tipo": request.form.get("proximo_control_tipo", ""),
+
+            "causa_externa_codigo": request.form.get("causa_externa_codigo"),
+            "tipo_diagnostico_codigo": request.form.get("tipo_diagnostico_codigo"),
+            "entorno_codigo": request.form.get("entorno_codigo") or "05",
+            "cups_id": request.form.get("cups_id") or None,
 
             "created_by": session.get("user", {}).get("id")
         }
