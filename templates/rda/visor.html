@@ -153,9 +153,9 @@ const BLOQUES = [
   ['antecedentes_familiares','Antecedentes familiares','fa-people-roof', a=>
      '<h4>'+esc(a.parentesco||'Familiar')+'</h4>'+(a.condiciones&&a.condiciones.length?chips(a.condiciones):'—')],
   ['organizaciones','Entidades','fa-hospital', o=> kv([['Nombre',o.nombre],['Identificador',o.identificador]])],
-  ['documentos','Documentos clínicos','fa-file-pdf', d=>
+  ['documentos','Documentos clínicos','fa-file-pdf', (d, compId)=>
      kv([['Tipo',d.tipo],['Fecha',d.fecha],['Estado',d.estado]])+
-     (d.tiene_pdf && d.id ? '<div style="margin-top:8px"><a class="vs-doc-link" href="/rda/visor/epicrisis/'+encodeURIComponent(d.id)+'" target="_blank"><i class="fa-solid fa-file-pdf"></i> Ver epicrisis (PDF)</a></div>' : '')],
+     (d.tiene_pdf && d.id ? '<div style="margin-top:8px"><a class="vs-doc-link" href="/rda/visor/epicrisis/'+encodeURIComponent(d.id)+'?composition_id='+encodeURIComponent(compId||'')+'" target="_blank"><i class="fa-solid fa-file-pdf"></i> Ver epicrisis (PDF)</a></div>' : '')],
 ];
 
 // ---------- Fase 1: listar atenciones ----------
@@ -279,7 +279,7 @@ function vsRellenar(a){
   BLOQUES.forEach(([clave,titulo,icono,pintar])=>{
     const items=c[clave]||[]; if(!items.length) return;
     html+='<div class="vs-block"><div class="vs-block-title"><i class="fa-solid '+icono+'"></i> '+esc(titulo)+' ('+items.length+')</div>';
-    items.forEach(it=>{ html+='<div class="vs-row">'+pintar(it)+'</div>'; });
+    items.forEach(it=>{ html+='<div class="vs-row">'+pintar(it, a.id)+'</div>'; });
     html+='</div>';
   });
 

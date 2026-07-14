@@ -24,6 +24,8 @@ from repositories import hc_cups_repo as repo_cups
 from .fhir import builders as B
 from .fhir import client as ihce
 from .fhir.bundle import ensamblar_bundle
+import base64
+from .fhir import epicrisis as EPI
 
 
 # =========================
@@ -300,13 +302,17 @@ def construir_bundle(evolucion_id, empresa_id):
         nombre_dx=evo.get("cie10_nombre") or "",
     )
 
-    # --- DocumentReference (epicrisis; PDF opcional en esta fase) ---
+    # --- DocumentReference (epicrisis real, generada con reportlab a
+    # partir del contenido clínico que el médico escribió en la evolución) ---
+    pdf_bytes = EPI.generar_epicrisis_pdf(evo, pac, medico, empresa)
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+
     docref = B.build_document_reference(
         fhir_id="DocumentReference-0",
         patient_ref=refs["patient"],
         author_ref=refs["practitioner"],
         fecha=ahora.strftime(fmt),
-        pdf_base64=None,
+        pdf_base64=pdf_b64,
     )
 
     bundle = ensamblar_bundle(
@@ -323,7 +329,6 @@ def construir_bundle(evolucion_id, empresa_id):
         "dx_codigo": cie10,
     }
     return bundle, meta
-
 
 # =========================
 # TRANSMISIÓN + REGISTRO

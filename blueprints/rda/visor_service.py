@@ -254,9 +254,60 @@ def detallar_atenciones(lista_refs, paciente_ref=None):
 # Descarga de epicrisis (PDF)
 # ---------------------------------------------------------------------------
 
-def descargar_epicrisis(doc_ref_id):
-    """Devuelve (bytes_pdf, nombre) de la epicrisis de un DocumentReference."""
+def _pdf_desde_bundle_local(composition_id):
+    """Busca el PDF de epicrisis en tu propia base (rda_envios), a partir
+    del composition_id de la atención. Devuelve (bytes_pdf, nombre) o None
+    si ese envío no está registrado localmente.
+
+    Existe porque el Ministerio no siempre re-sirve attachment.data cuando
+    vuelves a consultar un DocumentReference -- pero tú SÍ guardaste el
+    Bundle completo (con el PDF adentro) en el momento en que transmitiste."""
     import base64
+    from services.supabase_service import get_supabase_admin
+
+    sb = get_supabase_admin()
+    r = (
+        sb.table("rda_envios")
+        .select("bundle_json")
+        .eq("composition_id", composition_id)
+        .order("id", desc=True)
+        .limit(1)
+        .execute()
+    )
+    filas = r.data or []
+    if not filas:
+        return None
+
+    bundle = filas[0].get("bundle_json") or {}
+    for entry in bundle.get("entry", []) or []:
+        recurso = entry.get("resource") or {}
+        if recurso.get("resourceType") != "DocumentReference":
+            continue
+        for c in recurso.get("content", []) or []:
+            att = c.get("attachment") or {}
+            if att.get("data"):
+                try:
+                    pdf = base64.b64decode(att["data"])
+                except Exception:
+                    continue
+                nombre = (att.get("title") or "epicrisis") + ".pdf"
+                return pdf, nombre
+    return None
+
+
+def descargar_epicrisis(doc_ref_id, composition_id=None):
+    """Devuelve (bytes_pdf, nombre) de la epicrisis de un DocumentReference.
+
+    Primero intenta leerla de tu propia base (rda_envios) si se pasa el
+    composition_id de la atención -- ahí el PDF queda guardado completo
+    desde el momento de la transmisión. Si no se encuentra localmente
+    (o no se pasó composition_id), cae al Ministerio como respaldo."""
+    import base64
+
+    if composition_id:
+        local = _pdf_desde_bundle_local(composition_id)
+        if local:
+            return local
 
     doc = ihce.obtener_recurso("DocumentReference", doc_ref_id)
     if not doc:
