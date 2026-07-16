@@ -35,35 +35,12 @@ Historia clínica
 
 {% block extra_css %}
 <style>
-{% set sexo = paciente.get('sexo', '') %}
-:root {
-  --patient-primary: #0d5c63;
-  --patient-secondary: #1177b7;
-  --patient-soft: rgba(13,92,99,.10);
-  --patient-bg: linear-gradient(135deg, #1177b7 0%, #0d5c63 100%);
-}
-{% if sexo == 'F' or sexo == 'femenino' or sexo == 'Femenino' %}
-:root {
-  --patient-primary: #c63d8b;
-  --patient-secondary: #6d4ec9;
-  --patient-soft: rgba(198,61,139,.10);
-  --patient-bg: linear-gradient(135deg, #c63d8b 0%, #6d4ec9 100%);
-}
-{% elif sexo == 'M' or sexo == 'masculino' or sexo == 'Masculino' %}
-:root {
-  --patient-primary: #0d5c63;
-  --patient-secondary: #1177b7;
-  --patient-soft: rgba(13,92,99,.10);
-  --patient-bg: linear-gradient(135deg, #1177b7 0%, #0d5c63 100%);
-}
-{% else %}
-:root {
-  --patient-primary: #64748b;
-  --patient-secondary: #94a3b8;
-  --patient-soft: rgba(100,116,139,.12);
-  --patient-bg: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
-}
-{% endif %}
+/* ═══════════════════════════════════════════════════════════════
+   Sin colores por sexo del paciente -- este módulo usa la misma
+   pareja --brand/--accent que el resto de VitaCore, igual que el
+   buscador de Historia Clínica y el formulario de evolución.
+   Radios y sombras también vienen de los tokens de base.html.
+   ═══════════════════════════════════════════════════════════════ */
 
 .patient-header-info{
   display:flex;
@@ -95,8 +72,8 @@ Historia clínica
   position:relative;
   overflow:hidden;
   padding:24px;
-  border-radius:26px;
-  background:var(--patient-bg);
+  border-radius:var(--radius-xl);
+  background:linear-gradient(135deg, var(--brand), var(--accent));
   color:#fff;
   box-shadow:var(--shadow-sm);
 }
@@ -131,7 +108,7 @@ Historia clínica
 .hc-avatar{
   width:76px;
   height:76px;
-  border-radius:24px;
+  border-radius:var(--radius-lg);
   display:grid;
   place-items:center;
   background:rgba(255,255,255,.18);
@@ -175,7 +152,7 @@ Historia clínica
   gap:8px;
   min-height:38px;
   padding:0 12px;
-  border-radius:999px;
+  border-radius:var(--radius-pill);
   background:rgba(255,255,255,.14);
   border:1px solid rgba(255,255,255,.16);
   color:#fff;
@@ -189,7 +166,7 @@ Historia clínica
   gap:8px;
   min-height:40px;
   padding:0 14px;
-  border-radius:999px;
+  border-radius:var(--radius-pill);
   background:rgba(255,255,255,.14);
   border:1px solid rgba(255,255,255,.16);
   font-size:12px;
@@ -215,7 +192,7 @@ Historia clínica
 
 .hero-stat{
   padding:16px;
-  border-radius:18px;
+  border-radius:var(--radius-lg);
   background:rgba(255,255,255,.12);
   border:1px solid rgba(255,255,255,.14);
   backdrop-filter:blur(8px);
@@ -267,7 +244,7 @@ Historia clínica
 .empty-state{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:24px;
+  border-radius:var(--radius-xl);
   box-shadow:var(--shadow-sm);
 }
 
@@ -298,7 +275,7 @@ Historia clínica
 
 .side-item{
   padding:12px 14px;
-  border-radius:16px;
+  border-radius:var(--radius-lg);
   background:var(--surface-2);
   border:1px solid var(--border);
 }
@@ -372,7 +349,7 @@ Historia clínica
 .filter-btn{
   min-height:40px;
   padding:0 14px;
-  border-radius:999px;
+  border-radius:var(--radius-pill);
   border:1px solid var(--border);
   background:var(--surface);
   font-size:13px;
@@ -386,12 +363,12 @@ Historia clínica
 }
 
 .filter-btn:hover{
-  border-color:var(--patient-primary);
-  color:var(--patient-primary);
+  border-color:var(--brand);
+  color:var(--brand);
 }
 
 .filter-btn.active{
-  background:var(--patient-bg);
+  background:linear-gradient(135deg, var(--brand), var(--accent));
   color:#fff;
   border-color:transparent;
 }
@@ -432,17 +409,17 @@ Historia clínica
 .tl-type{
   width:46px;
   height:46px;
-  border-radius:16px;
+  border-radius:var(--radius-lg);
   display:grid;
   place-items:center;
   color:#fff;
   font-size:1rem;
-  background:var(--patient-bg);
-  box-shadow:0 10px 18px rgba(15,37,42,.10);
+  background:linear-gradient(135deg, var(--brand), var(--accent));
+  box-shadow:var(--shadow-xs);
 }
 
 .tl-type.signos{
-  background:linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
+  background:var(--danger);
 }
 
 .tl-main{
@@ -475,19 +452,19 @@ Historia clínica
   gap:6px;
   min-height:28px;
   padding:0 10px;
-  border-radius:999px;
+  border-radius:var(--radius-pill);
   font-size:12px;
   font-weight:800;
 }
 
 .tl-tag.cie{
-  background:rgba(14,165,255,.10);
-  color:#0369a1;
+  background:var(--brand-soft);
+  color:var(--brand);
 }
 
 .tl-tag.vital{
-  background:rgba(239,68,68,.10);
-  color:#991b1b;
+  background:var(--danger-soft);
+  color:var(--danger);
 }
 
 .tl-date{
@@ -501,7 +478,7 @@ Historia clínica
 .tl-date-day{
   font-size:1.35rem;
   font-weight:800;
-  color:var(--patient-primary);
+  color:var(--brand);
   line-height:1;
 }
 
@@ -514,7 +491,7 @@ Historia clínica
 .tl-expand{
   width:34px;
   height:34px;
-  border-radius:10px;
+  border-radius:var(--radius-sm);
   display:grid;
   place-items:center;
   color:var(--text-faint);
@@ -525,7 +502,7 @@ Historia clínica
 .timeline-item.expanded .tl-expand{
   transform:rotate(180deg);
   color:#fff;
-  background:var(--patient-bg);
+  background:linear-gradient(135deg, var(--brand), var(--accent));
 }
 
 .tl-content{
@@ -586,19 +563,19 @@ Historia clínica
   gap:12px;
   min-width:150px;
   padding:14px 16px;
-  background:rgba(239,68,68,.08);
-  border:1px solid rgba(239,68,68,.12);
-  border-radius:16px;
+  background:var(--danger-soft);
+  border:1px solid var(--danger);
+  border-radius:var(--radius-lg);
 }
 
 .vital-icon{
   width:42px;
   height:42px;
-  border-radius:12px;
+  border-radius:var(--radius-md);
   display:grid;
   place-items:center;
   color:#fff;
-  background:linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
+  background:var(--danger);
 }
 
 .vital-info{
@@ -609,14 +586,14 @@ Historia clínica
 .vital-value{
   font-size:1.25rem;
   font-weight:800;
-  color:#991b1b;
+  color:var(--danger);
   line-height:1;
 }
 
 .vital-unit{
   margin-top:4px;
   font-size:12px;
-  color:#b91c1c;
+  color:var(--danger);
   font-weight:700;
 }
 
@@ -643,7 +620,7 @@ Historia clínica
   width:36px;
   height:36px;
   border:3px solid var(--border);
-  border-top-color:var(--patient-primary);
+  border-top-color:var(--brand);
   border-radius:50%;
   animation:spin .8s linear infinite;
 }
@@ -677,7 +654,7 @@ Historia clínica
 .empty-state i{
   font-size:3rem;
   margin-bottom:14px;
-  color:var(--patient-primary);
+  color:var(--brand);
   opacity:.45;
 }
 
@@ -713,7 +690,7 @@ Historia clínica
   .timeline-shell,
   .timeline-item,
   .empty-state{
-    border-radius:20px;
+    border-radius:var(--radius-lg);
   }
 
   .hc-hero{

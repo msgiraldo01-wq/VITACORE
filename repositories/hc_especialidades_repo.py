@@ -206,7 +206,7 @@ def listar_select():
     response = (
         _sb()
         .table(_table_name())
-        .select("id, nombre")
+        .select("id, nombre, codigo")
         .eq("empresa_id", empresa_id)  # 🔥 CLAVE
         .eq("estado", "ACTIVA")
         .order("nombre")

@@ -4,6 +4,7 @@ from repositories import hc_evolucion_medicamentos_repo as repo_meds
 from repositories import hc_profesionales_repo as repo_prof
 from repositories import hc_sedes_repo as repo_sedes
 from repositories import rda_catalogos_repo as repo_rda_cat
+from repositories import hc_especialidades_repo as repo_especialidades
 
 
 
@@ -55,6 +56,7 @@ def evolucion_nuevo(paciente_id):
     # Obtener lista de médicos
     medicos = repo.listar_medicos()
     sedes = repo_sedes.listar_select()
+    especialidades = repo_especialidades.listar_select()
 
     return render_template(
         "hc/evoluciones/evoluciones_form.html",
@@ -62,6 +64,7 @@ def evolucion_nuevo(paciente_id):
         paciente_id=paciente_id,
         medicos=medicos,
         sedes=sedes,
+        especialidades=especialidades,
         rda_causas_externas=repo_rda_cat.listar("causa_externa"),
         rda_tipos_diagnostico=repo_rda_cat.listar("tipo_diagnostico"),
         rda_entornos=repo_rda_cat.listar("entorno"),
@@ -94,6 +97,8 @@ def evolucion_crear(paciente_id):
             "paciente_id": paciente_id,
             "medico_id": request.form.get("medico_id"),
             "tipo_atencion": request.form.get("tipo_atencion", "CONSULTA_EXTERNA"),
+            "sede_id": request.form.get("sede_id") or None,
+            "servicio": request.form.get("servicio", "").strip() or None,
 
             "motivo_consulta": request.form.get("motivo_consulta", ""),
             "enfermedad_actual": request.form.get("enfermedad_actual", ""),
@@ -110,6 +115,7 @@ def evolucion_crear(paciente_id):
             "recomendaciones": request.form.get("recomendaciones", ""),
             "proximo_control_fecha": request.form.get("proximo_control_fecha"),
             "proximo_control_tipo": request.form.get("proximo_control_tipo", ""),
+            "destino_paciente": request.form.get("destino_paciente", "").strip() or None,
 
             "causa_externa_codigo": request.form.get("causa_externa_codigo"),
             "tipo_diagnostico_codigo": request.form.get("tipo_diagnostico_codigo"),
