@@ -1,0 +1,72 @@
+{% extends "hc/base.html" %}
+{% block title %}OC #{{ oc.consecutivo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block topbar_title %}Orden #{{ oc.consecutivo }}{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block header_title %}OC #{{ oc.consecutivo }} — {{ oc.estado.replace('_',' ') }}{% endblock %}
+{% block header_subtitle %}{{ oc.inv_proveedores.razon_social }} → {{ oc.inv_bodegas.nombre }}
+  · Total ${{ "{:,.0f}".format(oc.total) }}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.compras_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <table class="inv-tabla">
+    <thead><tr><th>Producto</th><th style="text-align:right">Cantidad</th>
+      <th style="text-align:right">Recibida</th><th style="text-align:right">Pendiente</th>
+      <th style="text-align:right">Precio</th><th style="text-align:right">% IVA</th></tr></thead>
+    <tbody>
+      {% for i in items %}
+      <tr>
+        <td><strong>{{ i.inv_productos.codigo_interno }}</strong>
+            {{ i.inv_productos.nombre }} {{ i.inv_productos.concentracion or '' }}</td>
+        <td style="text-align:right">{{ i.cantidad }}</td>
+        <td style="text-align:right">{{ i.cantidad_recibida }}</td>
+        <td style="text-align:right"><strong>{{ i.cantidad - i.cantidad_recibida }}</strong></td>
+        <td style="text-align:right">${{ "{:,.2f}".format(i.precio_unitario) }}</td>
+        <td style="text-align:right">{{ i.porcentaje_iva }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="inv-ayuda" style="margin-top:10px">
+    Elaboró: {{ oc.elaborado_por or '—' }}
+    {% if oc.aprobado_por %} · Aprobó: {{ oc.aprobado_por }}{% endif %}
+    {% if oc.observaciones %} · {{ oc.observaciones }}{% endif %}</p>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+  {% if oc.estado == 'BORRADOR' %}
+  <form method="post"><input type="hidden" name="accion" value="aprobar">
+    <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Aprobar orden</button></form>
+  <form method="post" onsubmit="return confirm('¿Anular esta orden?')">
+    <input type="hidden" name="accion" value="anular">
+    <button class="btn-ax ghost"><i class="fa-solid fa-ban"></i> Anular</button></form>
+  {% elif oc.estado in ('APROBADA', 'RECIBIDA_PARCIAL') %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.compras_recepcion', orden_id=oc.id) }}">
+    <i class="fa-solid fa-clipboard-check"></i> Registrar recepción</a>
+  {% endif %}
+</div>
+{% if recepciones %}
+<div class="content-block" style="margin-top:16px">
+  <h3 style="margin:0 0 10px"><i class="fa-solid fa-clipboard-check"></i> Recepciones de esta orden</h3>
+  <table class="inv-tabla">
+    <thead><tr><th>#</th><th>Fecha</th><th>Factura proveedor</th><th>Estado</th><th>Recibió</th></tr></thead>
+    <tbody>
+      {% for r in recepciones %}
+      <tr>
+        <td>{{ r.consecutivo }}</td>
+        <td>{{ r.created_at[:16].replace('T',' ') }}</td>
+        <td>{{ r.numero_factura_proveedor or '—' }}</td>
+        <td>{% set c = {'ACEPTADA':'verde','ACEPTADA_PARCIAL':'amarillo','RECHAZADA':'rojo'} %}
+            <span class="inv-insignia {{ c[r.estado] }}">{{ r.estado.replace('_',' ') }}</span></td>
+        <td>{{ r.recibido_por or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

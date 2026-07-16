@@ -1,0 +1,72 @@
+{% extends "hc/base.html" %}
+{% block title %}Nueva orden de compra · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block topbar_title %}Nueva orden de compra{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block header_title %}Nueva orden de compra{% endblock %}
+{% block header_subtitle %}Se crea en BORRADOR; al aprobarla queda lista para recepción.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.compras_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="inv-form">
+    <div class="inv-campo"><label>Proveedor *</label>
+      <select name="proveedor_id" required>
+        <option value="">Seleccione…</option>
+        {% for p in proveedores %}<option value="{{ p.id }}">{{ p.razon_social }}</option>{% endfor %}
+      </select>
+      <div class="inv-ayuda">¿No está? <a href="{{ url_for('inventario.proveedores') }}"
+        target="_blank" style="color:var(--brand)">Créalo aquí</a> y recarga.</div></div>
+    <div class="inv-campo"><label>Bodega destino *</label>
+      <select name="bodega_destino_id" required>
+        <option value="">Seleccione…</option>
+        {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+      </select></div>
+    <div class="inv-campo"><label>Fecha de entrega esperada</label>
+      <input type="date" name="fecha_entrega_esperada"></div>
+    <div class="inv-campo completo"><label>Observaciones</label>
+      <input type="text" name="observaciones"></div>
+  </div>
+  <h3 style="margin:18px 0 8px">Productos</h3>
+  <div id="filas"></div>
+  <button type="button" class="btn-ax ghost" onclick="agregarFila()" style="margin-top:8px">
+    <i class="fa-solid fa-plus"></i> Agregar producto</button>
+  <datalist id="lista-productos">
+    {% for p in productos if p.estado == 'ACTIVO' %}
+    <option data-id="{{ p.id }}" value="{{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}"></option>
+    {% endfor %}
+  </datalist>
+  <p style="margin-top:14px;font-weight:700">Total estimado: $<span id="total">0</span></p>
+  <button type="submit" class="btn-ax primary"><i class="fa-solid fa-floppy-disk"></i> Crear orden (borrador)</button>
+</form>
+<script>
+const estilo = 'padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)';
+function agregarFila() {
+  const d = document.createElement('div');
+  d.style.cssText = 'display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap';
+  d.innerHTML = `
+    <input list="lista-productos" placeholder="Buscar producto…" autocomplete="off" style="flex:2;min-width:260px;${estilo}"
+      onchange="const o=[...document.querySelectorAll('#lista-productos option')].find(x=>x.value===this.value);this.nextElementSibling.value=o?o.dataset.id:''">
+    <input type="hidden" name="producto_id[]">
+    <input type="number" name="cantidad[]" placeholder="Cant." min="1" step="1" style="width:90px;${estilo}" oninput="calcular()">
+    <input type="number" name="precio[]" placeholder="Precio unit." min="0" step="0.01" style="width:130px;${estilo}" oninput="calcular()">
+    <input type="number" name="iva[]" placeholder="% IVA" min="0" max="19" step="1" value="0" style="width:80px;${estilo}" oninput="calcular()">
+    <button type="button" class="btn-ax ghost" style="min-height:34px" onclick="this.parentElement.remove();calcular()">
+      <i class="fa-solid fa-trash"></i></button>`;
+  document.getElementById('filas').appendChild(d);
+}
+function calcular() {
+  let t = 0;
+  document.querySelectorAll('#filas > div').forEach(f => {
+    const [c, p, i] = ['cantidad[]','precio[]','iva[]'].map(n => parseFloat(f.querySelector(`[name="${n}"]`).value) || 0);
+    t += c * p * (1 + i / 100);
+  });
+  document.getElementById('total').textContent = t.toLocaleString('es-CO', {maximumFractionDigits: 0});
+}
+agregarFila();
+</script>
+{% endblock %}

@@ -34,6 +34,7 @@ from blueprints.inventario import inventario_bp
 
 
 
+
 app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
 

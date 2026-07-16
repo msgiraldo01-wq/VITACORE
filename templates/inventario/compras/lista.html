@@ -1,0 +1,43 @@
+{% extends "hc/base.html" %}
+{% block title %}Órdenes de compra · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block topbar_title %}Órdenes de compra{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-file-invoice"></i>{% endblock %}
+{% block header_title %}Órdenes de compra{% endblock %}
+{% block header_subtitle %}Compras a proveedores con recepción técnica y entrada automática al kardex.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.compras_nueva') }}">
+    <i class="fa-solid fa-plus"></i> Nueva orden</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.proveedores') }}">
+    <i class="fa-solid fa-handshake"></i> Proveedores</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+{% if ordenes %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>#</th><th>Fecha</th><th>Proveedor</th><th>Bodega destino</th>
+      <th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for o in ordenes %}
+      <tr>
+        <td>{{ o.consecutivo }}</td>
+        <td>{{ o.created_at[:10] }}</td>
+        <td><strong>{{ o.inv_proveedores.razon_social }}</strong></td>
+        <td>{{ o.inv_bodegas.nombre }}</td>
+        <td style="text-align:right">${{ "{:,.0f}".format(o.total) }}</td>
+        <td>{% set c = {'BORRADOR':'gris','APROBADA':'morado','RECIBIDA_PARCIAL':'amarillo',
+                        'RECIBIDA_TOTAL':'verde','ANULADA':'rojo'} %}
+            <span class="inv-insignia {{ c[o.estado] }}">{{ o.estado.replace('_',' ') }}</span></td>
+        <td><a href="{{ url_for('inventario.compras_detalle', orden_id=o.id) }}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin órdenes de compra.
+  <a href="{{ url_for('inventario.compras_nueva') }}">Crea la primera</a>.</div>
+{% endif %}
+{% endblock %}
