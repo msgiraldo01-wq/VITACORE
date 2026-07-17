@@ -26,6 +26,7 @@ from blueprints.bp_financiero.radicacion.radicacion import bp_financiero_radicac
 from blueprints.bp_financiero.configuracion.configuracion import bp_financiero_configuracion
 from blueprints.rda.routes import bp_rda
 from blueprints.inventario import inventario_bp
+from blueprints.hc.historia_clinica.routes import bp_hc_home
 
 
 
@@ -64,6 +65,9 @@ app.register_blueprint(bp_financiero_radicacion)
 app.register_blueprint(bp_financiero_configuracion)
 app.register_blueprint(bp_rda)
 app.register_blueprint(inventario_bp)
+
+
+app.register_blueprint(bp_hc_home)
 
 @app.route("/")
 def inicio():

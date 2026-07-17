@@ -1,0 +1,257 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Historia Clínica{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-notes-medical"></i>{% endblock %}
+{% block topbar_title %}Historia Clínica{% endblock %}
+{% block topbar_subtitle %}Buscar pacientes y evoluciones{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-notes-medical"></i>{% endblock %}
+{% block header_title %}Historia Clínica{% endblock %}
+{% block header_subtitle %}Busca un paciente para ver o crear una evolución, o revisa las atenciones más recientes.{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Stats ── */
+  .hc-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  @media (max-width: 720px) { .hc-stats { grid-template-columns: 1fr; } }
+
+  /* ── Buscador ── */
+  .hc-search-block { margin-bottom: 20px; position: relative; }
+  .hc-block-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-faint);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .hc-search-box {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px 16px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .hc-search-box:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .hc-search-box i { color: var(--text-faint); }
+  .hc-search-box input {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-size: 14px; font-family: var(--font); color: var(--text);
+  }
+  .hc-results {
+    position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+    max-height: 380px; overflow-y: auto; z-index: 50; display: none;
+  }
+  .hc-results.show { display: block; }
+  .hc-result-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .hc-result-item:last-child { border-bottom: none; }
+  .hc-result-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .hc-result-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .hc-result-doc { font-size: 12px; color: var(--text-soft); }
+  .hc-result-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .hc-empty { padding: 16px; text-align: center; color: var(--text-faint); font-size: 13px; }
+
+  /* ── Avatar ── */
+  .hc-avatar-sm {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    color: #fff; font-size: 12px; font-weight: 800;
+  }
+  .hc-who { display: flex; align-items: center; gap: 10px; }
+
+  /* ── Tabla recientes ── */
+  .hc-recientes-block { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+  .hc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .hc-table th {
+    text-align: left; padding: 10px 12px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+  }
+  .hc-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+  .hc-table tr:last-child td { border-bottom: none; }
+  .hc-table tr:hover td { background: var(--surface); }
+  .hc-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--brand-soft); color: var(--brand);
+    padding: 2px 10px; border-radius: var(--radius-pill);
+    font-size: 12px; font-weight: 600;
+  }
+  .hc-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .hc-icon-btn {
+    width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-soft); transition: all .15s;
+  }
+  .hc-icon-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .hc-icon-btn.new:hover { border-color: var(--success); color: var(--success); }
+
+  .hc-empty-state { padding: 40px; text-align: center; color: var(--text-faint); }
+  .hc-empty-state i { font-size: 36px; margin-bottom: 10px; display: block; color: var(--border-strong); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- STATS -->
+<div class="hc-stats">
+  <div class="status-card">
+    <div class="status-top">
+      <span class="status-label">Hoy</span>
+      <div class="status-icon"><i class="fa-solid fa-calendar-day"></i></div>
+    </div>
+    <strong>{{ resumen.hoy if resumen else 0 }}</strong>
+    <span>Evoluciones registradas hoy</span>
+  </div>
+
+  <div class="status-card">
+    <div class="status-top">
+      <span class="status-label">Esta semana</span>
+      <div class="status-icon"><i class="fa-solid fa-calendar-week"></i></div>
+    </div>
+    <strong>{{ resumen.semana if resumen else 0 }}</strong>
+    <span>Evoluciones desde el lunes</span>
+  </div>
+
+  <div class="status-card">
+    <div class="status-top">
+      <span class="status-label">Pacientes</span>
+      <div class="status-icon"><i class="fa-solid fa-user-injured"></i></div>
+    </div>
+    <strong>{{ resumen.pacientes_atendidos if resumen else 0 }}</strong>
+    <span>Con historia clínica registrada</span>
+  </div>
+</div>
+
+<!-- BUSCADOR -->
+<div class="hc-search-block">
+  <div class="hc-block-title"><i class="fa-solid fa-magnifying-glass"></i> Buscar paciente</div>
+  <div class="hc-search-box">
+    <i class="fa-solid fa-user"></i>
+    <input id="hcBuscarInput" type="text" placeholder="Nombre, apellido o número de documento..." autocomplete="off">
+  </div>
+  <div class="hc-results" id="hcResultados"></div>
+</div>
+
+<!-- EVOLUCIONES RECIENTES -->
+<div class="hc-recientes-block">
+  <div class="hc-block-title"><i class="fa-solid fa-clock-rotate-left"></i> Evoluciones recientes</div>
+
+  {% if recientes %}
+  <table class="hc-table">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Paciente</th>
+        <th>Médico</th>
+        <th>Diagnóstico</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in recientes %}
+      <tr>
+        <td>{{ (e.fecha or '')[:16] | replace('T', ' ') }}</td>
+        <td>
+          <div class="hc-who">
+            <div class="hc-avatar-sm">{{ (e.paciente_nombre[:1] if e.paciente_nombre else '?') | upper }}</div>
+            <div>
+              <div style="font-weight:600;">{{ e.paciente_nombre }}</div>
+              <div style="font-size:11px;color:var(--text-soft);">{{ e.paciente_documento }}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ e.medico_nombre or '—' }}</td>
+        <td>
+          {% if e.cie10_codigo %}
+          <span class="hc-tag">{{ e.cie10_codigo }}</span>
+          {% else %}
+          <span style="color: var(--text-faint);">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="hc-row-actions">
+            <a class="hc-icon-btn" title="Ver historia" href="/hc/historia/paciente/{{ e.paciente_id }}">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a class="hc-icon-btn new" title="Nueva evolución" href="/hc/evoluciones/nuevo/{{ e.paciente_id }}">
+              <i class="fa-solid fa-file-circle-plus"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="hc-empty-state">
+    <i class="fa-solid fa-file-circle-question"></i>
+    Sin evoluciones registradas todavía.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const input = document.getElementById('hcBuscarInput');
+  const resultados = document.getElementById('hcResultados');
+  let timer = null;
+
+  function esc(s){ return (s==null?'':s).toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function inicial(s){ return (s||'?').trim().charAt(0).toUpperCase() || '?'; }
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { resultados.classList.remove('show'); resultados.innerHTML = ''; return; }
+    timer = setTimeout(() => buscar(q), 300);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.hc-search-block')) resultados.classList.remove('show');
+  });
+
+  async function buscar(q){
+    resultados.innerHTML = '<div class="hc-empty"><i class="fa-solid fa-spinner fa-spin"></i> Buscando...</div>';
+    resultados.classList.add('show');
+    try {
+      const r = await fetch('/hc/historia-clinica/buscar?q=' + encodeURIComponent(q));
+      const data = await r.json();
+      pintar(data);
+    } catch (e) {
+      resultados.innerHTML = '<div class="hc-empty">Error de conexión.</div>';
+    }
+  }
+
+  function pintar(data){
+    if (!data.length) {
+      resultados.innerHTML = '<div class="hc-empty">Sin resultados.</div>';
+      return;
+    }
+    resultados.innerHTML = data.map(p => `
+      <div class="hc-result-item">
+        <div class="hc-result-who">
+          <div class="hc-avatar-sm">${esc(inicial(p.nombre))}</div>
+          <div style="min-width:0;">
+            <div class="hc-result-name">${esc(p.nombre)}</div>
+            <div class="hc-result-doc">${esc(p.documento)}</div>
+          </div>
+        </div>
+        <div class="hc-result-actions">
+          <a class="hc-icon-btn" title="Ver historia" href="/hc/historia/paciente/${p.id}"><i class="fa-solid fa-eye"></i></a>
+          <a class="hc-icon-btn new" title="Nueva evolución" href="/hc/evoluciones/nuevo/${p.id}"><i class="fa-solid fa-file-circle-plus"></i></a>
+        </div>
+      </div>
+    `).join('');
+  }
+})();
+</script>
+{% endblock %}

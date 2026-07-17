@@ -237,8 +237,10 @@ def visor_epicrisis(doc_id):
     if not _empresa_id():
         return redirect("/")
 
+    composition_id = request.args.get("composition_id")   # <-- línea nueva
+
     try:
-        pdf, nombre = visor_service.descargar_epicrisis(doc_id)
+        pdf, nombre = visor_service.descargar_epicrisis(doc_id, composition_id)  # <-- se agrega composition_id
     except ihce.IhceError as e:
         return jsonify({"ok": False, "message": str(e)}), 502
     except ValueError as e:
@@ -252,7 +254,6 @@ def visor_epicrisis(doc_id):
         mimetype="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{nombre}"'},
     )
-
 
 # =========================
 # CONFIGURACIÓN DE CATÁLOGOS RDA

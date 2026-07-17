@@ -271,6 +271,8 @@ def crear(data: dict) -> Optional[dict]:
             "paciente_id": data.get("paciente_id"),
             "medico_id": data.get("medico_id"),
             "tipo_atencion": data.get("tipo_atencion", "CONSULTA_EXTERNA"),
+            "sede_id": data.get("sede_id") or None,
+            "servicio": data.get("servicio", "").strip() or None,
 
             # SUBJETIVO
             "motivo_consulta": data.get("motivo_consulta", "").strip(),
@@ -292,6 +294,13 @@ def crear(data: dict) -> Optional[dict]:
             "recomendaciones": data.get("recomendaciones", "").strip() or None,
             "proximo_control_fecha": data.get("proximo_control_fecha") or None,
             "proximo_control_tipo": data.get("proximo_control_tipo", "").strip() or None,
+            "destino_paciente": data.get("destino_paciente", "").strip() or None,
+
+            # RDA (Resolución 1888)
+            "causa_externa_codigo": data.get("causa_externa_codigo") or None,
+            "tipo_diagnostico_codigo": data.get("tipo_diagnostico_codigo") or None,
+            "cups_id": data.get("cups_id") or None,
+            "entorno_codigo": data.get("entorno_codigo") or None,
 
             # METADATA
             "estado": "ACTIVO",
@@ -370,3 +379,116 @@ def listar_medicos() -> list:
     except Exception as e:
         print(f"Error listando médicos: {e}")
         return []
+    
+
+# Agregar arriba del archivo, junto a los demás imports:
+# from flask import session   (si no está ya importado)
+
+
+# =========================
+# LISTAR EVOLUCIONES RECIENTES (toda la IPS)
+# =========================
+
+def listar_recientes(limite: int = 20) -> list:
+    """Lista las evoluciones más recientes de la empresa activa, con datos
+    básicos del paciente y del médico. Para la pantalla de inicio de
+    Historia Clínica (/hc/historia-clinica).
+
+    NOTA: filtra por empresa_id, pero hc_evoluciones.crear() todavía no
+    guarda ese campo -- hasta que se corrija, las evoluciones nuevas no
+    aparecerán aquí si el filtro está activo. Ver el fix de crear() antes
+    de usar esto en producción con más de una empresa."""
+    from flask import session
+
+    empresa_id = session.get("empresa_id")
+    if not empresa_id:
+        return []
+
+    try:
+        r = (
+            _sb()
+            .table(_table_name())
+            .select("""
+                id, paciente_id, fecha, motivo_consulta, cie10_codigo, cie10_nombre,
+                medico:hc_profesionales(id, nombre_completo),
+                paciente:hc_pacientes(id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, numero_documento)
+            """)
+            .eq("empresa_id", empresa_id)
+            .order("fecha", desc=True)
+            .limit(limite)
+            .execute()
+        )
+
+        if not r or not hasattr(r, 'data') or not r.data:
+            return []
+
+        out = []
+        for row in r.data:
+            pac = row.get("paciente") or {}
+            med = row.get("medico") or {}
+            nombre_pac = " ".join(filter(None, [
+                pac.get("primer_nombre"), pac.get("segundo_nombre"),
+                pac.get("primer_apellido"), pac.get("segundo_apellido"),
+            ])) or "Paciente"
+
+            out.append({
+                "id": row.get("id"),
+                "paciente_id": row.get("paciente_id"),
+                "paciente_nombre": nombre_pac,
+                "paciente_documento": pac.get("numero_documento") or "",
+                "fecha": row.get("fecha"),
+                "motivo_consulta": row.get("motivo_consulta") or "",
+                "cie10_codigo": row.get("cie10_codigo") or "",
+                "cie10_nombre": row.get("cie10_nombre") or "",
+                "medico_nombre": med.get("nombre_completo") or "",
+            })
+        return out
+
+    except Exception as e:
+        print(f"Error listando evoluciones recientes: {e}")
+        return []
+    
+def resumen_evoluciones() -> dict:
+    """Conteos rápidos para las tarjetas de la pantalla de Historia Clínica:
+    evoluciones de hoy, de esta semana, y pacientes distintos atendidos."""
+    from flask import session
+    from datetime import date, timedelta
+
+    empresa_id = session.get("empresa_id")
+    if not empresa_id:
+        return {"hoy": 0, "semana": 0, "pacientes_atendidos": 0}
+
+    try:
+        hoy = date.today()
+        inicio_semana = hoy - timedelta(days=hoy.weekday())
+
+        r_hoy = (
+            _sb().table(_table_name())
+            .select("id", count="exact")
+            .eq("empresa_id", empresa_id)
+            .gte("fecha", hoy.isoformat())
+            .execute()
+        )
+        r_semana = (
+            _sb().table(_table_name())
+            .select("id", count="exact")
+            .eq("empresa_id", empresa_id)
+            .gte("fecha", inicio_semana.isoformat())
+            .execute()
+        )
+        r_pac = (
+            _sb().table(_table_name())
+            .select("paciente_id")
+            .eq("empresa_id", empresa_id)
+            .execute()
+        )
+        pacientes_unicos = len({row["paciente_id"] for row in (r_pac.data or []) if row.get("paciente_id")})
+
+        return {
+            "hoy": r_hoy.count or 0,
+            "semana": r_semana.count or 0,
+            "pacientes_atendidos": pacientes_unicos,
+        }
+    except Exception as e:
+        print(f"Error calculando resumen de evoluciones: {e}")
+        return {"hoy": 0, "semana": 0, "pacientes_atendidos": 0}
