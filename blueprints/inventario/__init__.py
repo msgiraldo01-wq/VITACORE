@@ -30,7 +30,9 @@ def contexto_empresa(f):
     def wrapper(*args, **kwargs):
         empresa_id = session.get("empresa_id")
         user = session.get("user") or {}
-        usuario_id = user.get("id")  # ⚠️ si tu dict de usuario usa otra llave (p.ej. 'user_id' o 'uuid'), cámbiala aquí
+        # username legible para los campos de auditoría (kardex, actas, traslados);
+        # si no existe, cae al id
+        usuario_id = user.get("username") or user.get("id")
         if not empresa_id:
             # Endpoint real del proyecto (confirmado por Flask): bp_hc_empresa.seleccionar_empresa
             try:
@@ -42,4 +44,4 @@ def contexto_empresa(f):
 
 
 # Importar las rutas al final para que se registren sobre el blueprint
-from . import routes_bodegas, routes_compras, routes_condiciones, routes_movimientos, routes_productos, routes_traslados  # noqa: E402,F401
+from . import routes_bodegas, routes_compras, routes_condiciones, routes_movimientos, routes_productos, routes_solicitudes, routes_traslados  # noqa: E402,F401

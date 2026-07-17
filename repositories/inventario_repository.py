@@ -268,3 +268,56 @@ def registrar_recepcion(empresa_id, cabecera: dict, items: list):
     return _client().rpc("fn_inv_registrar_recepcion", {
         "p_empresa_id": empresa_id, "p_cabecera": cabecera, "p_items": items,
     }).execute().data
+
+
+# ============================ FASE 2B: SOLICITUDES ============================
+
+def productos_bajo_minimo(empresa_id):
+    return (_client().table("v_inv_bajo_minimo").select("*")
+            .eq("empresa_id", empresa_id).order("nombre").execute().data)
+
+
+def crear_solicitud(datos: dict, items: list):
+    s = _client().table("inv_solicitudes_compra").insert(datos).execute().data[0]
+    for it in items:
+        it["solicitud_id"] = s["id"]
+    _client().table("inv_solicitud_items").insert(items).execute()
+    return s
+
+
+def listar_solicitudes(empresa_id):
+    return (_client().table("inv_solicitudes_compra")
+            .select("*, inv_bodegas(nombre)")
+            .eq("empresa_id", empresa_id)
+            .order("created_at", desc=True).limit(200).execute().data)
+
+
+def obtener_solicitud(empresa_id, solicitud_id):
+    s = (_client().table("inv_solicitudes_compra")
+         .select("*, inv_bodegas(nombre)")
+         .eq("empresa_id", empresa_id).eq("id", solicitud_id).limit(1).execute().data)
+    if not s:
+        return None, []
+    items = (_client().table("inv_solicitud_items")
+             .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+             .eq("solicitud_id", solicitud_id).execute().data)
+    return s[0], items
+
+
+def resolver_solicitud(solicitud_id, datos: dict):
+    return (_client().table("inv_solicitudes_compra")
+            .update(datos).eq("id", solicitud_id).execute().data)
+
+
+def ultimo_precio_compra(empresa_id, producto_id):
+    """Último costo de ENTRADA_COMPRA; si no hay, el costo promedio; si no, 0."""
+    m = (_client().table("inv_movimientos").select("costo_unitario")
+         .eq("empresa_id", empresa_id).eq("producto_id", producto_id)
+         .eq("tipo", "ENTRADA_COMPRA")
+         .order("fecha", desc=True).limit(1).execute().data)
+    if m:
+        return float(m[0]["costo_unitario"])
+    e = (_client().table("inv_existencias").select("costo_promedio")
+         .eq("empresa_id", empresa_id).eq("producto_id", producto_id)
+         .limit(1).execute().data)
+    return float(e[0]["costo_promedio"]) if e else 0.0
