@@ -860,13 +860,89 @@
       function done(){clearInterval(timer);set(1);setTimeout(()=>{const el=document.getElementById('nprogress');if(el)el.remove();current=0;},300);}
       return {start,done};
     })();
+
+    let navTimeoutId = null;
+
     document.addEventListener('click',(e)=>{
       const link=e.target.closest('a[href]');if(!link)return;
       const href=link.getAttribute('href');
       if(!href||href.startsWith('#')||href.startsWith('http')||href.startsWith('javascript')||href.includes('logout')||link.target==='_blank'||link.hasAttribute('download'))return;
       Progress.start();
+
+      // Si en 15s seguimos en la misma página, algo falló en la navegación
+      clearTimeout(navTimeoutId);
+      navTimeoutId = setTimeout(() => {
+        Progress.done();
+        Toast.show('La navegación está tardando demasiado. Verifica tu conexión o inténtalo de nuevo.', 'error', 6000);
+      }, 20000);
     });
-    window.addEventListener('pageshow',()=>Progress.done());
+
+    window.addEventListener('pageshow',()=>{
+      clearTimeout(navTimeoutId);
+      Progress.done();
+    });
+  </script>
+  <script>
+  (function initConnectionSpeed(){
+    const THRESHOLDS = {
+      slowEffectiveTypes: ['slow-2g', '2g'],   // tipos que la API marca como lentos
+      slowDownlinkMbps: 1.5,                    // por debajo de esto = lento
+      slowRttMs: 600,                           // latencia alta reportada por la API
+      pingSlowMs: 2000,                         // si un HEAD tarda más de esto = lento
+      pingIntervalMs: 30000                     // frecuencia del ping de respaldo
+    };
+
+    let lastState = null; // null | 'slow' | 'ok'
+
+    function notify(state){
+      if (state === lastState) return; // evita spam de toasts repetidos
+      lastState = state;
+      if (state === 'slow') {
+        Toast.show('Tu conexión a internet está lenta. Algunas acciones podrían tardar más de lo normal.', 'warning', 5000);
+      } else if (state === 'ok') {
+        Toast.show('La velocidad de conexión se normalizó.', 'success', 3000);
+      }
+    }
+
+    /* ── 1) Network Information API (si está disponible) ── */
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+    function evalNetworkInfo(){
+      if (!conn) return null;
+      const slow =
+        THRESHOLDS.slowEffectiveTypes.includes(conn.effectiveType) ||
+        (typeof conn.downlink === 'number' && conn.downlink > 0 && conn.downlink < THRESHOLDS.slowDownlinkMbps) ||
+        (typeof conn.rtt === 'number' && conn.rtt > THRESHOLDS.slowRttMs);
+      return slow ? 'slow' : 'ok';
+    }
+
+    if (conn) {
+      conn.addEventListener('change', () => {
+        if (!navigator.onLine) return; // el indicador offline ya cubre este caso
+        const state = evalNetworkInfo();
+        if (state) notify(state);
+      });
+    }
+
+    /* ── 2) Ping de respaldo (mide latencia real contra el propio servidor) ── */
+    async function pingCheck(){
+      if (!navigator.onLine) return; // ya se muestra el aviso de offline
+      const start = performance.now();
+      try {
+        await fetch(window.location.origin + '/ping?_=' + Date.now(), {
+          method: 'HEAD',
+          cache: 'no-store'
+        });
+        const elapsed = performance.now() - start;
+        notify(elapsed > THRESHOLDS.pingSlowMs ? 'slow' : 'ok');
+      } catch (e) {
+        // si falla la petición, probablemente ya lo cubre el listener de 'offline'
+      }
+    }
+
+    setInterval(pingCheck, THRESHOLDS.pingIntervalMs);
+    pingCheck();
+    })();
   </script>
 
   {% with messages = get_flashed_messages(with_categories=true) %}

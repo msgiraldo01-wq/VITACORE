@@ -64,8 +64,6 @@ app.register_blueprint(bp_financiero_radicacion)
 app.register_blueprint(bp_financiero_configuracion)
 app.register_blueprint(bp_rda)
 app.register_blueprint(inventario_bp)
-
-
 app.register_blueprint(bp_hc_home)
 
 @app.route("/")
@@ -73,6 +71,11 @@ def inicio():
     if not session.get("user"):
         return redirect(url_for("auth.login"))
     return render_template("/hc/index.html")
+
+# en tu app Flask
+@app.route('/ping')
+def ping():
+    return '', 204
 
 if __name__ == "__main__":
     app.run(debug=True)
