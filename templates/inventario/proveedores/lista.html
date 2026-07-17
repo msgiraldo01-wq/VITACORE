@@ -1,0 +1,92 @@
+{% extends "hc/base.html" %}
+{% block title %}Proveedores · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-handshake"></i>{% endblock %}
+{% block topbar_title %}Proveedores{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-handshake"></i>{% endblock %}
+{% block header_title %}Proveedores{% endblock %}
+{% block header_subtitle %}Terceros a los que se les compran medicamentos, dispositivos e insumos.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.compras_lista') }}">
+    <i class="fa-solid fa-file-invoice"></i> Órdenes de compra</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <form method="post" class="inv-form" id="form-prov">
+    <input type="hidden" name="proveedor_id" id="p-id">
+    <div class="inv-campo"><label>NIT / documento *</label>
+      <input type="text" name="numero_documento" id="p-nit" required></div>
+    <div class="inv-campo"><label>Razón social *</label>
+      <input type="text" name="razon_social" id="p-razon" required></div>
+    <div class="inv-campo"><label>Contacto</label>
+      <input type="text" name="contacto" id="p-contacto"></div>
+    <div class="inv-campo"><label>Teléfono</label>
+      <input type="text" name="telefono" id="p-tel"></div>
+    <div class="inv-campo"><label>Email</label>
+      <input type="email" name="email" id="p-email"></div>
+    <div class="inv-campo"><label>Ciudad</label>
+      <input type="text" name="ciudad" id="p-ciudad"></div>
+    <div class="inv-campo"><label>Condiciones de pago</label>
+      <select name="condiciones_pago" id="p-pago">
+        <option value="CONTADO">Contado</option>
+        <option value="CREDITO_30">Crédito 30 días</option>
+        <option value="CREDITO_60">Crédito 60 días</option>
+        <option value="CREDITO_90">Crédito 90 días</option>
+      </select></div>
+    <div class="inv-campo"><label>Estado</label>
+      <select name="estado" id="p-estado">
+        <option value="ACTIVO">ACTIVO</option><option value="INACTIVO">INACTIVO</option>
+      </select></div>
+    <div class="inv-campo" style="display:flex;gap:8px;align-items:end">
+      <button class="btn-ax primary" id="p-guardar" style="margin-top:22px">
+        <i class="fa-solid fa-plus"></i> Crear proveedor</button>
+      <button class="btn-ax ghost" type="button" id="p-cancelar" style="margin-top:22px;display:none"
+        onclick="cancelarProv()">Cancelar</button>
+    </div>
+  </form>
+</div>
+{% if proveedores %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>NIT</th><th>Razón social</th><th>Contacto</th><th>Ciudad</th>
+      <th>Pago</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for p in proveedores %}
+      <tr>
+        <td>{{ p.numero_documento }}</td>
+        <td><strong>{{ p.razon_social }}</strong></td>
+        <td>{{ p.contacto or '—' }}<br><small>{{ p.telefono or '' }}</small></td>
+        <td>{{ p.ciudad or '—' }}</td>
+        <td><span class="inv-insignia gris">{{ p.condiciones_pago.replace('_',' ') }}</span></td>
+        <td><span class="inv-insignia {{ 'verde' if p.estado=='ACTIVO' else 'gris' }}">{{ p.estado }}</span></td>
+        <td><a href="#form-prov" onclick='editarProv({{ {
+              "id": p.id, "nit": p.numero_documento, "razon": p.razon_social,
+              "contacto": p.contacto or "", "tel": p.telefono or "", "email": p.email or "",
+              "ciudad": p.ciudad or "", "pago": p.condiciones_pago, "estado": p.estado } | tojson }})'>
+            <i class="fa-solid fa-pen"></i> Editar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin proveedores aún. Crea el primero con el formulario de arriba.</div>
+{% endif %}
+<script>
+function editarProv(p) {
+  const s = (i,v) => document.getElementById(i).value = v;
+  s('p-id',p.id); s('p-nit',p.nit); s('p-razon',p.razon); s('p-contacto',p.contacto);
+  s('p-tel',p.tel); s('p-email',p.email); s('p-ciudad',p.ciudad);
+  s('p-pago',p.pago); s('p-estado',p.estado);
+  document.getElementById('p-guardar').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar cambios';
+  document.getElementById('p-cancelar').style.display = '';
+}
+function cancelarProv() {
+  document.getElementById('form-prov').reset();
+  document.getElementById('p-id').value = '';
+  document.getElementById('p-guardar').innerHTML = '<i class="fa-solid fa-plus"></i> Crear proveedor';
+  document.getElementById('p-cancelar').style.display = 'none';
+}
+</script>
+{% endblock %}

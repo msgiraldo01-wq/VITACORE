@@ -206,3 +206,65 @@ def listar_condiciones(empresa_id, bodega_id="", limite=200):
     if bodega_id:
         q = q.eq("bodega_id", bodega_id)
     return q.order("fecha_hora", desc=True).limit(limite).execute().data
+
+
+# ================================ FASE 2: COMPRAS ================================
+
+def listar_proveedores(empresa_id, solo_activos=False):
+    q = _client().table("inv_proveedores").select("*").eq("empresa_id", empresa_id)
+    if solo_activos:
+        q = q.eq("estado", "ACTIVO")
+    return q.order("razon_social").execute().data
+
+
+def crear_proveedor(datos: dict):
+    return _client().table("inv_proveedores").insert(datos).execute().data
+
+
+def actualizar_proveedor(proveedor_id, datos: dict):
+    return (_client().table("inv_proveedores")
+            .update(datos).eq("id", proveedor_id).execute().data)
+
+
+def listar_ordenes(empresa_id):
+    return (_client().table("inv_ordenes_compra")
+            .select("*, inv_proveedores(razon_social), inv_bodegas(nombre)")
+            .eq("empresa_id", empresa_id)
+            .order("created_at", desc=True).limit(200).execute().data)
+
+
+def crear_orden(datos: dict, items: list):
+    oc = _client().table("inv_ordenes_compra").insert(datos).execute().data[0]
+    for it in items:
+        it["orden_id"] = oc["id"]
+    _client().table("inv_orden_compra_items").insert(items).execute()
+    return oc
+
+
+def obtener_orden(empresa_id, orden_id):
+    oc = (_client().table("inv_ordenes_compra")
+          .select("*, inv_proveedores(razon_social, numero_documento), inv_bodegas(nombre)")
+          .eq("empresa_id", empresa_id).eq("id", orden_id).limit(1).execute().data)
+    if not oc:
+        return None, [], []
+    items = (_client().table("inv_orden_compra_items")
+             .select("*, inv_productos(codigo_interno, nombre, concentracion, requiere_lote)")
+             .eq("orden_id", orden_id).execute().data)
+    recepciones = (_client().table("inv_recepciones")
+                   .select("*").eq("orden_id", orden_id)
+                   .order("created_at", desc=True).execute().data)
+    return oc[0], items, recepciones
+
+
+def cambiar_estado_orden(empresa_id, orden_id, estado, usuario=None):
+    datos = {"estado": estado}
+    if estado == "APROBADA":
+        datos["aprobado_por"] = usuario
+    return (_client().table("inv_ordenes_compra").update(datos)
+            .eq("empresa_id", empresa_id).eq("id", orden_id).execute().data)
+
+
+def registrar_recepcion(empresa_id, cabecera: dict, items: list):
+    return _client().rpc("fn_inv_registrar_recepcion", {
+        "p_empresa_id": empresa_id, "p_cabecera": cabecera, "p_items": items,
+    }).execute().data

@@ -35,6 +35,7 @@ from blueprints.hc.historia_clinica.routes import bp_hc_home
 
 
 
+
 app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
 

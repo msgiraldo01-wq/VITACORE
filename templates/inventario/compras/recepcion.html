@@ -1,0 +1,72 @@
+{% extends "hc/base.html" %}
+{% block title %}Recepción OC #{{ oc.consecutivo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clipboard-check"></i>{% endblock %}
+{% block topbar_title %}Recepción técnica{% endblock %}
+{% block topbar_subtitle %}OC #{{ oc.consecutivo }} · {{ oc.inv_proveedores.razon_social }}{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clipboard-check"></i>{% endblock %}
+{% block header_title %}Recepción técnica y administrativa{% endblock %}
+{% block header_subtitle %}OC #{{ oc.consecutivo }} · Lo aceptado ingresa automáticamente al kardex de {{ oc.inv_bodegas.nombre }} (Res. 1403/2007).{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.compras_detalle', orden_id=oc.id) }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver a la orden</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="content-block inv-seccion">
+    <h3 style="margin:0 0 10px">Verificación (acta de recepción)</h3>
+    <div class="inv-form">
+      <div class="inv-campo"><label>Nº factura del proveedor</label>
+        <input type="text" name="numero_factura"></div>
+      <div class="inv-campo"><label>Temperatura de recepción (°C, si aplica)</label>
+        <input type="number" step="0.1" name="temperatura_recepcion"></div>
+      <div class="inv-campo"><label><input type="checkbox" name="factura_conforme" checked> Factura conforme</label></div>
+      <div class="inv-campo"><label><input type="checkbox" name="cantidades_conformes" checked> Cantidades conformes</label></div>
+      <div class="inv-campo"><label><input type="checkbox" name="embalaje_conforme" checked> Embalaje conforme</label></div>
+      <div class="inv-campo"><label><input type="checkbox" name="etiquetado_conforme" checked> Etiquetado conforme</label></div>
+      <div class="inv-campo"><label><input type="checkbox" name="registro_invima_conforme" checked> Registro INVIMA verificado</label></div>
+      <div class="inv-campo"><label>Cadena de frío</label>
+        <select name="cadena_frio_conforme">
+          <option value="">No aplica</option>
+          <option value="true">Conforme</option>
+          <option value="false">NO conforme</option>
+        </select></div>
+      <div class="inv-campo completo"><label>Observaciones del acta</label>
+        <input type="text" name="observaciones"></div>
+    </div>
+  </div>
+  <div class="content-block inv-seccion">
+    <h3 style="margin:0 0 10px">Ítems recibidos</h3>
+    <table class="inv-tabla">
+      <thead><tr><th>Producto</th><th style="text-align:right">Pendiente</th>
+        <th>Lote</th><th>Vence</th><th>Recibida</th><th>Aceptada</th>
+        <th>Precio</th><th>Motivo rechazo</th></tr></thead>
+      <tbody>
+        {% for i in items %}{% set pend = i.cantidad - i.cantidad_recibida %}
+        <tr>
+          <td><strong>{{ i.inv_productos.codigo_interno }}</strong><br>
+              <small>{{ i.inv_productos.nombre }} {{ i.inv_productos.concentracion or '' }}</small></td>
+          <td style="text-align:right">{{ pend }}</td>
+          <td><input type="text" name="lote_{{ i.id }}" style="width:110px"></td>
+          <td><input type="date" name="venc_{{ i.id }}" style="width:140px"></td>
+          <td><input type="number" name="recibida_{{ i.id }}" min="0" step="1"
+                {% if pend > 0 %}value="{{ pend }}"{% endif %} style="width:80px"></td>
+          <td><input type="number" name="aceptada_{{ i.id }}" min="0" step="1"
+                placeholder="= recibida" style="width:80px"></td>
+          <td><input type="number" name="precio_{{ i.id }}" min="0" step="0.01"
+                value="{{ i.precio_unitario }}" style="width:100px"></td>
+          <td><input type="text" name="motivo_{{ i.id }}" placeholder="Solo si rechaza" style="width:140px"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="inv-ayuda" style="margin-top:8px">Deja "Recibida" en blanco o 0 para ítems que no llegaron
+      (la orden quedará RECIBIDA PARCIAL y podrás hacer otra recepción después).
+      "Aceptada" vacía = igual a la recibida.</p>
+  </div>
+  <button type="submit" class="btn-ax primary"
+    onclick="return confirm('¿Confirmar recepción? Lo aceptado entrará al inventario.')">
+    <i class="fa-solid fa-clipboard-check"></i> Confirmar recepción e ingresar al kardex</button>
+</form>
+<style>.inv-tabla input{padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)}</style>
+{% endblock %}
