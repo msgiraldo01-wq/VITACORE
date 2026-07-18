@@ -420,3 +420,81 @@ def buscar_paciente_nombre(paciente_id):
     except Exception:
         pass
     return f"Paciente #{paciente_id}"
+
+
+def listar_medicamentos_tarifables(empresa_id=None):
+    """hc_medicamentos: catálogo tarifable al que se enlazan los productos."""
+    try:
+        q = _client().table("hc_medicamentos").select(
+            "id, cum, principio_activo, nombre_comercial, concentracion, estado")
+        if empresa_id is not None:
+            q = q.eq("empresa_id", empresa_id)
+        return q.order("principio_activo").limit(500).execute().data
+    except Exception:
+        return []
+
+
+# ============================ FASE 4: REPORTES ============================
+
+def _rango(q, desde, hasta, campo="fecha"):
+    if desde:
+        q = q.gte(campo, desde)
+    if hasta:
+        q = q.lte(campo, hasta)
+    return q
+
+
+def rep_sismed(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_sismed_compras").select("*")
+         .eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "fecha_recepcion")
+    return q.order("fecha_recepcion", desc=True).limit(5000).execute().data
+
+
+def rep_control_especial(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_control_especial").select("*")
+         .eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "fecha")
+    return q.order("fecha", desc=True).limit(5000).execute().data
+
+
+def rep_consumo(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_consumo").select("*").eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "mes")
+    return q.order("mes", desc=True).limit(5000).execute().data
+
+
+def rep_sin_movimiento(empresa_id):
+    return (_client().table("v_rep_sin_movimiento").select("*")
+            .eq("empresa_id", empresa_id).order("valor", desc=True)
+            .limit(2000).execute().data)
+
+
+def rep_vencimientos(empresa_id, semaforo=""):
+    q = (_client().table("v_inv_semaforo_vencimientos").select("*")
+         .eq("empresa_id", empresa_id))
+    if semaforo:
+        q = q.eq("semaforo", semaforo)
+    return q.order("fecha_vencimiento").limit(2000).execute().data
+
+
+def rep_valorizacion(empresa_id):
+    return (_client().table("v_inv_semaforo_vencimientos").select("*")
+            .eq("empresa_id", empresa_id).order("producto").limit(5000).execute().data)
+
+
+def listar_eventos_fv(empresa_id):
+    return (_client().table("farm_eventos_farmacovigilancia")
+            .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+            .eq("empresa_id", empresa_id)
+            .order("fecha_evento", desc=True).limit(300).execute().data)
+
+
+def crear_evento_fv(datos: dict):
+    return _client().table("farm_eventos_farmacovigilancia").insert(datos).execute().data
+
+
+def marcar_fv_reportado(evento_id, fecha):
+    return (_client().table("farm_eventos_farmacovigilancia")
+            .update({"reportado_invima": True, "fecha_reporte_invima": fecha})
+            .eq("id", evento_id).execute().data)

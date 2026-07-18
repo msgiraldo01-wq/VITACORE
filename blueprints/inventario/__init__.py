@@ -44,4 +44,4 @@ def contexto_empresa(f):
 
 
 # Importar las rutas al final para que se registren sobre el blueprint
-from . import routes_bodegas, routes_compras, routes_condiciones, routes_dispensacion, routes_movimientos, routes_productos, routes_solicitudes, routes_traslados  # noqa: E402,F401
+from . import routes_bodegas, routes_compras, routes_condiciones, routes_dispensacion, routes_movimientos, routes_productos, routes_reportes, routes_solicitudes, routes_traslados  # noqa: E402,F401

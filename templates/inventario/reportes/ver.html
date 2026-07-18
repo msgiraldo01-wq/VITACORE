@@ -1,0 +1,53 @@
+{% extends "hc/base.html" %}
+{% block title %}{{ cfg.titulo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-chart-column"></i>{% endblock %}
+{% block topbar_title %}{{ cfg.titulo }}{% endblock %}
+{% block topbar_subtitle %}Reportes de farmacia{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-chart-column"></i>{% endblock %}
+{% block header_title %}{{ cfg.titulo }}{% endblock %}
+{% block header_subtitle %}{{ cfg.ayuda }}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.reportes_csv', clave=clave,
+      desde=desde, hasta=hasta, semaforo=semaforo) }}">
+    <i class="fa-solid fa-file-csv"></i> Descargar CSV</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.reportes') }}">
+    <i class="fa-solid fa-arrow-left"></i> Reportes</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="get" class="inv-filtros">
+  {% if cfg.fechas %}
+  <div class="inv-campo" style="min-width:150px"><label>Desde</label>
+    <input type="date" name="desde" value="{{ desde }}"></div>
+  <div class="inv-campo" style="min-width:150px"><label>Hasta</label>
+    <input type="date" name="hasta" value="{{ hasta }}"></div>
+  {% endif %}
+  {% if clave == 'vencimientos' %}
+  <div class="inv-campo"><label>Semáforo</label>
+    <select name="semaforo">
+      <option value="">Todos</option>
+      {% for s in ['VENCIDO','ROJO','AMARILLO','VERDE'] %}
+      <option value="{{ s }}" {{ 'selected' if semaforo == s }}>{{ s }}</option>
+      {% endfor %}
+    </select></div>
+  {% endif %}
+  <button class="btn-ax primary" type="submit"><i class="fa-solid fa-filter"></i> Filtrar</button>
+</form>
+
+{% if filas %}
+<div class="content-block" style="overflow-x:auto">
+  <p class="inv-ayuda" style="margin:0 0 10px">{{ filas|length }} registro(s)</p>
+  <table class="inv-tabla">
+    <thead><tr>{% for _, h in cfg.cols %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for f in filas %}
+      <tr>{% for k, _ in cfg.cols %}
+        <td>{% if f[k] is none %}—{% else %}{{ f[k] }}{% endif %}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin datos para este reporte con los filtros aplicados.</div>
+{% endif %}
+{% endblock %}

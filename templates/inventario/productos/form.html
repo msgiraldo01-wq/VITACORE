@@ -164,6 +164,21 @@
       <div class="inv-ayuda">Desmárcalo solo para insumos sin vencimiento.</div>
     </div>
 
+    <div class="inv-campo solo-med">
+      <label>Medicamento tarifable (para facturar)</label>
+      <select name="hc_medicamento_id">
+        <option value="">— Sin enlace (no se podrá tarifar) —</option>
+        {% for t in tarifables %}
+        <option value="{{ t.id }}"
+          {{ 'selected' if producto and producto.hc_medicamento_id and producto.hc_medicamento_id|string == t.id|string }}>
+          {{ t.principio_activo }} {{ t.concentracion or '' }}
+          {% if t.nombre_comercial %}({{ t.nombre_comercial }}){% endif %}</option>
+        {% endfor %}
+      </select>
+      <div class="inv-ayuda">Define el precio de venta según el manual tarifario del contrato
+        de cada paciente. Sin este enlace, la dispensación se entrega pero queda sin valor.</div>
+    </div>
+
     <div class="inv-campo">
       <label>Código CUPS/tarifa para cargo a cuenta</label>
       <input type="text" name="codigo_cups_cargo"

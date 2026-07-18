@@ -108,13 +108,9 @@ def dispensacion_detalle(empresa_id, usuario_id, disp_id):
 
 
 def _hc_med_id(producto):
-    """Intenta mapear el producto del maestro a hc_medicamentos.id por CUM.
-    Si no hay match, devuelve None (el precio quedará en 0 y se marca para revisión)."""
-    if not producto or not producto.get("cum"):
-        return None
-    try:
-        r = (repo._client().table("hc_medicamentos").select("id")
-             .eq("cum", producto["cum"]).limit(1).execute().data)
-        return r[0]["id"] if r else None
-    except Exception:
-        return None
+    """Medicamento tarifable enlazado al producto (inv_productos.hc_medicamento_id).
+
+    Se define al crear/editar el producto en el catálogo. Si está vacío, el precio
+    quedará en 0 y la dispensación se marca para revisión (el medicamento igual se
+    entrega: nunca se le niega la droga al paciente por un tema administrativo)."""
+    return producto.get("hc_medicamento_id") if producto else None
