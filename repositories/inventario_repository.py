@@ -321,3 +321,102 @@ def ultimo_precio_compra(empresa_id, producto_id):
          .eq("empresa_id", empresa_id).eq("producto_id", producto_id)
          .limit(1).execute().data)
     return float(e[0]["costo_promedio"]) if e else 0.0
+
+
+# ============================ FASE 3: DISPENSACIÓN ============================
+
+def cola_formulas(empresa_id):
+    """Fórmulas médicas (hc_evolucion_medicamentos) que aún no tienen dispensación.
+
+    Trae paciente y médico vía hc_evoluciones. Excluye evoluciones ya dispensadas.
+    """
+    # Evoluciones que ya tienen dispensación en este módulo
+    disp = (_client().table("farm_dispensaciones").select("evolucion_id")
+            .eq("empresa_id", empresa_id).execute().data)
+    ya = {d["evolucion_id"] for d in disp if d.get("evolucion_id")}
+    # Evoluciones de la empresa con sus datos de paciente/médico
+    evos = (_client().table("hc_evoluciones")
+            .select("id, paciente_id, medico_id, fecha, estado")
+            .eq("empresa_id", empresa_id).order("fecha", desc=True)
+            .limit(300).execute().data)
+    evo_ids = [e["id"] for e in evos if e["id"] not in ya]
+    if not evo_ids:
+        return []
+    meds = (_client().table("hc_evolucion_medicamentos")
+            .select("*").in_("evolucion_id", evo_ids).execute().data)
+    # Agrupar medicamentos por evolución
+    porevo = {}
+    for m in meds:
+        porevo.setdefault(m["evolucion_id"], []).append(m)
+    cola = []
+    for e in evos:
+        if e["id"] in ya or e["id"] not in porevo:
+            continue
+        e["medicamentos"] = porevo[e["id"]]
+        cola.append(e)
+    return cola
+
+
+def formula_de_evolucion(evolucion_id):
+    evo = (_client().table("hc_evoluciones")
+           .select("id, paciente_id, medico_id, fecha")
+           .eq("id", evolucion_id).limit(1).execute().data)
+    meds = (_client().table("hc_evolucion_medicamentos")
+            .select("*").eq("evolucion_id", evolucion_id).execute().data)
+    return (evo[0] if evo else None), meds
+
+
+def crear_dispensacion(datos: dict, items: list):
+    d = _client().table("farm_dispensaciones").insert(datos).execute().data[0]
+    for it in items:
+        it["dispensacion_id"] = d["id"]
+    _client().table("farm_dispensacion_items").insert(items).execute()
+    return d
+
+
+def listar_dispensaciones(empresa_id):
+    return (_client().table("farm_dispensaciones")
+            .select("*").eq("empresa_id", empresa_id)
+            .order("created_at", desc=True).limit(200).execute().data)
+
+
+def obtener_dispensacion(empresa_id, disp_id):
+    d = (_client().table("farm_dispensaciones").select("*")
+         .eq("empresa_id", empresa_id).eq("id", disp_id).limit(1).execute().data)
+    if not d:
+        return None, []
+    items = (_client().table("farm_dispensacion_items")
+             .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+             .eq("dispensacion_id", disp_id).execute().data)
+    return d[0], items
+
+
+def actualizar_dispensacion(disp_id, datos):
+    return (_client().table("farm_dispensaciones")
+            .update(datos).eq("id", disp_id).execute().data)
+
+
+def actualizar_disp_item(item_id, datos):
+    return (_client().table("farm_dispensacion_items")
+            .update(datos).eq("id", item_id).execute().data)
+
+
+def dispensar(empresa_id, disp_id, usuario, items):
+    return _client().rpc("fn_farm_dispensar", {
+        "p_empresa_id": empresa_id, "p_dispensacion_id": disp_id,
+        "p_usuario": usuario, "p_items": items}).execute().data
+
+
+def buscar_paciente_nombre(paciente_id):
+    """Nombre del paciente para mostrar (tolera esquemas distintos)."""
+    try:
+        p = (_client().table("hc_pacientes")
+             .select("primer_nombre, primer_apellido, numero_documento")
+             .eq("id", paciente_id).limit(1).execute().data)
+        if p:
+            x = p[0]
+            return (f"{x.get('primer_nombre','')} {x.get('primer_apellido','')}".strip()
+                    + f" ({x.get('numero_documento','')})")
+    except Exception:
+        pass
+    return f"Paciente #{paciente_id}"
