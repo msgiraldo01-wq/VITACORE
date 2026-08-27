@@ -12,6 +12,9 @@
 <a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
   <i class="fa-solid fa-list"></i> Ver facturas
 </a>
+<a class="btn-ax ghost" href="/facturacion/factus/eventos" style="gap:8px;">
+  <i class="fa-solid fa-bug"></i> Diagnóstico Factus
+</a>
 {% endblock %}
 
 {% block content %}
@@ -77,6 +80,29 @@
 .pf-copago-grid input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; }
 .pf-copago-grid input:focus { outline: none; border-color: var(--brand); }
 @media (max-width: 768px) { .pf-stats { grid-template-columns: 1fr 1fr; } .pf-det-grid { grid-template-columns: 1fr; } .pf-filtros { flex-direction: column; } .pf-filtro { min-width: 100%; } .pf-copago-grid { grid-template-columns: 1fr; } }
+
+/* ===== EMISIÓN DIAN (Factus) ===== */
+.fac-dian-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,32,.55); z-index:2000; align-items:center; justify-content:center; }
+.fac-dian-overlay.visible { display:flex; }
+.fac-dian-overlay-box { background:var(--surface); border-radius:var(--radius-md); padding:36px 44px; text-align:center; box-shadow:var(--shadow-md); max-width:360px; }
+.fac-dian-spinner { width:52px; height:52px; border:4px solid var(--brand-soft); border-top-color:var(--brand); border-radius:50%; margin:0 auto 18px; animation:fac-spin .8s linear infinite; }
+@keyframes fac-spin { to { transform:rotate(360deg); } }
+.fac-dian-overlay-box h4 { margin:0 0 6px; font-size:16px; color:var(--text); }
+.fac-dian-overlay-box p { margin:0; font-size:13px; color:var(--text-soft); }
+
+.fac-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(15,23,32,.5); z-index:2100; align-items:center; justify-content:center; }
+.fac-modal-backdrop.visible { display:flex; }
+.fac-modal { background:var(--surface); border-radius:var(--radius-md); padding:24px 28px; width:100%; max-width:460px; max-height:88vh; overflow-y:auto; }
+.fac-modal h3 { margin:0 0 6px; font-size:18px; color:var(--text); }
+.fac-modal p.hint { margin:0 0 16px; font-size:13px; color:var(--text-soft); }
+.fac-modal label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); margin:12px 0 4px; }
+.fac-modal input { width:100%; height:42px; padding:0 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); color:var(--text); font-size:14px; }
+.fac-modal-sug { position:relative; }
+.fac-modal-sug-list { display:none; position:absolute; top:100%; left:0; right:0; max-height:200px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); z-index:10; }
+.fac-modal-sug-item { padding:8px 12px; cursor:pointer; font-size:13px; }
+.fac-modal-sug-item:hover { background:var(--brand-soft); }
+.fac-modal-actions { display:flex; gap:10px; margin-top:20px; }
+.fac-dian-error-box { margin-top:10px; padding:10px 14px; background:#fdecea; border:1px solid #f3b4ab; border-radius:6px; font-size:12px; color:#7a2e24; text-align:left; }
 </style>
 
 <div class="pf-container">
@@ -159,6 +185,29 @@
       </p>
     </div>
     <div class="pf-modal-footer" id="detalleFooter" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- OVERLAY: EMITIENDO ANTE LA DIAN -->
+<div class="fac-dian-overlay" id="dianOverlay">
+  <div class="fac-dian-overlay-box">
+    <div class="fac-dian-spinner"></div>
+    <h4>Emitiendo factura electrónica</h4>
+    <p>Validando ante la DIAN a través de Factus. Esto toma solo unos segundos…</p>
+  </div>
+</div>
+
+<!-- MODAL: COMPLETAR DATOS DIAN FALTANTES -->
+<div class="fac-modal-backdrop" id="modalDatosDian">
+  <div class="fac-modal">
+    <h3>Faltan datos para facturar electrónicamente</h3>
+    <p class="hint" id="modalDatosDianHint">Completa estos datos del adquiriente para poder emitir la factura ante la DIAN.</p>
+    <div id="modalDatosDianCampos"></div>
+    <div class="fac-dian-error-box" id="modalDatosDianError" style="display:none;"></div>
+    <div class="fac-modal-actions">
+      <button class="pf-btn" onclick="cerrarModalDatosDian()" style="flex:1;">Cancelar</button>
+      <button class="pf-btn primary" onclick="guardarDatosDianYReintentar()" style="flex:1;">Guardar y facturar</button>
+    </div>
   </div>
 </div>
 
@@ -390,6 +439,12 @@ function cerrarDetalle() {
 }
 
 // ===== FACTURAR DESDE MODAL =====
+let ultimoIntentoFacturar = null; // { prefacturaId, copago, cuotaMod, cuotaRec, descuento, btn }
+
+function mostrarOverlayDian(visible) {
+  document.getElementById('dianOverlay').classList.toggle('visible', !!visible);
+}
+
 async function facturarPrefactura() {
   if (!prefacturaActualId) return;
 
@@ -410,12 +465,19 @@ async function facturarPrefactura() {
   if (!confirm.isConfirmed) return;
 
   const btn = document.querySelector('#detalleFooter .pf-btn.primary');
+  ultimoIntentoFacturar = { prefacturaId: prefacturaActualId, copago, cuotaMod, cuotaRec, descuento, btn };
+  await _ejecutarFacturar(btn);
+}
+
+async function _ejecutarFacturar(btn) {
+  const { prefacturaId, copago, cuotaMod, cuotaRec, descuento } = ultimoIntentoFacturar;
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Facturando...';
+  mostrarOverlayDian(true);
 
   try {
     // Ajustar copagos primero
-    await fetch(`/facturacion/api/prefactura/${prefacturaActualId}/ajustar`, {
+    await fetch(`/facturacion/api/prefactura/${prefacturaId}/ajustar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -431,26 +493,146 @@ async function facturarPrefactura() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prefactura_id:    prefacturaActualId,
+        prefactura_id:    prefacturaId,
         copago,
         cuota_moderadora: cuotaMod,
       })
     });
     const data = await res.json();
+    mostrarOverlayDian(false);
 
     if (data.ok) {
       Toast.show(`Factura ${data.numero_factura} generada correctamente`, 'success');
       cerrarDetalle();
       cargarPrefacturas(); // refrescar lista
+      return;
+    }
+
+    if (data.error === 'datos_incompletos') {
+      abrirModalDatosDian(data.requiere_datos, data.mensaje);
+    } else if (data.error === 'rechazo_dian') {
+      Toast.show(`La DIAN rechazó la factura: ${data.mensaje}`, 'error');
+    } else if (data.error === 'configuracion_dian') {
+      Toast.show(data.mensaje || 'Falta configuración de Factus para esta sede', 'error');
     } else {
       Toast.show(data.error || 'Error al facturar', 'error');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
     }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
   } catch (e) {
+    mostrarOverlayDian(false);
     Toast.show('Error de conexión', 'error');
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
+  }
+}
+
+// ===== MODAL: COMPLETAR DATOS DIAN =====
+function abrirModalDatosDian(requiereDatos, mensaje) {
+  const { entidad, entidad_id, campos_faltantes } = requiereDatos;
+  document.getElementById('modalDatosDianHint').textContent =
+    `${entidad === 'PACIENTE' ? 'El paciente' : 'El cliente'} no tiene todos los datos que exige la DIAN. ${mensaje || ''}`;
+
+  const campos = document.getElementById('modalDatosDianCampos');
+  campos.innerHTML = '';
+  campos.dataset.entidad = entidad;
+  campos.dataset.entidadId = entidad_id;
+
+  const etiquetas = { direccion: 'Dirección', email: 'Correo electrónico', telefono: 'Teléfono', municipio_dian_codigo: 'Municipio' };
+  campos_faltantes.forEach(campo => {
+    if (campo === 'municipio_dian_codigo') {
+      campos.innerHTML += `
+        <label>Municipio</label>
+        <div class="fac-modal-sug">
+          <input type="text" id="campoMunicipio" placeholder="Buscar municipio..." oninput="buscarMunicipioModal(this.value)" autocomplete="off">
+          <div class="fac-modal-sug-list" id="municipioSugerencias"></div>
+          <input type="hidden" id="campoMunicipioId">
+        </div>`;
+    } else if (campo.startsWith('mapeo_tipo_documento')) {
+      campos.innerHTML += `<div class="fac-dian-error-box">
+        Falta configurar el mapeo del tipo de documento en la tabla
+        <code>fin_factus_doc_tipo_map</code>. Contacta al administrador del sistema.
+      </div>`;
+    } else if (etiquetas[campo]) {
+      campos.innerHTML += `<label>${etiquetas[campo]}</label><input type="text" id="campo_${campo}">`;
+    }
+  });
+
+  document.getElementById('modalDatosDianError').style.display = 'none';
+  document.getElementById('modalDatosDian').classList.add('visible');
+}
+
+function cerrarModalDatosDian() {
+  document.getElementById('modalDatosDian').classList.remove('visible');
+  if (ultimoIntentoFacturar?.btn) {
+    ultimoIntentoFacturar.btn.disabled = false;
+    ultimoIntentoFacturar.btn.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora';
+  }
+}
+
+let timeoutMunicipio = null;
+async function buscarMunicipioModal(texto) {
+  clearTimeout(timeoutMunicipio);
+  if (texto.length < 2) { document.getElementById('municipioSugerencias').style.display = 'none'; return; }
+  timeoutMunicipio = setTimeout(async () => {
+    try {
+      const res = await fetch(`/facturacion/api/factus/municipios?q=${encodeURIComponent(texto)}`);
+      const data = await res.json();
+      const lista = document.getElementById('municipioSugerencias');
+      const items = data.data || [];
+      if (!items.length) {
+        lista.innerHTML = '<div class="fac-modal-sug-item">Sin resultados — sincroniza las tablas de referencia de Factus.</div>';
+      } else {
+        lista.innerHTML = items.map(m =>
+          `<div class="fac-modal-sug-item" onclick="seleccionarMunicipioModal('${m.codigo}', '${(m.nombre || '').replace(/'/g, "\\'")}')">${m.nombre} (${m.codigo})</div>`
+        ).join('');
+      }
+      lista.style.display = 'block';
+    } catch (e) { /* noop */ }
+  }, 250);
+}
+
+function seleccionarMunicipioModal(codigo, nombre) {
+  document.getElementById('campoMunicipio').value = nombre;
+  document.getElementById('campoMunicipioId').value = codigo;
+  document.getElementById('municipioSugerencias').style.display = 'none';
+}
+
+async function guardarDatosDianYReintentar() {
+  const campos = document.getElementById('modalDatosDianCampos');
+  const entidad = campos.dataset.entidad;
+  const entidadId = campos.dataset.entidadId;
+
+  const payload = { tipo: entidad, id: entidadId };
+  ['direccion', 'email', 'telefono'].forEach(c => {
+    const el = document.getElementById(`campo_${c}`);
+    if (el && el.value.trim()) payload[c] = el.value.trim();
+  });
+  const municipioId = document.getElementById('campoMunicipioId');
+  if (municipioId && municipioId.value) payload.municipio_id = municipioId.value;
+
+  const errBox = document.getElementById('modalDatosDianError');
+  errBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/facturacion/api/adquiriente/completar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      errBox.textContent = data.error || 'No se pudo guardar la información.';
+      errBox.style.display = 'block';
+      return;
+    }
+    document.getElementById('modalDatosDian').classList.remove('visible');
+    if (ultimoIntentoFacturar?.btn) {
+      await _ejecutarFacturar(ultimoIntentoFacturar.btn);
+    }
+  } catch (e) {
+    errBox.textContent = 'Error de conexión al guardar los datos.';
+    errBox.style.display = 'block';
   }
 }
 

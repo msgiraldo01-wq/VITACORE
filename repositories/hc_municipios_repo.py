@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from typing import Any
 from services.supabase_service import get_supabase_admin
 
@@ -8,6 +10,81 @@ def _table():
 
 def _sb():
     return get_supabase_admin()
+
+
+def normalizar_texto(texto: str) -> str:
+    """Normaliza un nombre para comparar sin importar tildes, mayúsculas,
+    puntuación o espacios extra (ej. 'Bogotá, D.C.' -> 'BOGOTA DC')."""
+    if not texto:
+        return ""
+    t = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    t = re.sub(r"[^A-Za-z0-9]+", " ", t)
+    return t.strip().upper()
+
+
+# ========================
+# SINCRONIZACIÓN CON DANE/DIAN (código_dian)
+# ========================
+
+def listar_todos_para_sync():
+    """id, nombre, departamento_id y codigo_dian de TODOS los municipios
+    (sin filtrar por estado), para el proceso de sincronización con la
+    tabla oficial DANE/DIVIPOLA."""
+    res = (
+        _sb()
+        .table(_table())
+        .select("id, nombre, departamento_id, codigo_dian")
+        .execute()
+    )
+    return res.data or []
+
+
+def actualizar_codigo_dian(item_id: int, codigo_dian: str, cliente=None):
+    """
+    cliente: cliente de Supabase ya creado, opcional. Pásalo cuando esto se
+    llame desde un hilo de un ThreadPoolExecutor (por ejemplo, al
+    paralelizar muchas actualizaciones) — _sb() usa current_app.config, y
+    Flask no tiene el contexto de la app disponible en hilos que no sean
+    el que atendió el request ("Working outside of application context").
+    Crea el cliente en el hilo principal (donde sí hay contexto) y pásalo.
+    """
+    sb = cliente or _sb()
+    sb.table(_table()).update({"codigo_dian": codigo_dian}).eq("id", item_id).execute()
+
+
+def insertar_muchos(filas: list):
+    """filas: [{departamento_id, nombre, codigo, codigo_dian}, ...]"""
+    if not filas:
+        return []
+    res = _sb().table(_table()).insert(filas).execute()
+    return res.data or []
+
+
+def buscar_con_codigo_dian(texto: str = "", limite: int = 20):
+    """Busca municipios que YA tienen codigo_dian asignado (listos para
+    facturación electrónica), para el buscador del modal 'completar datos
+    DIAN'. Devuelve el id real de hc_municipios (el que exige la FK de
+    hc_clientes.municipio_id / hc_pacientes.municipio_id)."""
+    q = (
+        _sb()
+        .table(_table())
+        .select("id, nombre, codigo_dian, hc_departamentos(nombre)")
+        .not_.is_("codigo_dian", "null")
+    )
+    if texto:
+        q = q.ilike("nombre", f"%{texto}%")
+    res = q.order("nombre").limit(limite).execute()
+
+    filas = []
+    for row in (res.data or []):
+        dep = row.get("hc_departamentos") or {}
+        filas.append({
+            "id": row.get("id"),
+            "nombre": row.get("nombre") or "",
+            "departamento": dep.get("nombre") or "",
+            "codigo_dian": row.get("codigo_dian"),
+        })
+    return filas
 
 
 def _normalize(row: dict[str, Any] | None):

@@ -179,6 +179,35 @@
   color: var(--info);
 }
 
+.cfg-factus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: filter .15s, transform .1s;
+}
+.cfg-factus-chip:hover { filter: brightness(0.96); transform: translateY(-1px); }
+.cfg-factus-ok {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: var(--brand-soft);
+}
+.cfg-factus-edit-icon {
+  font-size: 9px;
+  opacity: .55;
+  margin-left: 2px;
+}
+.cfg-factus-pendiente {
+  background: #fff3cd;
+  color: #8a6300;
+  border: 1px dashed #e0b34d;
+}
+
 .cfg-dian-info {
   font-size: 12px;
   color: var(--text-soft);
@@ -559,9 +588,9 @@
 
       <hr class="cfg-divider">
 
-      <!-- Sección DIAN (futuro) -->
+      <!-- Sección DIAN -->
       <div class="cfg-section-label">
-        <i class="fa-solid fa-clock"></i> Resolución DIAN (opcional — para uso futuro)
+        <i class="fa-solid fa-file-shield"></i> Resolución DIAN
       </div>
 
       <div class="cfg-form-row">
@@ -579,11 +608,70 @@
         <span class="cfg-form-label">Fecha vencimiento</span>
         <input type="date" id="cfgFechaVencimiento" class="cfg-form-input">
       </div>
+
+      <hr class="cfg-divider">
+
+      <!-- Sección Factus -->
+      <div class="cfg-section-label">
+        <i class="fa-solid fa-bolt"></i> Factus — facturación electrónica
+      </div>
+      <div class="cfg-form-group full">
+        <span class="cfg-form-label">Numbering range ID de Factus</span>
+        <input type="number" id="cfgFactusNumberingRangeId" class="cfg-form-input" placeholder="Ej: 8">
+        <span class="cfg-form-hint">
+          Crea el rango de numeración en el panel de Factus (con la resolución DIAN de
+          arriba) y pega aquí su ID. Sin esto, las facturas de esta sede no podrán
+          emitirse electrónicamente.
+        </span>
+      </div>
     </div>
 
     <div class="cfg-modal-footer">
       <button class="cfg-btn-cancel" onclick="cerrarModalConsecutivo()">Cancelar</button>
       <button class="cfg-btn-save" id="btnGuardarConsecutivo" onclick="guardarConsecutivo()">
+        <i class="fa-solid fa-check"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIGURAR RANGO FACTUS DE UN CONSECUTIVO EXISTENTE -->
+<div class="cfg-modal-overlay" id="modalFactusRango">
+  <div class="cfg-modal">
+    <div class="cfg-modal-header">
+      <h2><i class="fa-solid fa-bolt"></i> Rango de numeración Factus</h2>
+      <button class="cfg-modal-close" onclick="cerrarModalFactusRango()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="cfg-modal-body">
+      <p style="font-size:13px; color:var(--text-soft); margin:0 0 14px;">
+        Elige el rango de "Factura de Venta" que corresponde a esta sede
+        (se trae en vivo desde tu cuenta de Factus).
+      </p>
+
+      <div id="factusRangoCargando" style="text-align:center; padding:20px; color:var(--text-faint); font-size:13px;">
+        <i class="fa-solid fa-spinner fa-spin"></i> Consultando rangos en Factus...
+      </div>
+
+      <div id="factusRangoLista" style="display:none; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto;"></div>
+
+      <div id="factusRangoSinResultados" style="display:none; padding:14px; background:#fff3cd; border-radius:8px; font-size:13px; color:#7a5b00;">
+        No se pudo consultar Factus (revisa credenciales/conexión) o no hay
+        rangos de "Factura de Venta" en la cuenta. Puedes ingresar el ID manualmente:
+      </div>
+
+      <div class="cfg-form-group full" style="margin-top:12px;">
+        <a href="#" id="toggleManualFactus" onclick="event.preventDefault(); mostrarInputManualFactus();" style="font-size:12px; color:var(--brand); text-decoration:underline;">Ingresar el ID manualmente</a>
+        <div id="factusManualWrap" style="display:none; margin-top:8px;">
+          <span class="cfg-form-label">Numbering range ID</span>
+          <input type="number" id="factusRangoId" class="cfg-form-input" placeholder="Ej: 389">
+        </div>
+      </div>
+    </div>
+    <div class="cfg-modal-footer">
+      <button class="cfg-btn-cancel" onclick="cerrarModalFactusRango()">Cancelar</button>
+      <button class="cfg-btn-save" id="btnGuardarFactusRango" onclick="guardarFactusRango()" disabled>
         <i class="fa-solid fa-check"></i> Guardar
       </button>
     </div>
@@ -644,6 +732,7 @@ function renderConsecutivos() {
             <th>Sede</th>
             <th>Estado</th>
             <th>Resolución DIAN</th>
+            <th>Factus</th>
             <th>Tipo</th>
           </tr>
         </thead>
@@ -656,11 +745,22 @@ function renderConsecutivos() {
     const porcentaje = c.rango_hasta
       ? Math.round((c.consecutivo_actual / c.rango_hasta) * 100)
       : 0;
-    
+
     const dianInfo = c.resolucion_dian
       ? `<strong>Res. ${c.resolucion_dian}</strong><br>
          ${c.fecha_resolucion || ''} ${c.fecha_vencimiento ? '→ ' + c.fecha_vencimiento : ''}`
       : '<span style="color:var(--text-faint);">Sin resolución</span>';
+
+    // La celda Factus es clicable: muestra el estado y, al hacer clic,
+    // abre el selector de rangos de numeración reales de la cuenta Factus.
+    const factusInfo = c.factus_numbering_range_id
+      ? `<span class="cfg-factus-chip cfg-factus-ok" title="Editar rango de Factus">
+           <i class="fa-solid fa-bolt"></i> Rango #${c.factus_numbering_range_id}
+           <i class="fa-solid fa-pen cfg-factus-edit-icon"></i>
+         </span>`
+      : `<span class="cfg-factus-chip cfg-factus-pendiente" title="Configurar rango de Factus">
+           <i class="fa-solid fa-triangle-exclamation"></i> Configurar
+         </span>`;
 
     html += `
       <tr>
@@ -680,6 +780,7 @@ function renderConsecutivos() {
         <td style="font-size:13px;">${c.sede_nombre || 'Todas'}</td>
         <td><span class="cfg-estado ${c.estado}"><span class="cfg-estado-dot"></span> ${c.estado}</span></td>
         <td><div class="cfg-dian-info">${dianInfo}</div></td>
+        <td onclick="abrirModalFactusRango(${c.id}, ${c.factus_numbering_range_id || 'null'})" style="cursor:pointer;">${factusInfo}</td>
         <td>
           ${c.es_principal ? '<span class="cfg-principal"><i class="fa-solid fa-star" style="font-size:10px;"></i> Principal</span>' : '<span style="font-size:12px; color:var(--text-faint);">Secundario</span>'}
         </td>
@@ -717,12 +818,142 @@ function abrirModalConsecutivo() {
   document.getElementById('cfgResolucion').value = '';
   document.getElementById('cfgFechaResolucion').value = '';
   document.getElementById('cfgFechaVencimiento').value = '';
+  document.getElementById('cfgFactusNumberingRangeId').value = '';
 
   document.getElementById('modalConsecutivo').classList.add('active');
 }
 
 function cerrarModalConsecutivo() {
   document.getElementById('modalConsecutivo').classList.remove('active');
+}
+
+// ===== MODAL: RANGO FACTUS DE UN CONSECUTIVO EXISTENTE =====
+let consecutivoFactusId = null;
+let rangoFactusActual = null;
+let rangoFactusSeleccionado = null;
+
+async function abrirModalFactusRango(consecutivoId, rangoActual) {
+  consecutivoFactusId = consecutivoId;
+  rangoFactusActual = rangoActual || null;
+  rangoFactusSeleccionado = rangoActual || null;
+
+  document.getElementById('modalFactusRango').classList.add('active');
+  document.getElementById('factusRangoCargando').style.display = 'block';
+  document.getElementById('factusRangoLista').style.display = 'none';
+  document.getElementById('factusRangoSinResultados').style.display = 'none';
+  document.getElementById('factusManualWrap').style.display = 'none';
+  document.getElementById('toggleManualFactus').style.display = 'inline';
+  document.getElementById('factusRangoId').value = rangoActual || '';
+  actualizarBotonGuardarFactus();
+
+  try {
+    const res = await fetch('/facturacion/api/factus/rangos-numeracion?documento=Factura%20de%20Venta');
+    const data = await res.json();
+    document.getElementById('factusRangoCargando').style.display = 'none';
+
+    if (data.ok && (data.data || []).length) {
+      renderOpcionesFactusRango(data.data);
+    } else {
+      document.getElementById('factusRangoSinResultados').style.display = 'block';
+      mostrarInputManualFactus();
+    }
+  } catch (e) {
+    document.getElementById('factusRangoCargando').style.display = 'none';
+    document.getElementById('factusRangoSinResultados').style.display = 'block';
+    mostrarInputManualFactus();
+  }
+}
+
+function renderOpcionesFactusRango(rangos) {
+  const lista = document.getElementById('factusRangoLista');
+  lista.style.display = 'flex';
+  lista.innerHTML = rangos.map(r => {
+    const seleccionado = rangoFactusSeleccionado === r.id;
+    const vigencia = r.start_date || r.end_date
+      ? `${r.start_date || '—'} → ${r.end_date || 'sin vencimiento'}`
+      : 'sin fecha de vigencia';
+    return `
+      <div class="cfg-factus-option ${seleccionado ? 'selected' : ''}" onclick="seleccionarRangoFactus(${r.id}, this)">
+        <div class="cfg-factus-option-main">
+          <span class="cfg-prefijo" style="font-size:12px;">${r.prefix || '—'}</span>
+          <strong>ID #${r.id}</strong>
+          ${r.is_active ? '' : '<span style="color:var(--danger,#c0392b); font-size:11px;">(inactivo)</span>'}
+        </div>
+        <div class="cfg-factus-option-meta">
+          Res. ${r.resolution_number || 'sin número'} · ${vigencia} · actual: ${r.current ?? '—'}
+          ${r.from || r.to ? ` · rango ${r.from ?? '—'}–${r.to ?? '—'}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function seleccionarRangoFactus(id, el) {
+  rangoFactusSeleccionado = id;
+  document.getElementById('factusRangoId').value = '';
+  document.querySelectorAll('.cfg-factus-option').forEach(n => n.classList.remove('selected'));
+  el.classList.add('selected');
+  actualizarBotonGuardarFactus();
+}
+
+function mostrarInputManualFactus() {
+  document.getElementById('factusManualWrap').style.display = 'block';
+  document.getElementById('toggleManualFactus').style.display = 'none';
+  document.getElementById('factusRangoId').focus();
+}
+
+function cerrarModalFactusRango() {
+  document.getElementById('modalFactusRango').classList.remove('active');
+  consecutivoFactusId = null;
+  rangoFactusSeleccionado = null;
+}
+
+function actualizarBotonGuardarFactus() {
+  const manual = parseInt(document.getElementById('factusRangoId').value) || null;
+  document.getElementById('btnGuardarFactusRango').disabled = !(rangoFactusSeleccionado || manual);
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'factusRangoId') {
+    rangoFactusSeleccionado = null;
+    document.querySelectorAll('.cfg-factus-option').forEach(n => n.classList.remove('selected'));
+    actualizarBotonGuardarFactus();
+  }
+});
+
+async function guardarFactusRango() {
+  const manual = parseInt(document.getElementById('factusRangoId').value) || null;
+  const rangoId = rangoFactusSeleccionado || manual;
+  if (!rangoId) {
+    Toast.show('Elige o ingresa un rango de numeración', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btnGuardarFactusRango');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+  try {
+    const res = await fetch(`/facturacion/api/consecutivos/${consecutivoFactusId}/factus`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ factus_numbering_range_id: rangoId }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      Toast.show('Rango de Factus guardado correctamente', 'success');
+      cerrarModalFactusRango();
+      cargarConsecutivos();
+    } else {
+      Toast.show(data.error || 'Error al guardar', 'error');
+    }
+  } catch (e) {
+    Toast.show('Error de conexión', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Guardar';
+  }
 }
 
 // ===== GUARDAR =====
@@ -748,6 +979,7 @@ async function guardarConsecutivo() {
       resolucion_dian: document.getElementById('cfgResolucion').value || null,
       fecha_resolucion: document.getElementById('cfgFechaResolucion').value || null,
       fecha_vencimiento: document.getElementById('cfgFechaVencimiento').value || null,
+      factus_numbering_range_id: parseInt(document.getElementById('cfgFactusNumberingRangeId').value) || null,
     };
 
     const res = await fetch('/facturacion/api/consecutivos', {

@@ -1,0 +1,458 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Diagnóstico Factus{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-bug"></i>{% endblock %}
+{% block header_title %}Diagnóstico Factus{% endblock %}
+{% block header_subtitle %}Todo lo que la app le ha enviado a Factus y lo que Factus respondió — para no tener que revisarlo desde la consola del navegador.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
+  <i class="fa-solid fa-arrow-left"></i> Facturar
+</a>
+<a class="btn-ax ghost" href="/facturacion/prefacturas" style="gap:8px;">
+  <i class="fa-solid fa-file-lines"></i> Prefacturas
+</a>
+{% endblock %}
+
+{% block content %}
+<style>
+.fe-container { display: flex; flex-direction: column; gap: 18px; }
+.fe-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.fe-stat { padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface-2); }
+.fe-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 6px; }
+.fe-stat-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.fe-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.fe-filtro { height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600; min-width: 140px; }
+.fe-filtro:focus { outline: none; border-color: var(--brand); }
+.fe-check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); cursor: pointer; user-select: none; }
+.fe-btn { height: 42px; padding: 0 18px; border: none; border-radius: var(--radius-sm); background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.fe-btn:hover { background: var(--brand-strong); }
+.fe-table-wrap { overflow-x: auto; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); max-height: 62vh; }
+.fe-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fe-table th { position: sticky; top: 0; z-index: 1; background: var(--surface-3); padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.fe-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+.fe-table tr:last-child td { border-bottom: none; }
+.fe-table tbody tr { cursor: pointer; transition: background .15s; }
+.fe-table tbody tr:hover td { background: rgba(13,92,99,.03); }
+.fe-fecha { white-space: nowrap; font-size: 12px; color: var(--text-soft); }
+.fe-doc { font-weight: 700; color: var(--brand); }
+.fe-doc-sub { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
+.fe-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.fe-badge.ok { background: var(--accent-soft, #e6f4ea); color: var(--accent, #1e7e34); }
+.fe-badge.error { background: var(--danger-soft, #fdecea); color: var(--danger, #c0392b); }
+.fe-mensaje { max-width: 420px; font-size: 12px; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fe-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-faint); gap: 14px; }
+.fe-empty i { font-size: 3rem; opacity: .3; }
+
+/* Administrar pendientes en Factus (en vivo, no es el log local) */
+.fe-pend-card { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.fe-pend-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.fe-pend-title { margin: 0; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.fe-pend-sub { margin: 4px 0 0; font-size: 12px; color: var(--text-faint); max-width: 560px; }
+.fe-pend-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.fe-pend-body { font-size: 13px; }
+.fe-pend-empty { font-size: 13px; color: var(--text-faint); padding: 4px 2px; display: flex; align-items: center; gap: 8px; }
+.fe-pend-table-wrap { overflow-x: auto; max-height: 30vh; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.fe-pend-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fe-pend-table th { position: sticky; top: 0; background: var(--surface-3); text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.fe-pend-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.fe-pend-table tr:last-child td { border-bottom: none; }
+.fe-pend-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.fe-pend-del { background: var(--danger, #c0392b); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.fe-pend-del:hover { opacity: .85; }
+.fe-pend-raw { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; color: var(--text-soft); }
+.fe-pend-raw:hover { border-color: var(--brand); color: var(--brand); }
+
+/* Modal */
+.fe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.fe-modal-overlay.active { opacity: 1; pointer-events: all; }
+.fe-modal { background: var(--surface); border-radius: var(--radius-xl); width: 92%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0,0,0,.1); transform: translateY(20px) scale(.98); transition: transform .3s; }
+.fe-modal-overlay.active .fe-modal { transform: translateY(0) scale(1); }
+.fe-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.fe-modal-header h2 { margin: 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.fe-modal-close { background: none; border: none; font-size: 20px; color: var(--text-faint); cursor: pointer; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.fe-modal-close:hover { background: var(--surface-3); color: var(--text); }
+.fe-modal-body { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+.fe-det-section { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin: 0 0 6px; display: flex; align-items: center; justify-content: space-between; }
+.fe-copy { background: none; border: 1px solid var(--border); border-radius: 6px; font-size: 11px; padding: 4px 10px; cursor: pointer; color: var(--text-soft); }
+.fe-copy:hover { border-color: var(--brand); color: var(--brand); }
+.fe-pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 320px; }
+@media (max-width: 768px) { .fe-stats { grid-template-columns: 1fr; } .fe-filtros { flex-direction: column; align-items: stretch; } .fe-filtro { min-width: 100%; } }
+</style>
+
+<div class="fe-container">
+  <div class="fe-stats">
+    <div class="fe-stat"><div class="fe-stat-label">Eventos mostrados</div><div class="fe-stat-value" id="statTotal">—</div></div>
+    <div class="fe-stat"><div class="fe-stat-label">OK</div><div class="fe-stat-value" id="statOk" style="color:var(--accent, #1e7e34);">—</div></div>
+    <div class="fe-stat"><div class="fe-stat-label">Con error</div><div class="fe-stat-value" id="statError" style="color:var(--danger, #c0392b);">—</div></div>
+  </div>
+
+  <div class="fe-filtros">
+    <label class="fe-check"><input type="checkbox" id="filtroErrores"> Solo con error</label>
+    <select class="fe-filtro" id="filtroLimit">
+      <option value="50">Últimos 50</option>
+      <option value="100" selected>Últimos 100</option>
+      <option value="300">Últimos 300</option>
+    </select>
+    <label class="fe-check"><input type="checkbox" id="autoRefresh"> Auto-actualizar cada 5s</label>
+    <button class="fe-btn" onclick="cargarEventos()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+  </div>
+
+  <div class="fe-pend-card">
+    <div class="fe-pend-header">
+      <div>
+        <p class="fe-pend-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger,#c0392b);"></i> Facturas pendientes en Factus</p>
+        <p class="fe-pend-sub">Consulta EN VIVO a Factus (no el log local) cuáles facturas quedaron sin validar — esas son las que bloquean nuevos intentos con el error 409. Desde aquí también se pueden eliminar.</p>
+      </div>
+      <div class="fe-pend-actions">
+        <input class="fe-filtro" id="pendReferencia" placeholder="# prefactura o referencia (opcional)" style="min-width:220px;">
+        <button class="fe-btn" onclick="consultarPendientes()"><i class="fa-solid fa-magnifying-glass"></i> Consultar pendientes</button>
+      </div>
+    </div>
+    <div class="fe-pend-body" id="pendResultado">
+      <p class="fe-pend-empty"><i class="fa-solid fa-circle-info"></i> Sin consultar todavía. Pulsa "Consultar pendientes" para traer el estado real desde Factus.</p>
+    </div>
+  </div>
+
+  <div class="fe-table-wrap">
+    <table class="fe-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Documento</th><th>Acción</th><th>Estado</th><th>Mensaje</th>
+        </tr>
+      </thead>
+      <tbody id="eventosBody"></tbody>
+    </table>
+  </div>
+  <div class="fe-empty" id="emptyEventos" style="display:none;">
+    <i class="fa-solid fa-inbox"></i>
+    <p>No hay eventos registrados todavía. Aparecerán aquí cada vez que la app intente crear/validar una factura o nota ante Factus.</p>
+  </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="fe-modal-overlay" id="modalEvento">
+  <div class="fe-modal">
+    <div class="fe-modal-header">
+      <h2><i class="fa-solid fa-bug" style="color:var(--brand);"></i> <span id="modalTitulo">Evento</span></h2>
+      <button class="fe-modal-close" onclick="cerrarModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="fe-modal-body">
+      <div>
+        <div class="fe-det-section">
+          <span>Payload enviado a Factus</span>
+          <button class="fe-copy" onclick="copiar('preEnviado')"><i class="fa-solid fa-copy"></i> Copiar</button>
+        </div>
+        <pre class="fe-pre" id="preEnviado">—</pre>
+      </div>
+      <div>
+        <div class="fe-det-section">
+          <span>Respuesta de Factus</span>
+          <button class="fe-copy" onclick="copiar('preRespuesta')"><i class="fa-solid fa-copy"></i> Copiar</button>
+        </div>
+        <pre class="fe-pre" id="preRespuesta">—</pre>
+      </div>
+    </div>
+    <div class="fe-modal-footer" id="modalFooter" style="display:none; padding:16px 24px; border-top:1px solid var(--border); justify-content:flex-end; gap:10px;">
+      <button class="fe-btn" style="background:var(--danger, #c0392b);" onclick="eliminarPendiente()">
+        <i class="fa-solid fa-trash"></i> Eliminar factura pendiente en Factus
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let eventosData = [];
+let eventoActual = null;
+let autoRefreshTimer = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarEventos();
+  consultarPendientes();
+  document.getElementById('filtroErrores').addEventListener('change', cargarEventos);
+  document.getElementById('filtroLimit').addEventListener('change', cargarEventos);
+  document.getElementById('autoRefresh').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      autoRefreshTimer = setInterval(cargarEventos, 5000);
+    } else if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  });
+  document.getElementById('modalEvento').addEventListener('click', (e) => {
+    if (e.target.id === 'modalEvento') cerrarModal();
+  });
+});
+
+async function cargarEventos() {
+  const solo = document.getElementById('filtroErrores').checked ? '1' : '0';
+  const limit = document.getElementById('filtroLimit').value;
+  try {
+    const res = await fetch(`/facturacion/api/factus/eventos?solo_errores=${solo}&limit=${limit}`);
+    const data = await res.json();
+    if (!data.ok) { if (window.Toast) Toast.show(data.error || 'Error cargando eventos', 'error'); return; }
+    eventosData = data.eventos || [];
+    render();
+  } catch (e) {
+    if (window.Toast) Toast.show('Error de conexión consultando eventos', 'error');
+  }
+}
+
+function render() {
+  const tbody = document.getElementById('eventosBody');
+  tbody.innerHTML = '';
+  document.getElementById('emptyEventos').style.display = eventosData.length ? 'none' : 'flex';
+
+  let okCount = 0, errCount = 0;
+  eventosData.forEach((ev, idx) => {
+    if (ev.ok) okCount++; else errCount++;
+    const tr = document.createElement('tr');
+    tr.onclick = () => abrirModal(idx);
+    const fecha = ev.created_at ? new Date(ev.created_at).toLocaleString('es-CO') : '—';
+    tr.innerHTML = `
+      <td class="fe-fecha">${fecha}</td>
+      <td><span class="fe-doc">${(ev.documento_tipo || '—')}</span><br><span class="fe-doc-sub">#${ev.documento_id ?? '—'}</span></td>
+      <td>${ev.accion || '—'}</td>
+      <td>${ev.ok ? '<span class="fe-badge ok"><i class="fa-solid fa-check"></i> OK</span>' : '<span class="fe-badge error"><i class="fa-solid fa-triangle-exclamation"></i> Error</span>'}</td>
+      <td class="fe-mensaje">${escapeHtml(resumen(ev))}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('statTotal').textContent = eventosData.length;
+  document.getElementById('statOk').textContent = okCount;
+  document.getElementById('statError').textContent = errCount;
+}
+
+function resumen(ev) {
+  const r = ev.respuesta || {};
+  if (ev.ok) {
+    const datos = r.data || r;
+    const bill = datos.bill || datos;
+    if (bill && bill.number) return `Factura ${bill.number} validada por Factus`;
+    if (datos.cufe) return 'Validada (CUFE generado)';
+    return 'OK';
+  }
+  const base = r.mensaje || r.message || 'Error (ver detalle)';
+  const detalle = extraerDetalleErrores(r.errors || (r.detalle_dian && r.detalle_dian.errors) || null);
+  return detalle ? `${base} — ${detalle}` : base;
+}
+
+// Factus no siempre anida los errores igual: a veces es un dict plano
+// {campo: [mensajes]} (rechazos de validación de campos), y otras veces
+// viene un nivel más anidado {errors: {CODIGO_REGLA: "mensaje", ...},
+// message: "..."} (rechazos de reglas DIAN, ej. ZE02, FAJ43b). Sin esto,
+// el nivel anidado se mostraba como "[object Object]" en la tabla.
+function extraerDetalleErrores(errors) {
+  if (!errors || typeof errors !== 'object') return null;
+  const nested = (errors.errors && typeof errors.errors === 'object') ? errors.errors : errors;
+  const entradas = Object.entries(nested).filter(([k, v]) => k !== 'message' && v != null);
+  if (!entradas.length) return null;
+  return entradas
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : v)}`)
+    .join(' | ');
+}
+
+function abrirModal(idx) {
+  const ev = eventosData[idx];
+  if (!ev) return;
+  eventoActual = ev;
+  document.getElementById('modalTitulo').textContent = `${ev.documento_tipo || ''} #${ev.documento_id ?? ''} — ${ev.accion || ''}`;
+  document.getElementById('preEnviado').textContent = JSON.stringify(ev.payload_envio ?? {}, null, 2);
+  document.getElementById('preRespuesta').textContent = JSON.stringify(ev.respuesta ?? {}, null, 2);
+
+  // Antes solo se mostraba el botón cuando el mensaje decía literalmente
+  // "pendiente" — pero se confirmó con pruebas reales que un rechazo de
+  // VALIDACIÓN (422, ej. ZE02) también puede dejar atascado el número en
+  // Factus y bloquear el SIGUIENTE número de la secuencia con el 409. Por
+  // eso ahora se ofrece el botón para cualquier error de CREAR_VALIDAR que
+  // tenga reference_code, sin importar el texto del mensaje — borrar un
+  // documento que ya estaba limpio simplemente responde "no encontrado" y
+  // no hace daño.
+  const tieneReferencia = !!(ev.payload_envio && ev.payload_envio.reference_code);
+  const puedeEliminar = !ev.ok && ev.accion === 'CREAR_VALIDAR' && tieneReferencia;
+  document.getElementById('modalFooter').style.display = puedeEliminar ? 'flex' : 'none';
+
+  document.getElementById('modalEvento').classList.add('active');
+}
+
+function cerrarModal() {
+  document.getElementById('modalEvento').classList.remove('active');
+}
+
+// Borra en Factus una factura NO VALIDADA que quedó atascada bloqueando
+// el rango de numeración (error 409 "Se encontró una factura pendiente
+// por enviar a la DIAN"). Ver developers.factus.com.co/facturas/eliminar/.
+async function eliminarPendiente() {
+  if (!eventoActual) return;
+  const refCode = (eventoActual.payload_envio && eventoActual.payload_envio.reference_code) || '';
+  if (!refCode) {
+    if (window.Toast) Toast.show('No se encontró reference_code en este evento', 'error');
+    return;
+  }
+
+  let confirmado = false;
+  if (window.Swal) {
+    const r = await Swal.fire({
+      title: '¿Eliminar esta factura pendiente en Factus?',
+      html: `Esto borra en Factus el intento sin validar con referencia <b>${refCode}</b>, para poder crear uno nuevo en ese rango de numeración. Solo funciona si Factus todavía NO la validó.`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b',
+    });
+    confirmado = r.isConfirmed;
+  } else {
+    confirmado = confirm(`¿Eliminar la factura pendiente con referencia ${refCode} en Factus?`);
+  }
+  if (!confirmado) return;
+
+  try {
+    const res = await fetch('/facturacion/api/factus/eliminar-pendiente', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference_code: refCode }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (window.Toast) Toast.show('Factura pendiente eliminada en Factus. Ya puedes reintentar facturar.', 'success');
+      cerrarModal();
+      cargarEventos();
+    } else {
+      if (window.Toast) Toast.show(data.error || 'No se pudo eliminar', 'error');
+    }
+  } catch (e) {
+    if (window.Toast) Toast.show('Error de conexión eliminando la factura pendiente', 'error');
+  }
+}
+
+// =============================================================
+// ADMINISTRAR PENDIENTES EN FACTUS (consulta en vivo, no el log local)
+// =============================================================
+let pendientesRaw = [];
+
+async function consultarPendientes() {
+  const cont = document.getElementById('pendResultado');
+  cont.innerHTML = '<p class="fe-pend-empty"><i class="fa-solid fa-spinner fa-spin"></i> Consultando a Factus...</p>';
+
+  const ref = document.getElementById('pendReferencia').value.trim();
+  const params = new URLSearchParams();
+  params.set('estado', '0'); // 0 = pendiente por validar
+  params.set('per_page', '100');
+  if (ref) {
+    if (/^\d+$/.test(ref)) params.set('prefactura_id', ref);
+    else params.set('reference_code', ref);
+  }
+
+  try {
+    const res = await fetch(`/facturacion/api/factus/consultar-por-referencia?${params.toString()}`);
+    const data = await res.json();
+    if (!data.ok) {
+      cont.innerHTML = `<p class="fe-pend-empty"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger,#c0392b);"></i> Error consultando Factus: ${escapeHtml(data.error || 'desconocido')}</p>`;
+      return;
+    }
+    renderPendientes(data.facturas || []);
+  } catch (e) {
+    cont.innerHTML = `<p class="fe-pend-empty"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger,#c0392b);"></i> No se pudo conectar con Factus.</p>`;
+  }
+}
+
+function renderPendientes(facturas) {
+  pendientesRaw = facturas;
+  const cont = document.getElementById('pendResultado');
+  if (!facturas.length) {
+    cont.innerHTML = '<p class="fe-pend-empty"><i class="fa-solid fa-circle-check" style="color:var(--accent,#1e7e34);"></i> Factus no reporta ninguna factura pendiente por validar en este momento.</p>';
+    return;
+  }
+  const filas = facturas.map((f, i) => {
+    const refCode = f.reference_code || f.reference || '—';
+    const numero = f.number || f.bill_number || '—';
+    const validada = (f.status === 1 || f.status === '1' || f.is_validated === true);
+    return `
+      <tr>
+        <td>${escapeHtml(refCode)}</td>
+        <td>${escapeHtml(numero)}</td>
+        <td>${validada ? '<span class="fe-badge ok">Validada</span>' : '<span class="fe-badge error">Pendiente</span>'}</td>
+        <td class="fe-pend-acciones">
+          <button class="fe-pend-del" onclick="eliminarPendienteDirecto(${i})"><i class="fa-solid fa-trash"></i> Eliminar</button>
+          <button class="fe-pend-raw" onclick="verJsonPendiente(${i})"><i class="fa-solid fa-code"></i> JSON</button>
+        </td>
+      </tr>`;
+  }).join('');
+  cont.innerHTML = `
+    <div class="fe-pend-table-wrap">
+      <table class="fe-pend-table">
+        <thead><tr><th>Reference Code</th><th>Número</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>`;
+}
+
+function verJsonPendiente(i) {
+  const f = pendientesRaw[i];
+  if (!f) return;
+  if (window.Swal) {
+    Swal.fire({
+      title: 'Factura (JSON de Factus)',
+      html: `<pre style="text-align:left; max-height:50vh; overflow:auto; font-size:12px; background:var(--surface-2); padding:10px; border-radius:8px;">${escapeHtml(JSON.stringify(f, null, 2))}</pre>`,
+      width: 640,
+      confirmButtonText: 'Cerrar',
+    });
+  } else {
+    alert(JSON.stringify(f, null, 2));
+  }
+}
+
+async function eliminarPendienteDirecto(i) {
+  const f = pendientesRaw[i];
+  const refCode = f && (f.reference_code || f.reference);
+  if (!refCode) {
+    if (window.Toast) Toast.show('Esta factura no trae reference_code', 'error');
+    return;
+  }
+
+  let confirmado = false;
+  if (window.Swal) {
+    const r = await Swal.fire({
+      title: '¿Eliminar esta factura pendiente en Factus?',
+      html: `Se eliminará en Factus la factura sin validar con referencia <b>${escapeHtml(refCode)}</b>. Esto no se puede deshacer.`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b',
+    });
+    confirmado = r.isConfirmed;
+  } else {
+    confirmado = confirm(`¿Eliminar la factura pendiente con referencia ${refCode} en Factus?`);
+  }
+  if (!confirmado) return;
+
+  try {
+    const res = await fetch('/facturacion/api/factus/eliminar-pendiente', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference_code: refCode }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (window.Toast) Toast.show('Factura pendiente eliminada en Factus.', 'success');
+      consultarPendientes();
+      cargarEventos();
+    } else {
+      if (window.Toast) Toast.show(data.error || 'No se pudo eliminar', 'error');
+    }
+  } catch (e) {
+    if (window.Toast) Toast.show('Error de conexión eliminando la factura pendiente', 'error');
+  }
+}
+
+function copiar(elId) {
+  const texto = document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(texto).then(() => {
+    if (window.Toast) Toast.show('Copiado al portapapeles', 'success');
+  }).catch(() => {});
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s ?? '';
+  return div.innerHTML;
+}
+</script>
+{% endblock %}

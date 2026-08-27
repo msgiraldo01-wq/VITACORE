@@ -422,6 +422,7 @@
   .main { margin: 0 !important; padding: 0 !important; }
   .content-card { border: none !important; box-shadow: none !important; padding: 0 !important; }
   .fv { box-shadow: none; border: none; padding: 10mm; }
+  .no-print { display: none !important; }
 }
 </style>
 
@@ -488,6 +489,18 @@ function renderFactura() {
     </tr>
   `).join('') || '<tr><td colspan="7" style="text-align:center; padding:20px; color:#aaa;">Sin ítems registrados</td></tr>';
 
+  // Enlaces oficiales de verificación (2026-08-27): Factus devuelve, en el
+  // JSON completo guardado en factus_response, un link directo a la
+  // consulta pública del documento en la DIAN (data.links.qr — el mismo
+  // destino que apuntaría el código QR) y otro al documento en Factus
+  // (data.links.public_url). Si por algún motivo no vinieran (respuestas
+  // viejas guardadas antes de este cambio), se arma el link a la DIAN a
+  // mano a partir del CUFE, usando el dominio de habilitación (sandbox);
+  // en producción Factus ya trae el link correcto con el dominio real.
+  const linksOficiales = (f.factus_response && f.factus_response.data && f.factus_response.data.links) || {};
+  const linkDian = linksOficiales.qr || (f.cufe ? `https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentkey=${f.cufe}` : '');
+  const linkFactus = linksOficiales.public_url || '';
+
   let dianHTML = '';
   const resol = consec.resolucion_dian || '';
   if (resol || f.cufe) {
@@ -495,6 +508,12 @@ function renderFactura() {
       ${resol ? `<div class="fv-dian-line"><span class="k">Resolución DIAN:</span><span class="v">No. ${resol} ${consec.fecha_resolucion ? '· Fecha ' + consec.fecha_resolucion : ''} ${consec.fecha_vencimiento ? '· Hasta ' + consec.fecha_vencimiento : ''}</span></div>
       <div class="fv-dian-line"><span class="k">Rango autorizado:</span><span class="v">${f.prefijo}-${consec.rango_desde || ''} a ${f.prefijo}-${consec.rango_hasta || ''}</span></div>` : ''}
       ${f.cufe ? `<div class="fv-dian-line"><span class="k">CUFE:</span><span class="v">${f.cufe}</span></div>` : ''}
+      ${linkDian ? `<div class="fv-dian-line no-print"><span class="k">Verificación:</span><span class="v"><a href="${linkDian}" target="_blank" rel="noopener" style="color:#0d5c63; text-decoration:underline;">Consultar CUFE en la DIAN</a>${linkFactus ? ` &nbsp;·&nbsp; <a href="${linkFactus}" target="_blank" rel="noopener" style="color:#0d5c63; text-decoration:underline;">Ver en Factus</a>` : ''}</span></div>` : ''}
+    </div>
+    ${f.qr_image ? `<div class="fv-dian-qr"><img src="${f.qr_image.startsWith('data:') ? f.qr_image : 'data:image/png;base64,' + f.qr_image}" alt="QR DIAN" style="width:96px;height:96px;"></div>` : ''}`;
+  } else if (f.factus_estado && f.factus_estado !== 'VALIDADA' && f.factus_estado !== 'NO_APLICA') {
+    dianHTML = `<div class="fv-dian-box" style="border-color:#e0a800;background:#fff8e1;">
+      <div class="fv-dian-line"><span class="k">⚠ Sin validar ante la DIAN</span><span class="v">Estado: ${f.factus_estado}</span></div>
     </div>`;
   }
 

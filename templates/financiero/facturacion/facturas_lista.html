@@ -12,6 +12,9 @@
 <a class="btn-ax ghost" href="/facturacion/configuracion" style="gap:8px;">
   <i class="fa-solid fa-gear"></i> Configuración
 </a>
+<a class="btn-ax ghost" href="/facturacion/factus/eventos" style="gap:8px;">
+  <i class="fa-solid fa-bug"></i> Diagnóstico Factus
+</a>
 {% endblock %}
 
 {% block content %}
@@ -110,7 +113,7 @@
         <thead>
           <tr>
             <th>Nro. factura</th><th>Prefactura</th><th>Fecha</th><th>Paciente</th>
-            <th>Entidad</th><th>Total</th><th>Copago</th><th>Estado</th>
+            <th>Entidad</th><th>Total</th><th>Copago</th><th>Estado</th><th>DIAN</th>
           </tr>
         </thead>
         <tbody id="facturasBody"></tbody>
@@ -138,7 +141,9 @@
     </div>
     <div class="fl-modal-footer" id="detalleFooter" style="display:none;">
       <button class="fl-btn" onclick="descargarPDF()"><i class="fa-solid fa-file-pdf"></i> Descargar PDF</button>
+      <button class="fl-btn" id="btnReenviarEmail" style="display:none;" onclick="reenviarEmailFactura()"><i class="fa-solid fa-envelope"></i> Reenviar por correo</button>
       <button class="fl-btn danger" id="btnAnular" onclick="anularFactura()"><i class="fa-solid fa-ban"></i> Anular</button>
+      <button class="fl-btn danger" id="btnNotaCredito" style="display:none;" onclick="anularConNotaCredito()"><i class="fa-solid fa-file-circle-minus"></i> Anular (nota crédito DIAN)</button>
     </div>
   </div>
 </div>
@@ -147,6 +152,7 @@
 // ===== ESTADO =====
 let facturasData = [];
 let facturaActualId = null;
+let facturaActualData = null;
 let currentOffset = 0;
 let hasMore = true;
 let isLoading = false;
@@ -237,6 +243,16 @@ async function cargarFacturas() {
   }
 }
 
+function dianBadge(f) {
+  if (f.cufe) {
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:var(--accent-soft, #e6f4ea);color:var(--accent, #1e7e34);" title="CUFE: ${f.cufe}"><i class="fa-solid fa-check"></i> Validada</span>`;
+  }
+  if (f.estado_dian === 'NO_APLICA') {
+    return `<span style="font-size:11px; color:var(--text-faint);">—</span>`;
+  }
+  return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#fff3cd;color:#7a5b00;"><i class="fa-solid fa-triangle-exclamation"></i> Pendiente</span>`;
+}
+
 function appendFacturas(nuevas) {
   const tbody = document.getElementById('facturasBody');
 
@@ -256,6 +272,7 @@ function appendFacturas(nuevas) {
       <td class="fl-valor" style="color:var(--brand);">$${fm(f.total)}</td>
       <td class="fl-valor" style="font-size:13px; color:var(--text-soft);">$${fm(f.copago || 0)}</td>
       <td><span class="fl-estado ${f.estado}">${f.estado}</span></td>
+      <td>${dianBadge(f)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -294,6 +311,7 @@ async function abrirDetalle(facturaId) {
 }
 
 function renderDetalle(f, detalle, notas) {
+  facturaActualData = f;
   document.getElementById('detNumero').textContent = f.numero_factura;
   const pac = f.hc_pacientes || {};
   const cli = f.hc_clientes || {};
@@ -321,11 +339,38 @@ function renderDetalle(f, detalle, notas) {
       </div>`).join('')}`;
   }
 
+  // Sección DIAN (2026-08-27): mismo enlace de verificación que ya se
+  // agregó en la vista completa de la factura, pero aquí mismo en el
+  // panel de facturas, para no tener que abrir esa otra pantalla solo
+  // para consultar el CUFE.
+  const linksOficiales = (f.factus_response && f.factus_response.data && f.factus_response.data.links) || {};
+  const linkDian = linksOficiales.qr || (f.cufe ? `https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentkey=${f.cufe}` : '');
+  const linkFactus = linksOficiales.public_url || '';
+
+  let dianHTML = '';
+  if (f.cufe) {
+    dianHTML = `
+      <div class="fl-det-section"><i class="fa-solid fa-shield-halved"></i> Validación DIAN</div>
+      <div class="fl-det-item" style="margin-bottom:10px;">
+        <span class="fl-det-label">CUFE</span>
+        <span class="fl-det-value" style="word-break:break-all; font-size:12px; font-weight:500;">${f.cufe}</span>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        ${linkDian ? `<a href="${linkDian}" target="_blank" rel="noopener" class="fl-btn" style="text-decoration:none;"><i class="fa-solid fa-magnifying-glass"></i> Consultar en la DIAN</a>` : ''}
+        ${linkFactus ? `<a href="${linkFactus}" target="_blank" rel="noopener" class="fl-btn" style="text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver en Factus</a>` : ''}
+      </div>`;
+  } else if (f.factus_estado && f.factus_estado !== 'VALIDADA' && f.factus_estado !== 'NO_APLICA') {
+    dianHTML = `
+      <div class="fl-det-section"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);"></i> Sin validar ante la DIAN</div>
+      <div style="font-size:13px; color:var(--text-soft); margin-bottom:8px;">Estado: ${f.factus_estado}</div>`;
+  }
+
   document.getElementById('detalleBody').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <span class="fl-estado ${f.estado}" style="font-size:13px; padding:6px 16px;">${f.estado}</span>
       <span style="font-size:13px; color:var(--text-soft);">${fecha}</span>
     </div>
+    ${dianHTML}
     <div class="fl-det-section"><i class="fa-solid fa-user"></i> Paciente</div>
     <div class="fl-det-grid">
       <div class="fl-det-item"><span class="fl-det-label">Nombre</span><span class="fl-det-value">${pacNombre || '—'}</span></div>
@@ -365,6 +410,17 @@ function renderDetalle(f, detalle, notas) {
 
   const footer = document.getElementById('detalleFooter');
   footer.style.display = f.estado !== 'ANULADA' ? 'flex' : 'none';
+
+  // Si la factura ya fue VALIDADA por la DIAN, "Anular" simple (que solo
+  // cambia el estado local) ya no es una opción legal -- ese documento
+  // sigue existiendo ante la DIAN. En ese caso se oculta y se muestra en
+  // su lugar el botón que crea la nota crédito electrónica correspondiente.
+  const validadaDian = f.factus_estado === 'VALIDADA';
+  document.getElementById('btnAnular').style.display = validadaDian ? 'none' : 'flex';
+  document.getElementById('btnNotaCredito').style.display = validadaDian ? 'flex' : 'none';
+  // "Reenviar por correo" solo tiene sentido si Factus ya la validó -- antes
+  // de eso no existe ningún documento oficial que reenviar.
+  document.getElementById('btnReenviarEmail').style.display = validadaDian ? 'flex' : 'none';
 }
 
 function cerrarDetalle() {
@@ -392,10 +448,141 @@ async function anularFactura() {
   } catch (e) { Toast.show('Error de conexión', 'error'); }
 }
 
+// ===== ANULAR (FACTURA YA VALIDADA POR LA DIAN) =====
+// Una factura con factus_estado === 'VALIDADA' ya quedó registrada ante la
+// DIAN -- no se puede simplemente marcar como anulada localmente. La única
+// forma correcta es emitir una nota crédito electrónica que la reverse
+// (concepto DIAN "2 = Anulación de factura electrónica" por defecto). Solo
+// si Factus confirma esa nota, la factura pasa a ANULADA en nuestro sistema.
+async function anularConNotaCredito() {
+  if (!facturaActualId || !facturaActualData) return;
+  const f = facturaActualData;
+
+  // showLoaderOnConfirm (2026-08-27): al confirmar, Swal reemplaza el botón
+  // por un spinner animado y bloquea el modal hasta que preConfirm resuelva
+  // -- así se ve una animación de "procesando" mientras se espera la
+  // respuesta de Factus/DIAN, que puede tardar unos segundos.
+  const { value: resultado, isConfirmed } = await Swal.fire({
+    title: 'Anular factura ante la DIAN',
+    html: `
+      <p style="text-align:left; font-size:13px; color:#666; margin:0 0 14px;">
+        Esta factura ya fue <b>validada por la DIAN</b> (tiene CUFE), así que no se puede
+        simplemente borrar. Se va a crear y enviar a Factus una <b>nota crédito electrónica</b>
+        por el valor total (<b>$${fm(f.total)}</b>) que reversa el efecto de esta factura ante
+        la DIAN. Solo cuando Factus confirme la nota, la factura quedará marcada como ANULADA.
+      </p>
+      <label style="display:block; text-align:left; font-size:12px; font-weight:700; margin-bottom:4px;">Concepto DIAN de la nota</label>
+      <select id="swalMotivoCodigo" class="swal2-select" style="width:100%; margin:0 0 14px; padding:8px; border-radius:6px; border:1px solid #ccc;">
+        <option value="2" selected>2 - Anulación de factura electrónica</option>
+        <option value="1">1 - Devolución parcial de bienes / no aceptación del servicio</option>
+        <option value="3">3 - Rebaja o descuento</option>
+        <option value="4">4 - Ajuste de precio</option>
+        <option value="5">5 - Otros</option>
+      </select>
+      <label style="display:block; text-align:left; font-size:12px; font-weight:700; margin-bottom:4px;">Motivo (obligatorio)</label>
+      <textarea id="swalMotivo" class="swal2-textarea" style="margin:0;" placeholder="Describa el motivo de la anulación..."></textarea>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Sí, enviar nota crédito y anular',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#c0392b',
+    allowOutsideClick: () => !Swal.isLoading(),
+    showLoaderOnConfirm: true,
+    preConfirm: async () => {
+      const motivo = document.getElementById('swalMotivo').value.trim();
+      const motivoCodigo = document.getElementById('swalMotivoCodigo').value;
+      if (!motivo) {
+        Swal.showValidationMessage('Ingrese un motivo');
+        return false;
+      }
+      try {
+        const res = await fetch('/facturacion/api/nota', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            factura_id: facturaActualId,
+            tipo: 'CREDITO',
+            motivo,
+            concepto: motivo,
+            valor: f.total,
+            motivo_codigo: motivoCodigo,
+            anular_factura: true,
+          }),
+        });
+        return await res.json();
+      } catch (e) {
+        Swal.showValidationMessage('Error de conexión creando la nota crédito');
+        return false;
+      }
+    },
+  });
+  if (!isConfirmed || !resultado) return;
+
+  if (resultado.ok) {
+    Toast.show(resultado.factura_anulada ? 'Nota crédito enviada a la DIAN y factura anulada.' : 'Nota crédito registrada.', 'success');
+    cerrarDetalle();
+    resetYCargar();
+    cargarResumen();
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'La DIAN rechazó la nota crédito',
+      html: `${resultado.mensaje || resultado.error || 'Error desconocido'}${resultado.detalle_dian ? `<pre style="text-align:left; font-size:11px; max-height:200px; overflow:auto; background:#f4f4f4; padding:8px; border-radius:6px;">${JSON.stringify(resultado.detalle_dian, null, 2)}</pre>` : ''}`,
+    });
+  }
+}
+
 // ===== PDF =====
 async function descargarPDF() {
   if (!facturaActualId) return;
   window.open(`/facturacion/factura/${facturaActualId}/vista`, '_blank');
+}
+
+// ===== REENVIAR POR CORREO =====
+// Factus ya envía la factura sola por correo apenas la DIAN la valida
+// (send_email: true en el payload) -- este botón es para reenviarla a
+// pedido, por ejemplo si el correo registrado tenía un error y se corrigió
+// después de facturar, o si el paciente/cliente pide que se la reenvíen.
+async function reenviarEmailFactura() {
+  if (!facturaActualId) return;
+
+  const { value: resultado, isConfirmed } = await Swal.fire({
+    title: 'Reenviar factura por correo',
+    input: 'text',
+    inputLabel: 'Correo destino (opcional)',
+    inputPlaceholder: 'Déjalo vacío para usar el correo registrado en la factura',
+    showCancelButton: true,
+    confirmButtonText: 'Enviar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#0d5c63',
+    allowOutsideClick: () => !Swal.isLoading(),
+    showLoaderOnConfirm: true,
+    preConfirm: async (emailIngresado) => {
+      try {
+        const res = await fetch(`/facturacion/api/factura/${facturaActualId}/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: (emailIngresado || '').trim() }),
+        });
+        return await res.json();
+      } catch (e) {
+        Swal.showValidationMessage('Error de conexión enviando el correo');
+        return false;
+      }
+    },
+  });
+  if (!isConfirmed || !resultado) return;
+
+  if (resultado.ok) {
+    Toast.show('Factura reenviada por correo.', 'success');
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'No se pudo reenviar el correo',
+      html: `${resultado.error || 'Error desconocido'}${resultado.detalle ? `<pre style="text-align:left; font-size:11px; max-height:200px; overflow:auto; background:#f4f4f4; padding:8px; border-radius:6px;">${JSON.stringify(resultado.detalle, null, 2)}</pre>` : ''}`,
+    });
+  }
 }
 
 // ===== UTILIDADES =====

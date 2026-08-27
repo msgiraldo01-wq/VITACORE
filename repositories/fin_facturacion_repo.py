@@ -134,6 +134,23 @@ def crear_consecutivo(data: dict):
     return res.data
 
 
+def actualizar_consecutivo(consecutivo_id: int, data: dict):
+    """
+    Actualiza campos de un consecutivo YA EXISTENTE. Deliberadamente no se
+    usa para tocar prefijo/consecutivo_actual/rango (eso arriesga la
+    numeración DIAN) — solo para completar resolución y
+    factus_numbering_range_id de sedes que ya venían facturando.
+    """
+    res = (
+        _sb()
+        .table("fin_consecutivos_facturacion")
+        .update(data)
+        .eq("id", consecutivo_id)
+        .execute()
+    )
+    return res.data
+
+
 def listar_consecutivos(empresa_id: int = 1):
     res = (
         _sb()
@@ -275,7 +292,8 @@ def listar_facturas(empresa_id: int = 1, estado: str = None,
         .table("fin_facturas")
         .select(
             "id, numero_factura, prefactura_id, fecha_expedicion, total, estado, "
-            "copago, cuota_moderadora, estado_dian, "
+            "copago, cuota_moderadora, estado_dian, cufe, adquiriente_tipo, "
+            "factus_errores, "
             "hc_pacientes(primer_nombre, primer_apellido, numero_documento), "
             "hc_clientes(nombre, nit)"
         )
@@ -304,6 +322,16 @@ def actualizar_factura(factura_id: int, data: dict):
         .execute()
     )
     return res.data
+
+
+def registrar_resultado_factus(factura_id: int, data: dict):
+    """
+    Guarda en fin_facturas el resultado de la emisión electrónica:
+    cufe, qr_image, factus_estado, factus_id, factus_response,
+    factus_errores, adquiriente_tipo, enviado_dian_at, numero_factura
+    (si Factus reasigna el número desde su numbering_range_id).
+    """
+    return actualizar_factura(factura_id, data)
 
 
 def anular_factura(factura_id: int, motivo: str = None):
@@ -346,6 +374,17 @@ def listar_notas_factura(factura_id: int):
     return res.data or []
 
 
+def actualizar_nota(nota_id: int, data: dict):
+    res = (
+        _sb()
+        .table("fin_notas_credito_debito")
+        .update(data)
+        .eq("id", nota_id)
+        .execute()
+    )
+    return res.data
+
+
 def obtener_nota(nota_id: int):
     res = (
         _sb()
@@ -368,11 +407,11 @@ def obtener_tarifa_cups(contrato_id: int, cups_id: int):
     Busca la tarifa de un procedimiento CUPS en el manual
     tarifario asociado al contrato.
     """
-    # 1. Obtener nombre del manual del contrato
+    # 1. Obtener nombre del manual del contrato (y su tipo, para saber cómo cobrar)
     contrato = (
         _sb()
         .table("hc_contratos")
-        .select("manual_tarifario")
+        .select("manual_tarifario, tipo_contrato")
         .eq("id", contrato_id)
         .single()
         .execute()
@@ -381,6 +420,7 @@ def obtener_tarifa_cups(contrato_id: int, cups_id: int):
         return None
 
     nombre_manual = contrato.data["manual_tarifario"]
+    tipo_contrato = (contrato.data.get("tipo_contrato") or "").upper()
 
     # 2. Buscar el manual
     manual = (
@@ -410,11 +450,29 @@ def obtener_tarifa_cups(contrato_id: int, cups_id: int):
         return None
 
     t = tarifa.data[0]
-    t["valor_total"] = (
-        float(t.get("valor_paquete") or 0) +
-        float(t.get("valor_procedimiento") or 0) +
-        float(t.get("valor_suministro") or 0)
-    )
+    valor_paquete = float(t.get("valor_paquete") or 0)
+    valor_procedimiento = float(t.get("valor_procedimiento") or 0)
+    valor_suministro = float(t.get("valor_suministro") or 0)
+
+    # El valor a cobrar depende de la modalidad del contrato: un contrato
+    # "Paquete" cobra el valor de paquete (ya incluye procedimiento e
+    # insumos empacados en un solo precio); antes se sumaban los tres
+    # componentes sin importar la modalidad, lo que inflaba el cobro en
+    # contratos por paquete (bug reportado 2026-08-26).
+    if "PAQUETE" in tipo_contrato:
+        valor_total = valor_paquete
+    elif "EVENTO" in tipo_contrato:
+        # (VERIFICAR con el cliente) Se asume que "Por Evento" cobra solo
+        # el procedimiento, de forma simétrica con "Paquete". Si los
+        # insumos también deben facturarse aquí, sumar valor_suministro.
+        valor_total = valor_procedimiento
+    else:
+        # Modalidad no contemplada explícitamente (p.ej. Capitación) —
+        # se mantiene el comportamiento previo (suma de los tres
+        # componentes) hasta confirmar la regla correcta.
+        valor_total = valor_paquete + valor_procedimiento + valor_suministro
+
+    t["valor_total"] = valor_total
     return t
 
 

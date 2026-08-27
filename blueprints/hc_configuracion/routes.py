@@ -1382,6 +1382,7 @@ def cliente_nuevo():
         "email":         (form.get("email") or "").strip().lower() or None,
         "cod_prestador": (form.get("cod_prestador") or "").strip() or None,
         "cod_contable":  (form.get("cod_contable") or "").strip() or None,
+        "usa_paciente_como_adquiriente": form.get("usa_paciente_como_adquiriente") == "on",
     }
     if not data["codigo"]:
         flash("El código es obligatorio.", "warning")
@@ -1460,6 +1461,7 @@ def cliente_editar(cliente_id):
         "email":         (form.get("email") or "").strip().lower() or None,
         "cod_prestador": (form.get("cod_prestador") or "").strip() or None,
         "cod_contable":  (form.get("cod_contable") or "").strip() or None,
+        "usa_paciente_como_adquiriente": form.get("usa_paciente_como_adquiriente") == "on",
     }
     if not data["codigo"]:
         flash("El código es obligatorio.", "warning")
@@ -1489,6 +1491,31 @@ def cliente_toggle(cliente_id):
     repo_clientes.cambiar_estado(cliente_id, nuevo)
     flash(f"Cliente {'inactivado' if nuevo == 'INACTIVO' else 'activado'} correctamente.", "success")
     return redirect(url_for("hc_configuracion.clientes"))
+
+
+@bp_hc_configuracion.route("/clientes/toggle-adquiriente/<int:cliente_id>", methods=["POST"])
+def cliente_toggle_adquiriente(cliente_id):
+    """
+    Botón rápido (2026-08-27) para marcar/desmarcar
+    hc_clientes.usa_paciente_como_adquiriente sin tener que entrar al
+    formulario completo de edición. Este flag decide quién aparece como
+    adquiriente en la factura electrónica DIAN (ver
+    services/factus_mapper.py → determinar_adquiriente): si está marcado,
+    la factura sale a nombre del PACIENTE (pago particular); si no, sale a
+    nombre de este CLIENTE (EPS/aseguradora/empresa contratante).
+    """
+    cliente = repo_clientes.obtener(cliente_id)
+    if not cliente:
+        flash("El cliente no existe.", "error")
+        return redirect(url_for("hc_configuracion.clientes"))
+    nuevo_valor = not cliente.get("usa_paciente_como_adquiriente")
+    repo_clientes.actualizar(cliente_id, {"usa_paciente_como_adquiriente": nuevo_valor})
+    if nuevo_valor:
+        flash("Listo: las facturas DIAN de este cliente ahora se emiten a nombre del PACIENTE.", "success")
+    else:
+        flash("Listo: las facturas DIAN de este cliente ahora se emiten a nombre del CLIENTE (razón social).", "success")
+    destino = request.referrer or url_for("hc_configuracion.cliente_ver", cliente_id=cliente_id)
+    return redirect(destino)
 
 
 @bp_hc_configuracion.route("/clientes/<int:cliente_id>/contratos")
@@ -2012,6 +2039,11 @@ def mt_procedimientos_importar(manual_id):
 #  ÍTEMS (AJAX) — ⚠️ string fijos ANTES que <int:manual_id>
 # ══════════════════════════════════════════════════════════════════
 
+@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items", methods=["GET"])
+def mt_items_listar(manual_id):
+    return jsonify(repo_manuales.listar_items(manual_id))
+
+
 @bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/actualizar",
                            methods=["POST"])
 def mt_items_actualizar(item_id):
@@ -2024,7 +2056,6 @@ def mt_items_actualizar(item_id):
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)}), 400
 
-
 @bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/eliminar",
                            methods=["POST"])
 def mt_items_eliminar(item_id):
@@ -2032,9 +2063,10 @@ def mt_items_eliminar(item_id):
     return jsonify({"ok": True})
 
 
-@bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items")
-def mt_items_listar(manual_id):
-    return jsonify(repo_manuales.listar_items(manual_id))
+@bp_hc_configuracion.route("/hc/configuracion/manuales-tarifarios/<int:manual_id>/items/buscar-medicamento")
+def mt_items_buscar_medicamento(manual_id):
+    q = request.args.get("q", "")
+    return jsonify(repo_manuales.buscar_medicamentos(q))
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items/agregar",
@@ -2141,16 +2173,18 @@ def medicamentos_buscar_ajax():
         res = (
             get_supabase_public()
             .table("hc_medicamentos")
-            .select("id, codigo, nombre")
-            .or_(f"codigo.ilike.%{q}%,nombre.ilike.%{q}%")
+            .select("id, cum, nombre, principio_activo")
+            .or_(f"cum.ilike.%{q}%,nombre.ilike.%{q}%,principio_activo.ilike.%{q}%")
             .eq("estado", "ACTIVO")
             .limit(20)
             .execute()
         )
-        return jsonify(res.data or [])
+        data = res.data or []
+        for m in data:
+            m["codigo"] = m.pop("cum", None)   # el JS del template espera "codigo"
+        return jsonify(data)
     except Exception:
         return jsonify([])
-
 
 def _manual_payload(form):
     def txt(k):

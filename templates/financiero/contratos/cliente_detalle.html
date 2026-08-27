@@ -323,6 +323,27 @@
           </span>
         </div>
 
+        <div class="field-item full">
+          <span class="field-label">Facturación electrónica DIAN</span>
+          <div class="field-value" style="justify-content:space-between; gap:12px; height:auto; min-height:44px; flex-wrap:wrap;">
+            <span>
+              Se factura a nombre de:
+              <strong style="color:{{ '#7c3aed' if cliente.usa_paciente_como_adquiriente else 'inherit' }};">
+                {{ 'PACIENTE (pago particular)' if cliente.usa_paciente_como_adquiriente else 'CLIENTE (razón social de este registro)' }}
+              </strong>
+            </span>
+            <form method="POST"
+                  action="/hc/configuracion/clientes/toggle-adquiriente/{{ cliente.id }}"
+                  class="toggleAdquirienteForm">
+              <button class="btn-mini" type="button"
+                      style="background: rgba(124,58,237,.12); color:#5b21b6;">
+                <i class="fa-solid fa-right-left"></i>
+                Facturar a nombre del {{ 'cliente' if cliente.usa_paciente_como_adquiriente else 'paciente' }}
+              </button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -469,6 +490,22 @@
 <script>
 
 const CLIENTE_ID = {{ cliente.id | tojson }}
+
+/* ── Toggle: facturar a nombre del paciente vs. del cliente ── */
+document.querySelectorAll(".toggleAdquirienteForm").forEach(form => {
+  const btn = form.querySelector("button")
+  btn.addEventListener("click", function () {
+    Swal.fire({
+      title: "¿Cambiar a quién se factura?",
+      html: "Esto cambia el adquiriente de la factura electrónica DIAN para <b>todas las prefacturas futuras</b> de este cliente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, cambiar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#7c3aed"
+    }).then(r => { if (r.isConfirmed) form.submit() })
+  })
+})
 
 function fmt(n) {
   if (!n && n !== 0) return '—'

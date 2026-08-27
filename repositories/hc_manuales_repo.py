@@ -3,6 +3,7 @@ from services.supabase_service import get_supabase_public
 TABLE      = "hc_manuales_tarifarios"
 TABLE_PROC = "hc_mt_procedimientos"
 TABLE_ITEM = "hc_mt_items"
+TABLE_MED = "hc_medicamentos"
 
 
 def _sb():
@@ -246,7 +247,7 @@ def listar_items(manual_id):
     res = (
         _sb()
         .table(TABLE_ITEM)
-        .select("*, hc_medicamentos(nombre, codigo)")
+        .select("*, hc_medicamentos(nombre, cum)")
         .eq("manual_id", manual_id)
         .order("cod_item")
         .execute()
@@ -255,7 +256,7 @@ def listar_items(manual_id):
     for i in data:
         med = i.pop("hc_medicamentos", None)
         i["med_nombre"] = med["nombre"] if med else None
-        i["med_codigo"] = med["codigo"] if med else None
+        i["med_codigo"] = med["cum"] if med else None
     return data
 
 
@@ -311,3 +312,26 @@ def _enum(v, allowed):
         return None
     val = str(v).strip().upper()
     return val if val in allowed else None
+
+# ── CATÁLOGO DE MEDICAMENTOS (para buscador de ítems) ───────────────
+
+def buscar_medicamentos(query: str, limit: int = 20):
+    """Busca en el catálogo maestro por nombre, principio activo o CUM."""
+    q = (query or "").strip()
+    if not q:
+        return []
+
+    res = (
+        _sb()
+        .table(TABLE_MED)
+        .select("id, nombre, principio_activo, concentracion, cum")
+        .or_(
+            f"nombre.ilike.%{q}%,"
+            f"principio_activo.ilike.%{q}%,"
+            f"cum.ilike.%{q}%"
+        )
+        .eq("estado", "ACTIVO")
+        .limit(limit)
+        .execute()
+    )
+    return res.data or []

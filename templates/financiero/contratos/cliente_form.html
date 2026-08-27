@@ -108,6 +108,37 @@
 
 textarea { min-height: 80px; resize: none; }
 
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.check-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.check-row strong {
+  display: block;
+  font-size: .92rem;
+  color: var(--text);
+}
+
+.check-row small {
+  display: block;
+  font-size: .8rem;
+  color: var(--text-faint);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
 .form-actions {
   margin-top: 20px;
   display: flex;
@@ -394,6 +425,23 @@ textarea { min-height: 80px; resize: none; }
         </div>
 
       </div>
+    </div>
+
+    <!-- Facturación electrónica DIAN -->
+    <div class="card-form">
+      <p class="form-group-title"><i class="fa-solid fa-file-invoice-dollar" style="margin-right:6px;"></i>Facturación electrónica DIAN</p>
+      <label class="check-row">
+        <input type="checkbox" name="usa_paciente_como_adquiriente"
+               {{ 'checked' if cliente.usa_paciente_como_adquiriente else '' }}>
+        <span>
+          <strong>Facturar a nombre del paciente</strong>
+          <small>
+            Actívalo solo si este cliente es de pago particular (el paciente paga directamente).
+            Si lo dejas SIN marcar, la factura electrónica ante la DIAN se emite a nombre de
+            este cliente (razón social / NIT) — lo normal para EPS, aseguradoras o empresas contratantes.
+          </small>
+        </span>
+      </label>
     </div>
 
     <div class="form-actions">
