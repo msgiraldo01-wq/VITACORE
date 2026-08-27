@@ -1,0 +1,65 @@
+{% extends "hc/base.html" %}
+{% block title %}Validar fórmula · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clipboard-check"></i>{% endblock %}
+{% block topbar_title %}Validación farmacéutica{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clipboard-check"></i>{% endblock %}
+{% block header_title %}Validación farmacéutica{% endblock %}
+{% block header_subtitle %}Paciente: {{ nombre }} · Asigna a cada medicamento prescrito el producto del inventario y la cantidad a entregar.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.dispensacion_cola') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver a la cola</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="content-block inv-seccion">
+    <div class="inv-form">
+      <div class="inv-campo"><label>Bodega de dispensación *</label>
+        <select name="bodega_id" required>
+          <option value="">Seleccione…</option>
+          {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+        </select>
+        {% if not bodegas %}<div class="inv-ayuda" style="color:var(--danger)">
+          No hay bodegas con dispensación habilitada. Actívala en Bodegas → Editar.</div>{% endif %}</div>
+      <div class="inv-campo completo"><label>Observaciones de la validación</label>
+        <input type="text" name="observaciones"></div>
+    </div>
+  </div>
+  <div class="content-block">
+    <h3 style="margin:0 0 10px">Medicamentos prescritos</h3>
+    {% for m in meds %}
+    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:10px">
+      <div style="margin-bottom:8px">
+        <strong>{{ m.medicamento_nombre }}</strong>
+        {% if m.dosis %}<span class="inv-insignia gris">{{ m.dosis }}</span>{% endif %}
+        {% if m.frecuencia %}<span class="inv-insignia gris">{{ m.frecuencia }}</span>{% endif %}
+        {% if m.duracion %}<span class="inv-insignia gris">{{ m.duracion }}</span>{% endif %}
+        {% if m.via_administracion %}<span class="inv-insignia gris">{{ m.via_administracion }}</span>{% endif %}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+        <div class="inv-campo" style="flex:2;min-width:280px">
+          <label>Producto del inventario</label>
+          <input list="prods" autocomplete="off" placeholder="Buscar en el catálogo…"
+            onchange="const o=[...document.querySelectorAll('#prods option')].find(x=>x.value===this.value);this.nextElementSibling.value=o?o.dataset.id:''">
+          <input type="hidden" name="producto_{{ m.id }}">
+        </div>
+        <div class="inv-campo" style="width:140px">
+          <label>Cantidad a entregar</label>
+          <input type="number" name="cantidad_{{ m.id }}" min="0" step="1"
+            placeholder="Ej.: 15">
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    <datalist id="prods">
+      {% for p in productos if p.estado == 'ACTIVO' %}
+      <option data-id="{{ p.id }}" value="{{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}"></option>
+      {% endfor %}
+    </datalist>
+    <p class="inv-ayuda">Deja sin producto o cantidad 0 los medicamentos que no se dispensan aquí.</p>
+    <button type="submit" class="btn-ax primary" {{ 'disabled' if not bodegas }}>
+      <i class="fa-solid fa-check"></i> Validar fórmula</button>
+  </div>
+</form>
+{% endblock %}

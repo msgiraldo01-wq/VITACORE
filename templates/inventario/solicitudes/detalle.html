@@ -1,0 +1,60 @@
+{% extends "hc/base.html" %}
+{% block title %}Solicitud #{{ s.consecutivo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block topbar_title %}Solicitud #{{ s.consecutivo }}{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block header_title %}Solicitud #{{ s.consecutivo }} — {{ s.estado.replace('_',' ') }}{% endblock %}
+{% block header_subtitle %}Destino: {{ s.inv_bodegas.nombre if s.inv_bodegas else '—' }}
+  {% if s.justificacion %} · {{ s.justificacion }}{% endif %}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.solicitudes_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <table class="inv-tabla">
+    <thead><tr><th>Producto</th><th style="text-align:right">Cantidad</th></tr></thead>
+    <tbody>
+      {% for i in items %}
+      <tr>
+        <td><strong>{{ i.inv_productos.codigo_interno }}</strong>
+            {{ i.inv_productos.nombre }} {{ i.inv_productos.concentracion or '' }}</td>
+        <td style="text-align:right">{{ i.cantidad }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="inv-ayuda" style="margin-top:10px">
+    Solicitó: {{ s.solicitado_por or '—' }}
+    {% if s.resuelto_por %} · Resolvió: {{ s.resuelto_por }}{% endif %}
+    {% if s.motivo_rechazo %} · Motivo rechazo: {{ s.motivo_rechazo }}{% endif %}</p>
+</div>
+{% if s.estado == 'PENDIENTE' %}
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+  <form method="post"><input type="hidden" name="accion" value="aprobar">
+    <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Aprobar</button></form>
+  <form method="post" style="display:flex;gap:8px;align-items:end">
+    <input type="hidden" name="accion" value="rechazar">
+    <div class="inv-campo"><label>Motivo de rechazo</label>
+      <input type="text" name="motivo_rechazo" style="min-width:260px"></div>
+    <button class="btn-ax ghost"><i class="fa-solid fa-xmark"></i> Rechazar</button></form>
+</div>
+{% elif s.estado == 'APROBADA' %}
+<form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+  <input type="hidden" name="accion" value="convertir">
+  <div class="inv-campo"><label>Proveedor para la OC *</label>
+    <select name="proveedor_id" required style="min-width:280px">
+      <option value="">Seleccione…</option>
+      {% for p in proveedores %}<option value="{{ p.id }}">{{ p.razon_social }}</option>{% endfor %}
+    </select></div>
+  <button class="btn-ax primary"><i class="fa-solid fa-file-invoice"></i> Convertir en orden de compra</button>
+  <p class="inv-ayuda" style="width:100%">Los ítems pasan con el precio de la última compra
+    (o el costo promedio); el precio definitivo se confirma en la recepción.</p>
+</form>
+{% elif s.estado == 'CONVERTIDA_OC' and s.orden_id %}
+<a class="btn-ax primary" href="{{ url_for('inventario.compras_detalle', orden_id=s.orden_id) }}">
+  <i class="fa-solid fa-file-invoice"></i> Ver la orden de compra generada</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "hc/base.html" %}
+{% block title %}Dispensación #{{ d.consecutivo }} · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-prescription-bottle-medical"></i>{% endblock %}
+{% block topbar_title %}Dispensación #{{ d.consecutivo }}{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-prescription-bottle-medical"></i>{% endblock %}
+{% block header_title %}Dispensación #{{ d.consecutivo }} — {{ d.estado }}{% endblock %}
+{% block header_subtitle %}Paciente: {{ nombre }}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.dispensacion_cola') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="content-block inv-seccion">
+    <table class="inv-tabla">
+      <thead><tr><th>Prescrito</th><th>Producto asignado</th>
+        <th style="text-align:right">Solicitado</th>
+        {% if d.estado in ('VALIDADA','PARCIAL') %}<th style="text-align:right">Dispensar</th>
+        {% else %}<th style="text-align:right">Dispensado</th><th style="text-align:right">Vr. venta</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for i in items %}
+        <tr>
+          <td>{{ i.medicamento_prescrito }}</td>
+          <td><strong>{{ i.inv_productos.codigo_interno if i.inv_productos }}</strong>
+              {{ i.inv_productos.nombre if i.inv_productos }} {{ i.inv_productos.concentracion if i.inv_productos }}</td>
+          <td style="text-align:right">{{ i.cantidad_prescrita }}</td>
+          {% if d.estado in ('VALIDADA','PARCIAL') %}
+          <td style="text-align:right"><input type="number" name="cantidad_{{ i.id }}"
+              min="0" step="1" value="{{ i.cantidad_prescrita }}" style="width:90px;
+              padding:7px;border:1px solid var(--border);border-radius:var(--radius-sm);
+              background:var(--surface);color:var(--text);text-align:right"></td>
+          {% else %}
+          <td style="text-align:right"><strong>{{ i.cantidad_dispensada }}</strong></td>
+          <td style="text-align:right">${{ "{:,.0f}".format(i.valor_unitario_venta) }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if d.estado in ('VALIDADA','PARCIAL') %}
+  <div class="content-block inv-seccion">
+    <h3 style="margin:0 0 10px">Entrega</h3>
+    <div class="inv-form">
+      <div class="inv-campo"><label>Entregado a (nombre) *</label>
+        <input type="text" name="entregado_a" placeholder="Paciente o acudiente"></div>
+      <div class="inv-campo"><label>Documento de quien recibe</label>
+        <input type="text" name="documento_receptor"></div>
+    </div>
+  </div>
+  <button type="submit" class="btn-ax primary">
+    <i class="fa-solid fa-prescription-bottle-medical"></i> Dispensar y cargar a cuenta</button>
+  <p class="inv-ayuda" style="margin-top:8px">
+    <i class="fa-solid fa-shield-halved"></i> Descarga por FEFO y, si el paciente tiene prefactura
+    ABIERTA, genera el cargo con el precio del manual tarifario de su contrato.</p>
+  {% else %}
+  <div class="content-block">
+    <p style="margin:0">
+      <i class="fa-solid fa-circle-check" style="color:var(--success)"></i>
+      Entregado a <strong>{{ d.entregado_a or '—' }}</strong>
+      {% if d.documento_receptor %}(doc. {{ d.documento_receptor }}){% endif %}
+      por {{ d.dispensada_por or '—' }} el {{ d.fecha_dispensacion[:16].replace('T',' ') if d.fecha_dispensacion }}.
+      {% if d.facturacion_estado == 'CARGADA' %}
+        <br><span class="inv-insignia verde">Cargado a la cuenta del paciente</span>
+      {% elif d.facturacion_estado == 'PENDIENTE_FACTURAR' %}
+        <br><span class="inv-insignia amarillo">Pendiente de facturar</span>
+        — el paciente no tenía prefactura abierta; concilie el cargo cuando exista.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

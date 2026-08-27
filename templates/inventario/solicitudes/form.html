@@ -1,0 +1,66 @@
+{% extends "hc/base.html" %}
+{% block title %}Nueva solicitud · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block topbar_title %}Nueva solicitud{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block header_title %}Nueva solicitud de compra{% endblock %}
+{% block header_subtitle %}{% if sugeridos %}Prellenada con los productos bajo stock mínimo y su cantidad sugerida.{% else %}Requisición interna que pasa a aprobación.{% endif %}{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('inventario.solicitudes_lista') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<form method="post">
+  <div class="inv-form">
+    <div class="inv-campo"><label>Bodega destino *</label>
+      <select name="bodega_destino_id" required>
+        <option value="">Seleccione…</option>
+        {% for b in bodegas %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+      </select>
+      <div class="inv-ayuda">A dónde llegará la compra (necesaria para convertir en OC).</div></div>
+    <div class="inv-campo completo"><label>Justificación</label>
+      <input type="text" name="justificacion"
+        value="{{ 'Reposición por stock mínimo' if sugeridos else '' }}"></div>
+  </div>
+  <h3 style="margin:18px 0 8px">Productos</h3>
+  <div id="filas"></div>
+  <button type="button" class="btn-ax ghost" onclick="agregarFila()" style="margin-top:8px">
+    <i class="fa-solid fa-plus"></i> Agregar producto</button>
+  <datalist id="lista-productos">
+    {% for p in productos if p.estado == 'ACTIVO' %}
+    <option data-id="{{ p.id }}" value="{{ p.codigo_interno }} — {{ p.nombre }} {{ p.concentracion or '' }}"></option>
+    {% endfor %}
+  </datalist>
+  <div style="margin-top:20px">
+    <button type="submit" class="btn-ax primary">
+      <i class="fa-solid fa-paper-plane"></i> Enviar a aprobación</button>
+  </div>
+</form>
+<script>
+    const estilo = 'padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)';
+    function agregarFila(nombre, id, cantidad) {
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;gap:8px;margin-top:8px;align-items:center';
+      d.innerHTML = `
+        <input list="lista-productos" placeholder="Buscar producto…" autocomplete="off"
+          style="flex:1;${estilo}" value="${nombre || ''}"
+          onchange="const o=[...document.querySelectorAll('#lista-productos option')].find(x=>x.value===this.value);this.nextElementSibling.value=o?o.dataset.id:''">
+        <input type="hidden" name="producto_id[]" value="${id || ''}">
+        <input type="number" name="cantidad[]" placeholder="Cantidad" min="1" step="1"
+          value="${cantidad || ''}" style="width:110px;${estilo}">
+        <button type="button" class="btn-ax ghost" style="min-height:34px"
+          onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>`;
+      document.getElementById('filas').appendChild(d);
+    }
+    {% if sugeridos %}
+    {% for s in sugeridos %}
+    agregarFila({{ (s.codigo_interno ~ ' — ' ~ s.nombre ~ ' ' ~ (s.concentracion or '')) | tojson }},
+                {{ s.producto_id | tojson }}, {{ s.cantidad_sugerida }});
+    {% endfor %}
+    {% else %}
+    agregarFila();
+    {% endif %}
+</script>
+{% endblock %}

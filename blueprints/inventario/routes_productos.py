@@ -57,6 +57,7 @@ def productos_form(empresa_id, usuario_id, producto_id=None):
         formas=svc.FORMAS_FARMACEUTICAS,
         vias=svc.VIAS_ADMINISTRACION,
         unidades=svc.UNIDADES_MEDIDA,
+        tarifables=repo.listar_medicamentos_tarifables(empresa_id),
     )
 
 

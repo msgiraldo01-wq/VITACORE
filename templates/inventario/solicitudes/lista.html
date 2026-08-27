@@ -1,0 +1,53 @@
+{% extends "hc/base.html" %}
+{% block title %}Solicitudes de compra · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block topbar_title %}Solicitudes de compra{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-clipboard-list"></i>{% endblock %}
+{% block header_title %}Solicitudes de compra{% endblock %}
+{% block header_subtitle %}Requisiciones internas con aprobación antes de generar la orden de compra.{% endblock %}
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('inventario.solicitudes_nueva') }}">
+    <i class="fa-solid fa-plus"></i> Nueva solicitud</a>
+  <a class="btn-ax ghost" href="{{ url_for('inventario.solicitudes_nueva', sugerido=1) }}">
+    <i class="fa-solid fa-wand-magic-sparkles"></i> Sugerida por stock mínimo</a>
+{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+{% if bajo_minimo %}
+<div class="content-block inv-seccion" style="border-left:4px solid var(--warn)">
+  <h3 style="margin:0 0 8px"><i class="fa-solid fa-triangle-exclamation" style="color:var(--warn)"></i>
+    {{ bajo_minimo|length }} producto(s) bajo stock mínimo</h3>
+  <p class="inv-ayuda" style="margin:0">
+    {% for b in bajo_minimo[:5] %}{{ b.nombre }} ({{ b.stock_actual }}/{{ b.stock_minimo }}){{ ', ' if not loop.last }}{% endfor %}
+    {% if bajo_minimo|length > 5 %} y más…{% endif %} —
+    <a href="{{ url_for('inventario.solicitudes_nueva', sugerido=1) }}" style="color:var(--brand)">
+      generar solicitud sugerida</a></p>
+</div>
+{% endif %}
+{% if solicitudes %}
+<div class="content-block">
+  <table class="inv-tabla">
+    <thead><tr><th>#</th><th>Fecha</th><th>Bodega destino</th><th>Justificación</th>
+      <th>Solicitó</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for s in solicitudes %}
+      <tr>
+        <td>{{ s.consecutivo }}</td>
+        <td>{{ s.created_at[:10] }}</td>
+        <td>{{ s.inv_bodegas.nombre if s.inv_bodegas else '—' }}</td>
+        <td><small>{{ s.justificacion or '—' }}</small></td>
+        <td>{{ s.solicitado_por or '—' }}</td>
+        <td>{% set c = {'PENDIENTE':'amarillo','APROBADA':'morado','RECHAZADA':'rojo','CONVERTIDA_OC':'verde'} %}
+            <span class="inv-insignia {{ c[s.estado] }}">{{ s.estado.replace('_',' ') }}</span></td>
+        <td><a href="{{ url_for('inventario.solicitudes_detalle', solicitud_id=s.id) }}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="inv-vacio">Sin solicitudes aún.
+  <a href="{{ url_for('inventario.solicitudes_nueva') }}">Crea la primera</a>.</div>
+{% endif %}
+{% endblock %}

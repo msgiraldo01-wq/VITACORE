@@ -268,3 +268,233 @@ def registrar_recepcion(empresa_id, cabecera: dict, items: list):
     return _client().rpc("fn_inv_registrar_recepcion", {
         "p_empresa_id": empresa_id, "p_cabecera": cabecera, "p_items": items,
     }).execute().data
+
+
+# ============================ FASE 2B: SOLICITUDES ============================
+
+def productos_bajo_minimo(empresa_id):
+    return (_client().table("v_inv_bajo_minimo").select("*")
+            .eq("empresa_id", empresa_id).order("nombre").execute().data)
+
+
+def crear_solicitud(datos: dict, items: list):
+    s = _client().table("inv_solicitudes_compra").insert(datos).execute().data[0]
+    for it in items:
+        it["solicitud_id"] = s["id"]
+    _client().table("inv_solicitud_items").insert(items).execute()
+    return s
+
+
+def listar_solicitudes(empresa_id):
+    return (_client().table("inv_solicitudes_compra")
+            .select("*, inv_bodegas(nombre)")
+            .eq("empresa_id", empresa_id)
+            .order("created_at", desc=True).limit(200).execute().data)
+
+
+def obtener_solicitud(empresa_id, solicitud_id):
+    s = (_client().table("inv_solicitudes_compra")
+         .select("*, inv_bodegas(nombre)")
+         .eq("empresa_id", empresa_id).eq("id", solicitud_id).limit(1).execute().data)
+    if not s:
+        return None, []
+    items = (_client().table("inv_solicitud_items")
+             .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+             .eq("solicitud_id", solicitud_id).execute().data)
+    return s[0], items
+
+
+def resolver_solicitud(solicitud_id, datos: dict):
+    return (_client().table("inv_solicitudes_compra")
+            .update(datos).eq("id", solicitud_id).execute().data)
+
+
+def ultimo_precio_compra(empresa_id, producto_id):
+    """Último costo de ENTRADA_COMPRA; si no hay, el costo promedio; si no, 0."""
+    m = (_client().table("inv_movimientos").select("costo_unitario")
+         .eq("empresa_id", empresa_id).eq("producto_id", producto_id)
+         .eq("tipo", "ENTRADA_COMPRA")
+         .order("fecha", desc=True).limit(1).execute().data)
+    if m:
+        return float(m[0]["costo_unitario"])
+    e = (_client().table("inv_existencias").select("costo_promedio")
+         .eq("empresa_id", empresa_id).eq("producto_id", producto_id)
+         .limit(1).execute().data)
+    return float(e[0]["costo_promedio"]) if e else 0.0
+
+
+# ============================ FASE 3: DISPENSACIÓN ============================
+
+def cola_formulas(empresa_id):
+    """Fórmulas médicas (hc_evolucion_medicamentos) que aún no tienen dispensación.
+
+    Trae paciente y médico vía hc_evoluciones. Excluye evoluciones ya dispensadas.
+    """
+    # Evoluciones que ya tienen dispensación en este módulo
+    disp = (_client().table("farm_dispensaciones").select("evolucion_id")
+            .eq("empresa_id", empresa_id).execute().data)
+    ya = {d["evolucion_id"] for d in disp if d.get("evolucion_id")}
+    # Evoluciones de la empresa con sus datos de paciente/médico
+    evos = (_client().table("hc_evoluciones")
+            .select("id, paciente_id, medico_id, fecha, estado")
+            .eq("empresa_id", empresa_id).order("fecha", desc=True)
+            .limit(300).execute().data)
+    evo_ids = [e["id"] for e in evos if e["id"] not in ya]
+    if not evo_ids:
+        return []
+    meds = (_client().table("hc_evolucion_medicamentos")
+            .select("*").in_("evolucion_id", evo_ids).execute().data)
+    # Agrupar medicamentos por evolución
+    porevo = {}
+    for m in meds:
+        porevo.setdefault(m["evolucion_id"], []).append(m)
+    cola = []
+    for e in evos:
+        if e["id"] in ya or e["id"] not in porevo:
+            continue
+        e["medicamentos"] = porevo[e["id"]]
+        cola.append(e)
+    return cola
+
+
+def formula_de_evolucion(evolucion_id):
+    evo = (_client().table("hc_evoluciones")
+           .select("id, paciente_id, medico_id, fecha")
+           .eq("id", evolucion_id).limit(1).execute().data)
+    meds = (_client().table("hc_evolucion_medicamentos")
+            .select("*").eq("evolucion_id", evolucion_id).execute().data)
+    return (evo[0] if evo else None), meds
+
+
+def crear_dispensacion(datos: dict, items: list):
+    d = _client().table("farm_dispensaciones").insert(datos).execute().data[0]
+    for it in items:
+        it["dispensacion_id"] = d["id"]
+    _client().table("farm_dispensacion_items").insert(items).execute()
+    return d
+
+
+def listar_dispensaciones(empresa_id):
+    return (_client().table("farm_dispensaciones")
+            .select("*").eq("empresa_id", empresa_id)
+            .order("created_at", desc=True).limit(200).execute().data)
+
+
+def obtener_dispensacion(empresa_id, disp_id):
+    d = (_client().table("farm_dispensaciones").select("*")
+         .eq("empresa_id", empresa_id).eq("id", disp_id).limit(1).execute().data)
+    if not d:
+        return None, []
+    items = (_client().table("farm_dispensacion_items")
+             .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+             .eq("dispensacion_id", disp_id).execute().data)
+    return d[0], items
+
+
+def actualizar_dispensacion(disp_id, datos):
+    return (_client().table("farm_dispensaciones")
+            .update(datos).eq("id", disp_id).execute().data)
+
+
+def actualizar_disp_item(item_id, datos):
+    return (_client().table("farm_dispensacion_items")
+            .update(datos).eq("id", item_id).execute().data)
+
+
+def dispensar(empresa_id, disp_id, usuario, items):
+    return _client().rpc("fn_farm_dispensar", {
+        "p_empresa_id": empresa_id, "p_dispensacion_id": disp_id,
+        "p_usuario": usuario, "p_items": items}).execute().data
+
+
+def buscar_paciente_nombre(paciente_id):
+    """Nombre del paciente para mostrar (tolera esquemas distintos)."""
+    try:
+        p = (_client().table("hc_pacientes")
+             .select("primer_nombre, primer_apellido, numero_documento")
+             .eq("id", paciente_id).limit(1).execute().data)
+        if p:
+            x = p[0]
+            return (f"{x.get('primer_nombre','')} {x.get('primer_apellido','')}".strip()
+                    + f" ({x.get('numero_documento','')})")
+    except Exception:
+        pass
+    return f"Paciente #{paciente_id}"
+
+
+def listar_medicamentos_tarifables(empresa_id=None):
+    """hc_medicamentos: catálogo tarifable al que se enlazan los productos."""
+    try:
+        q = _client().table("hc_medicamentos").select(
+            "id, cum, principio_activo, nombre_comercial, concentracion, estado")
+        if empresa_id is not None:
+            q = q.eq("empresa_id", empresa_id)
+        return q.order("principio_activo").limit(500).execute().data
+    except Exception:
+        return []
+
+
+# ============================ FASE 4: REPORTES ============================
+
+def _rango(q, desde, hasta, campo="fecha"):
+    if desde:
+        q = q.gte(campo, desde)
+    if hasta:
+        q = q.lte(campo, hasta)
+    return q
+
+
+def rep_sismed(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_sismed_compras").select("*")
+         .eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "fecha_recepcion")
+    return q.order("fecha_recepcion", desc=True).limit(5000).execute().data
+
+
+def rep_control_especial(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_control_especial").select("*")
+         .eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "fecha")
+    return q.order("fecha", desc=True).limit(5000).execute().data
+
+
+def rep_consumo(empresa_id, desde="", hasta=""):
+    q = (_client().table("v_rep_consumo").select("*").eq("empresa_id", empresa_id))
+    q = _rango(q, desde, hasta, "mes")
+    return q.order("mes", desc=True).limit(5000).execute().data
+
+
+def rep_sin_movimiento(empresa_id):
+    return (_client().table("v_rep_sin_movimiento").select("*")
+            .eq("empresa_id", empresa_id).order("valor", desc=True)
+            .limit(2000).execute().data)
+
+
+def rep_vencimientos(empresa_id, semaforo=""):
+    q = (_client().table("v_inv_semaforo_vencimientos").select("*")
+         .eq("empresa_id", empresa_id))
+    if semaforo:
+        q = q.eq("semaforo", semaforo)
+    return q.order("fecha_vencimiento").limit(2000).execute().data
+
+
+def rep_valorizacion(empresa_id):
+    return (_client().table("v_inv_semaforo_vencimientos").select("*")
+            .eq("empresa_id", empresa_id).order("producto").limit(5000).execute().data)
+
+
+def listar_eventos_fv(empresa_id):
+    return (_client().table("farm_eventos_farmacovigilancia")
+            .select("*, inv_productos(codigo_interno, nombre, concentracion)")
+            .eq("empresa_id", empresa_id)
+            .order("fecha_evento", desc=True).limit(300).execute().data)
+
+
+def crear_evento_fv(datos: dict):
+    return _client().table("farm_eventos_farmacovigilancia").insert(datos).execute().data
+
+
+def marcar_fv_reportado(evento_id, fecha):
+    return (_client().table("farm_eventos_farmacovigilancia")
+            .update({"reportado_invima": True, "fecha_reporte_invima": fecha})
+            .eq("id", evento_id).execute().data)

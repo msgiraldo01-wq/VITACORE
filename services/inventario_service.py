@@ -90,6 +90,7 @@ def guardar_producto(empresa_id: str, usuario_id: str, form: dict, producto_id: 
         "stock_minimo": stock_min,
         "stock_maximo": stock_max,
         "codigo_cups_cargo": form.get("codigo_cups_cargo", "").strip() or None,
+        "hc_medicamento_id": form.get("hc_medicamento_id") or None,
         "estado": form.get("estado", "ACTIVO"),
     }
 

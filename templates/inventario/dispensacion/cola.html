@@ -1,0 +1,57 @@
+{% extends "hc/base.html" %}
+{% block title %}Dispensación · Vitacore{% endblock %}
+{% block topbar_icon %}<i class="fa-solid fa-prescription-bottle-medical"></i>{% endblock %}
+{% block topbar_title %}Dispensación{% endblock %}
+{% block topbar_subtitle %}Farmacia e inventarios{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-prescription-bottle-medical"></i>{% endblock %}
+{% block header_title %}Dispensación de medicamentos{% endblock %}
+{% block header_subtitle %}Fórmulas médicas pendientes de validar y dispensar, generadas en historia clínica.{% endblock %}
+{% block content %}
+{% include "inventario/_estilos.html" %}
+<div class="content-block inv-seccion">
+  <h3 style="margin:0 0 10px"><i class="fa-solid fa-inbox"></i> Fórmulas pendientes ({{ formulas|length }})</h3>
+  {% if formulas %}
+  <table class="inv-tabla">
+    <thead><tr><th>Fecha</th><th>Paciente</th><th>Medicamentos</th><th></th></tr></thead>
+    <tbody>
+      {% for f in formulas %}
+      <tr>
+        <td>{{ f.fecha[:10] if f.fecha else '—' }}</td>
+        <td>{{ nombre(f.paciente_id) }}</td>
+        <td>{% for m in f.medicamentos %}<span class="inv-insignia gris" style="margin:2px">
+              {{ m.medicamento_nombre }}{% if m.dosis %} · {{ m.dosis }}{% endif %}</span>{% endfor %}</td>
+        <td><a class="btn-ax primary" style="min-height:32px;padding:0 12px"
+            href="{{ url_for('inventario.dispensacion_validar', evolucion_id=f.id) }}">
+            <i class="fa-solid fa-clipboard-check"></i> Validar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="inv-vacio">No hay fórmulas pendientes de dispensar.</div>
+  {% endif %}
+</div>
+{% if dispensaciones %}
+<div class="content-block">
+  <h3 style="margin:0 0 10px"><i class="fa-solid fa-clock-rotate-left"></i> Dispensaciones recientes</h3>
+  <table class="inv-tabla">
+    <thead><tr><th>#</th><th>Fecha</th><th>Paciente</th><th>Estado</th><th>Facturación</th><th></th></tr></thead>
+    <tbody>
+      {% for d in dispensaciones %}
+      <tr>
+        <td>{{ d.consecutivo }}</td>
+        <td>{{ d.created_at[:16].replace('T',' ') }}</td>
+        <td>{{ nombre(d.paciente_id) }}</td>
+        <td>{% set c = {'PENDIENTE':'gris','VALIDADA':'morado','DISPENSADA':'verde','PARCIAL':'amarillo','ANULADA':'rojo'} %}
+            <span class="inv-insignia {{ c[d.estado] }}">{{ d.estado }}</span></td>
+        <td>{% if d.facturacion_estado == 'CARGADA' %}<span class="inv-insignia verde">CARGADA</span>
+            {% elif d.facturacion_estado == 'PENDIENTE_FACTURAR' %}<span class="inv-insignia amarillo">PEND. FACTURAR</span>
+            {% else %}—{% endif %}</td>
+        <td><a href="{{ url_for('inventario.dispensacion_detalle', disp_id=d.id) }}">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
