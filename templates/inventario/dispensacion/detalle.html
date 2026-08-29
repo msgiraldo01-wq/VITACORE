@@ -42,6 +42,7 @@
   </div>
 
   {% if d.estado in ('VALIDADA','PARCIAL') %}
+  {% if puede('farmacia', 'edit') %}
   <div class="content-block inv-seccion">
     <h3 style="margin:0 0 10px">Entrega</h3>
     <div class="inv-form">
@@ -56,6 +57,7 @@
   <p class="inv-ayuda" style="margin-top:8px">
     <i class="fa-solid fa-shield-halved"></i> Descarga por FEFO y, si el paciente tiene prefactura
     ABIERTA, genera el cargo con el precio del manual tarifario de su contrato.</p>
+  {% endif %}
   {% else %}
   <div class="content-block">
     <p style="margin:0">

@@ -34,11 +34,11 @@
     {% if t.recibido_por %} · Recibió: {{ t.recibido_por }} ({{ t.fecha_recepcion[:16].replace('T',' ') }}){% endif %}
   </p>
 </div>
-{% if t.estado == 'PENDIENTE' %}
+{% if t.estado == 'PENDIENTE' and puede('farmacia', 'edit') %}
 <form method="post"><input type="hidden" name="accion" value="despachar">
   <button class="btn-ax primary"><i class="fa-solid fa-truck-fast"></i> Despachar (descuenta del origen por FEFO)</button>
 </form>
-{% elif t.estado == 'EN_TRANSITO' %}
+{% elif t.estado == 'EN_TRANSITO' and puede('farmacia', 'edit') %}
 <form method="post"><input type="hidden" name="accion" value="recibir">
   <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Confirmar recepción en {{ t.destino.nombre }}</button>
 </form>

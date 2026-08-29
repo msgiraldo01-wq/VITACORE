@@ -11,10 +11,12 @@
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/paises/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo país
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -173,12 +175,15 @@ color:var(--muted);
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/paises/editar/{{ item.id }}">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/paises/toggle/{{ item.id }}"
 class="toggleForm">
@@ -189,6 +194,7 @@ class="toggleForm">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -209,10 +215,12 @@ class="toggleForm">
 <div class="empty-box">
 <h3>Aún no hay países registrados</h3>
 <p>Crea el primero o carga el catálogo mundial.</p>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/paises/nuevo">
 <i class="fa-solid fa-plus"></i>
 Crear primer país
 </a>
+{% endif %}
 </div>
 
 {% endif %}

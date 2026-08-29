@@ -18,10 +18,12 @@
   Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/eps/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nueva EPS
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -218,13 +220,16 @@ th{
           <div class="actions">
 
             <!-- ✅ URL CORREGIDA: /eps/editar/{id} -->
-            <a class="btn-mini edit"
+            {% if puede('configuracion', 'edit') %}
+<a class="btn-mini edit"
                href="/hc/configuracion/eps/editar/{{ item.id }}">
               <i class="fa-solid fa-pen"></i>
               Editar
             </a>
+{% endif %}
 
-            <form method="POST"
+            {% if puede('configuracion', 'delete') %}
+<form method="POST"
                   action="/hc/configuracion/eps/toggle/{{ item.id }}"
                   class="formToggle">
               <button class="btn-mini toggle" type="button">
@@ -232,6 +237,7 @@ th{
                 {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
               </button>
             </form>
+{% endif %}
 
           </div>
 
@@ -259,11 +265,13 @@ th{
     Agrega la primera aseguradora para comenzar a parametrizar el sistema.
   </p>
 
-  <a class="btn-ax primary"
+  {% if puede('configuracion', 'create') %}
+<a class="btn-ax primary"
      href="/hc/configuracion/eps/nuevo">
     <i class="fa-solid fa-plus"></i>
     Crear EPS
   </a>
+{% endif %}
 
 </div>
 
@@ -340,12 +348,15 @@ function renderTable(data) {
         <td>${estadoBadge}</td>
         <td>
           <div class="actions">
-            <a class="btn-mini edit"
+            {% if puede('configuracion', 'edit') %}
+<a class="btn-mini edit"
                href="/hc/configuracion/eps/editar/${item.id}">
               <i class="fa-solid fa-pen"></i>
               Editar
             </a>
-            <form method="POST"
+{% endif %}
+            {% if puede('configuracion', 'delete') %}
+<form method="POST"
                   action="/hc/configuracion/eps/toggle/${item.id}"
                   class="formToggle">
               <button class="btn-mini toggle" type="button">
@@ -353,6 +364,7 @@ function renderTable(data) {
                 ${estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
               </button>
             </form>
+{% endif %}
           </div>
         </td>
       </tr>

@@ -8,6 +8,7 @@
 {% block header_subtitle %}Registro de temperatura y humedad por bodega/equipo — evidencia de habilitación (Res. 3100).{% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
+{% if puede('farmacia', 'create') %}
 <div class="content-block inv-seccion">
   <form method="post" class="inv-form">
     <div class="inv-campo">
@@ -41,6 +42,7 @@
     </div>
   </form>
 </div>
+{% endif %}
 <form method="get" class="inv-filtros">
   <div class="inv-campo"><label>Filtrar bodega</label>
     <select name="bodega_id" onchange="this.form.submit()">

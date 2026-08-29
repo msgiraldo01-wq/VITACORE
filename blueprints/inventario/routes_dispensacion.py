@@ -1,9 +1,12 @@
 from flask import flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/dispensacion")
+@login_required
 @contexto_empresa
 def dispensacion_cola(empresa_id, usuario_id):
     return render_template("inventario/dispensacion/cola.html",
@@ -14,6 +17,8 @@ def dispensacion_cola(empresa_id, usuario_id):
 
 # Paso 1: VALIDACIÓN — el QF revisa la fórmula, elige producto del maestro y cantidad
 @inventario_bp.route("/dispensacion/validar/<int:evolucion_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def dispensacion_validar(empresa_id, usuario_id, evolucion_id):
     evo, meds = repo.formula_de_evolucion(evolucion_id)
@@ -63,6 +68,7 @@ def dispensacion_validar(empresa_id, usuario_id, evolucion_id):
 
 # Paso 2: DISPENSACIÓN — descarga FEFO + cargo a cuenta
 @inventario_bp.route("/dispensacion/<disp_id>", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def dispensacion_detalle(empresa_id, usuario_id, disp_id):
     d, items = repo.obtener_dispensacion(empresa_id, disp_id)
@@ -71,6 +77,9 @@ def dispensacion_detalle(empresa_id, usuario_id, disp_id):
         return redirect(url_for("inventario.dispensacion_cola"))
 
     if request.method == "POST" and d["estado"] in ("VALIDADA", "PARCIAL"):
+        _deny = denegado("farmacia", "edit")
+        if _deny:
+            return _deny
         entregado_a = request.form.get("entregado_a", "").strip()
         documento = request.form.get("documento_receptor", "").strip()
         if not entregado_a:

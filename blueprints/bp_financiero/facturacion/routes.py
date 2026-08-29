@@ -6,6 +6,8 @@ Blueprint: bp_facturacion  →  /facturacion/...
 import re
 import time as _time
 from flask import Blueprint, render_template, request, jsonify, Response, session
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import fin_facturacion_repo as repo
 from repositories import fin_factus_repo
 from repositories import hc_municipios_repo
@@ -28,34 +30,40 @@ bp_facturacion = Blueprint(
 # =============================================================
 
 @bp_facturacion.route("/")
+@login_required
 def index():
     """Página principal del módulo de facturación."""
     return render_template("financiero/facturacion/facturacion.html")
 
 
 @bp_facturacion.route("/facturas")
+@login_required
 def lista_facturas():
     """Listado de facturas emitidas."""
     return render_template("financiero/facturacion/facturas_lista.html")
 
 @bp_facturacion.route("/prefacturas")
+@login_required
 def lista_prefacturas():
     return render_template("financiero/facturacion/prefacturas_lista.html")
 
 
 @bp_facturacion.route("/configuracion")
+@login_required
 def configuracion():
     """Configuración de consecutivos y resoluciones."""
     return render_template("financiero/facturacion/facturacion_configuracion.html")
 
 
 @bp_facturacion.route("/factura/<int:factura_id>/vista")
+@login_required
 def vista_factura(factura_id):
     """Vista de factura para impresión y descarga PDF."""
     return render_template("financiero/facturacion/factura_vista.html", factura_id=factura_id)
 
 
 @bp_facturacion.route("/factus/eventos")
+@login_required
 def factus_eventos():
     """
     Panel de diagnóstico (2026-08-27): muestra en una tabla lo que la app
@@ -71,6 +79,7 @@ def factus_eventos():
 # =============================================================
 
 @bp_facturacion.route("/api/buscar-paciente", methods=["GET"])
+@login_required
 def api_buscar_paciente():
     """
     Busca paciente por cédula y retorna sus citas facturables.
@@ -135,6 +144,8 @@ def api_buscar_paciente():
 # =============================================================
 
 @bp_facturacion.route("/api/prefactura", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "create")
 def api_crear_prefactura():
     """
     Crea una prefactura a partir de citas seleccionadas.
@@ -240,6 +251,7 @@ def api_crear_prefactura():
 # =============================================================
 
 @bp_facturacion.route("/api/prefactura/<int:prefactura_id>", methods=["GET"])
+@login_required
 def api_obtener_prefactura(prefactura_id):
     try:
         prefactura = repo.obtener_prefactura(prefactura_id)
@@ -259,6 +271,8 @@ def api_obtener_prefactura(prefactura_id):
 # =============================================================
 
 @bp_facturacion.route("/api/prefactura/<int:prefactura_id>/ajustar", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "edit")
 def api_ajustar_prefactura(prefactura_id):
     """
     Actualiza copago, cuota moderadora, cuota recuperación y descuento.
@@ -447,6 +461,8 @@ def _emitir_factura_ante_dian(reference_code, numbering_range_id, total, observa
 # =============================================================
 
 @bp_facturacion.route("/api/facturar", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "create")
 def api_facturar():
     """
     Genera una factura definitiva desde una prefactura y la emite
@@ -669,6 +685,8 @@ def api_facturar():
 # =============================================================
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/reintentar-dian", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "edit")
 def api_reintentar_dian(factura_id):
     """
     Reintenta la emisión electrónica ante Factus para una factura que
@@ -719,6 +737,8 @@ def api_reintentar_dian(factura_id):
 
 
 @bp_facturacion.route("/api/adquiriente/completar", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "edit")
 def api_completar_datos_adquiriente():
     """
     Guarda los datos DIAN que falten (dirección, email, municipio) de un
@@ -755,6 +775,7 @@ def api_completar_datos_adquiriente():
 # =============================================================
 
 @bp_facturacion.route("/api/factus/test-conexion", methods=["GET"])
+@login_required
 def api_factus_test_conexion():
     try:
         resultado = factus_service.test_conexion()
@@ -766,6 +787,8 @@ def api_factus_test_conexion():
 
 
 @bp_facturacion.route("/api/factus/eliminar-pendiente", methods=["POST", "DELETE"])
+@login_required
+@requiere_permiso("facturacion_diagnostico", "delete")
 def api_factus_eliminar_pendiente():
     """
     Elimina en Factus una factura NO VALIDADA que está bloqueando el rango
@@ -815,6 +838,7 @@ def api_factus_eliminar_pendiente():
 
 
 @bp_facturacion.route("/api/factus/consultar-por-referencia", methods=["GET"])
+@login_required
 def api_factus_consultar_por_referencia():
     """
     Diagnóstico (2026-08-27): busca EN FACTUS (no en la BD local) qué
@@ -859,6 +883,7 @@ def api_factus_consultar_por_referencia():
 
 
 @bp_facturacion.route("/api/factus/eventos", methods=["GET"])
+@login_required
 def api_factus_eventos():
     """
     Datos para el panel /facturacion/factus/eventos. Lee de
@@ -880,6 +905,7 @@ def api_factus_eventos():
 
 
 @bp_facturacion.route("/api/factus/rangos-numeracion", methods=["GET"])
+@login_required
 def api_factus_rangos_numeracion():
     """
     Trae en vivo los rangos de numeración configurados en la cuenta de
@@ -900,6 +926,7 @@ def api_factus_rangos_numeracion():
 
 
 @bp_facturacion.route("/api/factus/municipios", methods=["GET"])
+@login_required
 def api_factus_buscar_municipios():
     """
     Busca municipios directamente en hc_municipios (los que ya tienen
@@ -930,6 +957,8 @@ def api_factus_buscar_municipios():
 
 
 @bp_facturacion.route("/api/factus/sincronizar-municipios", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion_diagnostico", "create")
 def api_factus_sincronizar_municipios():
     """
     Trae la tabla oficial de municipios (código DIVIPOLA de 5 dígitos que
@@ -1079,6 +1108,7 @@ def api_factus_sincronizar_municipios():
 # =============================================================
 
 @bp_facturacion.route("/api/facturas", methods=["GET"])
+@login_required
 def api_listar_facturas():
     try:
         estado = request.args.get("estado")
@@ -1118,6 +1148,7 @@ def api_listar_facturas():
 # =============================================================
 
 @bp_facturacion.route("/api/factura/<int:factura_id>", methods=["GET"])
+@login_required
 def api_detalle_factura(factura_id):
     try:
         factura = repo.obtener_factura(factura_id)
@@ -1138,6 +1169,7 @@ def api_detalle_factura(factura_id):
 # =============================================================
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/pdf", methods=["GET"])
+@login_required
 def api_factura_pdf(factura_id):
     """
     Descarga el PDF de una factura.
@@ -1192,6 +1224,7 @@ def api_factura_pdf(factura_id):
 
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/xml", methods=["GET"])
+@login_required
 def api_factura_xml(factura_id):
     """Descarga el XML oficial (UBL) de una factura ya validada por la DIAN."""
     try:
@@ -1219,6 +1252,8 @@ def api_factura_xml(factura_id):
 # =============================================================
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/email", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "edit")
 def api_reenviar_email_factura(factura_id):
     """
     Reenvía por correo una factura ya validada por la DIAN (2026-08-27).
@@ -1278,6 +1313,8 @@ def api_reenviar_email_factura(factura_id):
 
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/anular", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "delete")
 def api_anular_factura(factura_id):
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -1303,6 +1340,8 @@ def api_anular_factura(factura_id):
 # =============================================================
 
 @bp_facturacion.route("/api/nota", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "create")
 def api_crear_nota():
     """
     Body: { factura_id, tipo: 'CREDITO'|'DEBITO', motivo, concepto, valor,
@@ -1441,6 +1480,7 @@ def api_crear_nota():
 # =============================================================
 
 @bp_facturacion.route("/api/consecutivos", methods=["GET"])
+@login_required
 def api_listar_consecutivos():
     try:
         data = repo.listar_consecutivos()
@@ -1453,6 +1493,8 @@ def api_listar_consecutivos():
 
 
 @bp_facturacion.route("/api/consecutivos", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion_config", "create")
 def api_crear_consecutivo():
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -1476,6 +1518,8 @@ def api_crear_consecutivo():
 
 
 @bp_facturacion.route("/api/consecutivos/<int:consecutivo_id>/factus", methods=["PATCH"])
+@login_required
+@requiere_permiso("facturacion_config", "edit")
 def api_actualizar_consecutivo_factus(consecutivo_id):
     """
     Completa/actualiza el rango de numeración de Factus (y opcionalmente
@@ -1508,6 +1552,7 @@ def api_actualizar_consecutivo_factus(consecutivo_id):
 # =============================================================
 
 @bp_facturacion.route("/api/resumen", methods=["GET"])
+@login_required
 def api_resumen():
     try:
         resumen = repo.resumen_facturacion()
@@ -1521,6 +1566,8 @@ def api_resumen():
 # =============================================================
 
 @bp_facturacion.route("/api/prefactura-libre", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "create")
 def api_crear_prefactura_libre():
     """
     Crea una prefactura sin necesidad de citas previas.
@@ -1608,6 +1655,7 @@ def api_crear_prefactura_libre():
 # =============================================================
 
 @bp_facturacion.route("/api/buscar-cups", methods=["GET"])
+@login_required
 def api_buscar_cups():
     """Busca procedimientos CUPS por código o descripción."""
     try:
@@ -1627,6 +1675,7 @@ def api_buscar_cups():
 # =============================================================
 
 @bp_facturacion.route("/api/tarifa-cups", methods=["GET"])
+@login_required
 def api_tarifa_cups():
     """
     Consulta la tarifa de un procedimiento CUPS en el manual
@@ -1656,6 +1705,7 @@ def api_tarifa_cups():
 # =============================================================
 
 @bp_facturacion.route("/api/prefacturas-consolidables", methods=["GET"])
+@login_required
 def api_prefacturas_consolidables():
     """
     Lista prefacturas ABIERTA de contratos CONSOLIDADA para un cliente.
@@ -1689,6 +1739,8 @@ def api_prefacturas_consolidables():
 
 
 @bp_facturacion.route("/api/facturar-consolidado", methods=["POST"])
+@login_required
+@requiere_permiso("facturacion", "create")
 def api_facturar_consolidado():
     """
     Genera una factura consolidada desde múltiples prefacturas.
@@ -1809,6 +1861,7 @@ def api_facturar_consolidado():
     
 
 @bp_facturacion.route("/api/prefacturas", methods=["GET"])
+@login_required
 def api_listar_prefacturas():
     try:
         estado = request.args.get("estado", "ABIERTA")

@@ -58,7 +58,7 @@
         <span class="cat-name">{{ o.nombre }}</span>
       </div>
       <label class="sw">
-        <input type="checkbox" {{ 'checked' if o.activo }}
+        <input type="checkbox" {{ 'checked' if o.activo }} {{ 'disabled' if not puede('rda', 'edit') }}
                onchange="toggleCat({{ o.id }}, '{{ g.tipo }}', this)">
         <span></span>
       </label>

@@ -1,0 +1,14 @@
+{% extends "emails/_base_email.html" %}
+{% block titulo %}Tu cita fue confirmada — Vitacore{% endblock %}
+{% block cuerpo %}
+<div style="font-size:16px; font-weight:800; color:#0d5c63; margin-bottom:8px;">Hola {{ cita.paciente_nombre }},</div>
+<div style="font-size:14px; color:#334155; line-height:1.55; margin-bottom:4px;">
+  ✅ Tu cita quedó confirmada. Te esperamos:
+</div>
+
+{% include "emails/_resumen_cita.html" %}
+
+<div style="font-size:13px; color:#475569; line-height:1.5;">
+  Si algo cambia y ya no puedes asistir, por favor comunícate con nosotros con anticipación.
+</div>
+{% endblock %}

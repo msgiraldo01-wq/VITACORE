@@ -228,10 +228,12 @@
     <i class="fa-solid fa-arrow-left"></i>
     Volver
 </a>
+{% if puede('glosas', 'create') %}
 <button class="btn-ax primary" onclick="abrirModalRespuesta()">
     <i class="fa-solid fa-reply"></i>
     Registrar respuesta
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -514,6 +516,7 @@
         <div class="glosa-card">
             <p class="glosa-section-title">Acciones</p>
             <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                {% if puede('glosas', 'create') %}
                 <button class="btn-ax primary" onclick="abrirModalRespuesta()" style="width:100%;">
                     <i class="fa-solid fa-reply"></i>
                     Registrar respuesta
@@ -526,6 +529,7 @@
                     <i class="fa-solid fa-handshake"></i>
                     Registrar conciliación
                 </button>
+                {% endif %}
             </div>
         </div>
 

@@ -14,6 +14,7 @@
 {% block content %}
 {% include "inventario/_estilos.html" %}
 
+{% if puede('farmacia', 'create') or puede('farmacia', 'edit') %}
 <div class="content-block inv-seccion">
   <h3><i class="fa-solid fa-plus"></i> Nueva bodega</h3>
   <form method="post" class="inv-form" id="form-bodega">
@@ -56,6 +57,7 @@
     </div>
   </form>
 </div>
+{% endif %}
 
 {% if bodegas %}
 <div class="content-block">
@@ -69,11 +71,15 @@
         <td>{{ b.ubicacion or '—' }}</td>
         <td>{{ 'Sí' if b.permite_dispensacion else 'No' }}</td>
         <td><span class="inv-insignia {{ 'verde' if b.estado=='ACTIVA' else 'gris' }}">{{ b.estado }}</span></td>
-        <td><a href="#form-bodega" onclick='editarBodega({{ {
+        <td>
+          {% if puede('farmacia', 'edit') %}
+          <a href="#form-bodega" onclick='editarBodega({{ {
               "id": b.id, "nombre": b.nombre, "tipo": b.tipo,
               "ubicacion": b.ubicacion or "", "estado": b.estado,
               "dispensa": b.permite_dispensacion } | tojson }})'>
-            <i class="fa-solid fa-pen"></i> Editar</a></td>
+            <i class="fa-solid fa-pen"></i> Editar</a>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

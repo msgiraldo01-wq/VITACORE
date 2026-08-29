@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash # type: ignore
 
-from blueprints.auth.decorators import login_required, rol_required
+from blueprints.auth.decorators import login_required
 
 from repositories.roles_repository import (
     listar_roles,
@@ -27,10 +27,14 @@ bp_roles = Blueprint(
 
 @bp_roles.route("/", methods=["GET", "POST"])
 @login_required
-@rol_required(usar_matriz=True)
 def roles_permisos():
 
-    roles = listar_roles()
+    # SUPER_ADMIN nunca pasa por esta matriz -- siempre tiene acceso total
+    # (ver services/permisos_service.es_super_admin), así que mostrarlo aquí
+    # con checkboxes editables era engañoso: se podían desmarcar y no cambiaba
+    # nada. Se excluye de esta pantalla por la misma razón que ya se excluye
+    # del selector de roles al crear usuarios.
+    roles = [r for r in listar_roles() if (r.get("code") or "").strip().upper() != "SUPER_ADMIN"]
 
     role_id_raw = request.args.get("role_id") or request.form.get("role_id")
     role_id = None
@@ -86,14 +90,29 @@ def roles_permisos():
             )
         )
 
-    matriz = construir_matriz_roles(role_id) if role_id else {}
-
+    # La matriz (módulos + permisos) ya no se calcula aquí: son 2 consultas
+    # extra a Supabase que hacían esperar toda la página antes de mostrar
+    # nada. La página se renderiza de una vez con un esqueleto de carga, y
+    # el JS de la plantilla la trae por separado con /matriz (abajo).
     return render_template(
         "hc/configuracion/roles_permisos.html",
         roles=roles,
         rol_activo=rol_activo,
-        matriz=matriz,
     )
+
+
+@bp_roles.route("/matriz")
+@login_required
+def matriz_parcial():
+    """Fragmento HTML con la matriz de módulos/permisos de un rol. Se
+    carga vía fetch desde roles_permisos.html para que la página principal
+    aparezca de inmediato en vez de esperar a esta consulta."""
+    role_id_raw = request.args.get("role_id")
+    role_id = int(role_id_raw) if role_id_raw and str(role_id_raw).isdigit() else None
+
+    matriz = construir_matriz_roles(role_id) if role_id else {}
+
+    return render_template("hc/configuracion/_matriz_permisos.html", matriz=matriz)
 
 
 # =========================================================
@@ -102,7 +121,6 @@ def roles_permisos():
 
 @bp_roles.route("/crear", methods=["POST"])
 @login_required
-@rol_required(usar_matriz=True)
 def crear_rol_view():
 
     code = (request.form.get("code") or "").strip().lower()
@@ -142,7 +160,6 @@ def crear_rol_view():
 
 @bp_roles.route("/servicios")
 @login_required
-@rol_required(usar_matriz=True)
 def servicios():
 
     servicios = hc_servicios_repo.listar_servicios()
@@ -155,7 +172,6 @@ def servicios():
 
 @bp_roles.route("/servicios/nuevo")
 @login_required
-@rol_required(usar_matriz=True)
 def servicios_nuevo():
 
     especialidades = hc_especialidades_repo.listar_especialidades()
@@ -170,7 +186,6 @@ def servicios_nuevo():
 
 @bp_roles.route("/servicios/crear", methods=["POST"])
 @login_required
-@rol_required(usar_matriz=True)
 def servicios_crear():
 
     data = {
@@ -189,7 +204,6 @@ def servicios_crear():
 
 @bp_roles.route("/servicios/<int:id>/editar")
 @login_required
-@rol_required(usar_matriz=True)
 def servicios_editar(id):
 
     servicio = hc_servicios_repo.obtener_servicio(id)
@@ -206,7 +220,6 @@ def servicios_editar(id):
 
 @bp_roles.route("/servicios/<int:id>/actualizar", methods=["POST"])
 @login_required
-@rol_required(usar_matriz=True)
 def servicios_actualizar(id):
 
     data = {

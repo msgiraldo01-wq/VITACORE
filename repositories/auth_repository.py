@@ -13,6 +13,7 @@ def obtener_perfil_por_username(username: str):
             full_name,
             email,
             role,
+            role_id,
             empresa_id,
             is_active,
             roles:role_id (

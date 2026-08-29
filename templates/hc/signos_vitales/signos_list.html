@@ -8,6 +8,7 @@ Signos vitales
 
 {% block header_actions %}
 
+{% if puede('historia_clinica', 'create') %}
 <a class="btn-ax primary"
 href="/hc/signos/nuevo/{{ paciente_id }}">
 
@@ -15,6 +16,7 @@ href="/hc/signos/nuevo/{{ paciente_id }}">
 Registrar signos
 
 </a>
+{% endif %}
 
 {% endblock %}
 

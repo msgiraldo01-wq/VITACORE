@@ -11,6 +11,19 @@ def _sb():
     return get_supabase_public()
 
 
+def _trabaja_festivos(profesional_id: int) -> bool:
+    """Consulta directa y mínima (1 sola columna) a hc_profesionales."""
+    res = (
+        _sb()
+        .table("hc_profesionales")
+        .select("trabaja_festivos")
+        .eq("id", profesional_id)
+        .limit(1)
+        .execute()
+    )
+    return bool((res.data or [{}])[0].get("trabaja_festivos"))
+
+
 # ══════════════════════════════════════════════════════════════
 #  PROGRAMACIÓN SEMANAL
 # ══════════════════════════════════════════════════════════════
@@ -123,6 +136,39 @@ def agregar_bloqueo(
     return res.data[0] if res.data else {}
 
 
+def actualizar_bloqueo(
+    bloqueo_id: int,
+    fecha_inicio: str,
+    fecha_fin: str,
+    motivo: str = None,
+    hora_inicio: str = None,
+    hora_fin: str = None,
+) -> dict:
+    """
+    Actualiza un bloqueo existente. A diferencia de agregar_bloqueo, aquí sí
+    se envían hora_inicio/hora_fin explícitamente aunque sean None -- así,
+    si el usuario cambia un bloqueo "por horas" a "día completo" (o al
+    revés), el update realmente limpia/establece esos campos en vez de
+    dejar el valor anterior.
+    """
+    payload = {
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "motivo": motivo,
+        "hora_inicio": hora_inicio if (hora_inicio and hora_fin) else None,
+        "hora_fin": hora_fin if (hora_inicio and hora_fin) else None,
+    }
+
+    res = (
+        _sb()
+        .table("hc_prof_bloqueos")
+        .update(payload)
+        .eq("id", bloqueo_id)
+        .execute()
+    )
+    return res.data[0] if res.data else {}
+
+
 def eliminar_bloqueo(bloqueo_id: int):
     _sb().table("hc_prof_bloqueos").delete().eq("id", bloqueo_id).execute()
 
@@ -169,6 +215,12 @@ def obtener_disponibilidad(profesional_id: int, fecha: str) -> list:
     partes = fecha.split("-")
     fecha_obj = date(int(partes[0]), int(partes[1]), int(partes[2]))
     dia_semana = fecha_obj.weekday()
+
+    # Festivo y el profesional no trabaja festivos → sin disponibilidad,
+    # igual que un bloqueo de día completo.
+    from repositories import hc_festivos_repo
+    if hc_festivos_repo.es_festivo(fecha) and not _trabaja_festivos(profesional_id):
+        return []
 
     # Verificar bloqueo total (día completo)
     bloqueos = obtener_bloqueos_fecha(profesional_id, fecha)
@@ -218,6 +270,28 @@ def obtener_alertas_fecha(profesional_id: int, fecha: str) -> list:
     """
     bloqueos = obtener_bloqueos_fecha(profesional_id, fecha)
     alertas = []
+
+    # Festivo: si el profesional no atiende festivos, se muestra como
+    # bloqueo total (mismo banner rojo que ya existe en la agenda, sin
+    # tocar el frontend). Si sí atiende, se muestra un aviso informativo
+    # aparte, sin bloquear nada.
+    from repositories import hc_festivos_repo
+    nombre_festivo = hc_festivos_repo.es_festivo(fecha)
+    if nombre_festivo:
+        if _trabaja_festivos(profesional_id):
+            alertas.append({
+                "tipo": "festivo_informativo",
+                "motivo": f"Festivo: {nombre_festivo} — el profesional sí atiende.",
+                "hora_inicio": None,
+                "hora_fin": None,
+            })
+        else:
+            alertas.append({
+                "tipo": "bloqueo_total",
+                "motivo": f"Festivo: {nombre_festivo} (el profesional no atiende festivos)",
+                "hora_inicio": None,
+                "hora_fin": None,
+            })
 
     for b in bloqueos:
         if b.get("hora_inicio") is None:
@@ -278,47 +352,125 @@ def _restar_rango(rangos: list, bp_ini: int, bp_fin: int) -> list:
 
 def buscar_siguiente_disponible(profesional_id: int, fecha_desde: str, duracion_min: int = 20) -> dict:
     """
-    Busca el próximo slot disponible desde una fecha.
-    Retorna {"fecha": "2026-05-19", "hora": "09:00"} o None si no hay en 90 días.
+    Busca el próximo slot disponible desde una fecha, dentro de una ventana
+    de 90 días. Retorna {"fecha": "2026-05-19", "hora": "09:00"} o None si no
+    hay disponibilidad en ese rango.
+
+    NOTA DE RENDIMIENTO (antes vs. ahora):
+    La versión anterior recorría los 90 días uno por uno y, por cada día,
+    volvía a consultar Supabase para la programación semanal y los bloqueos
+    (2 consultas fijas) más las citas del día si había horario (1 consulta
+    más) -- hasta ~240 consultas secuenciales en el peor caso (médico sin
+    cupo cercano), que es la causa real de la demora reportada al elegir
+    médico en "Nueva cita". La programación semanal y los bloqueos casi
+    nunca cambian de un día a otro dentro de la ventana, así que aquí se
+    traen UNA sola vez cada uno (programación semanal completa, bloqueos de
+    toda la ventana, citas de toda la ventana) y el resto -- rangos por día,
+    resta de bloqueos, búsqueda de slot libre -- se calcula en memoria,
+    sin más ida y vuelta a la base de datos. El resultado (mismo `fecha`+
+    `hora`) es idéntico al de la versión anterior; solo cambia cuántas
+    consultas se hacen para llegar a él.
     """
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta
 
     partes = fecha_desde.split("-")
-    fecha = date(int(partes[0]), int(partes[1]), int(partes[2]))
+    fecha_inicio_busqueda = date(int(partes[0]), int(partes[1]), int(partes[2]))
+    fecha_fin_busqueda = fecha_inicio_busqueda + timedelta(days=89)
     hoy = date.today()
 
+    # 0) Festivos de toda la ventana (1 consulta) + si el profesional
+    #    trabaja festivos (1 consulta mínima, 1 sola columna).
+    from repositories import hc_festivos_repo
+    festivos_ventana = hc_festivos_repo.listar_rango(
+        fecha_inicio_busqueda.isoformat(), fecha_fin_busqueda.isoformat()
+    )
+    trabaja_festivos = _trabaja_festivos(profesional_id)
+
+    # 1) Programación semanal completa del profesional (1 consulta, en vez de
+    #    una por cada uno de los 90 días -- solo hay 7 patrones distintos).
+    bloques_por_dia = {}
+    for b in listar_por_profesional(profesional_id):
+        bloques_por_dia.setdefault(b["dia_semana"], []).append(b)
+
+    # 2) Bloqueos que se solapan con la ventana completa (1 consulta).
+    bloqueos_ventana = (
+        _sb()
+        .table("hc_prof_bloqueos")
+        .select("fecha_inicio, fecha_fin, hora_inicio, hora_fin")
+        .eq("profesional_id", profesional_id)
+        .eq("estado", "ACTIVO")
+        .lte("fecha_inicio", fecha_fin_busqueda.isoformat())
+        .gte("fecha_fin", fecha_inicio_busqueda.isoformat())
+        .execute()
+    ).data or []
+
+    # 3) Citas del profesional en toda la ventana (1 consulta), agrupadas
+    #    por fecha para acceso directo dentro del loop.
+    citas_ventana = (
+        _sb()
+        .table("hc_citas")
+        .select("fecha, hora_inicio, duracion, estado")
+        .eq("medico_id", profesional_id)
+        .gte("fecha", fecha_inicio_busqueda.isoformat())
+        .lte("fecha", fecha_fin_busqueda.isoformat())
+        .neq("estado", "CANCELADA")
+        .execute()
+    ).data or []
+
+    citas_por_dia = {}
+    for c in citas_ventana:
+        citas_por_dia.setdefault(c["fecha"], []).append(c)
+
     for i in range(90):
-        fecha_actual = fecha + timedelta(days=i)
+        fecha_actual = fecha_inicio_busqueda + timedelta(days=i)
         fecha_str = fecha_actual.isoformat()
 
-        # Obtener rangos disponibles (ya resta bloqueos)
-        rangos = obtener_disponibilidad(profesional_id, fecha_str)
+        # Festivo y el profesional no trabaja festivos → se salta el día,
+        # igual que un bloqueo de día completo.
+        if fecha_str in festivos_ventana and not trabaja_festivos:
+            continue
+
+        # Bloqueos activos que cubren este día específico (mismo filtro que
+        # obtener_bloqueos_fecha, aplicado en memoria).
+        bloqueos_dia = [
+            b for b in bloqueos_ventana
+            if b["fecha_inicio"] <= fecha_str <= b["fecha_fin"]
+        ]
+
+        # Bloqueo de día completo (hora_inicio None) → sin disponibilidad.
+        if any(b.get("hora_inicio") is None for b in bloqueos_dia):
+            continue
+
+        bloques = bloques_por_dia.get(fecha_actual.weekday(), [])
+        if not bloques:
+            continue
+
+        rangos = [
+            [_time_to_min(b["hora_inicio"]), _time_to_min(b["hora_fin"])]
+            for b in bloques
+        ]
+
+        for bp in bloqueos_dia:
+            if bp.get("hora_inicio") is None:
+                continue
+            rangos = _restar_rango(
+                rangos, _time_to_min(bp["hora_inicio"]), _time_to_min(bp["hora_fin"])
+            )
+
+        rangos = [r for r in rangos if r[1] > r[0]]
         if not rangos:
             continue
 
-        # Obtener citas del día
-        citas = (
-            _sb()
-            .table("hc_citas")
-            .select("hora_inicio, duracion, estado")
-            .eq("medico_id", profesional_id)
-            .eq("fecha", fecha_str)
-            .neq("estado", "CANCELADA")
-            .execute()
-        ).data or []
+        citas = citas_por_dia.get(fecha_str, [])
 
         # Hora mínima si es hoy
         min_minutos = 0
         if fecha_actual == hoy:
-            from datetime import datetime
             ahora = datetime.now()
             min_minutos = ((ahora.hour * 60 + ahora.minute + 5) // 5) * 5
 
         # Buscar primer slot libre
-        for rango in rangos:
-            r_ini = _time_to_min(rango["hora_inicio"])
-            r_fin = _time_to_min(rango["hora_fin"])
-
+        for r_ini, r_fin in rangos:
             slot = max(r_ini, min_minutos)
             while slot + duracion_min <= r_fin:
                 fin_slot = slot + duracion_min

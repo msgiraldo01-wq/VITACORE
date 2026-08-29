@@ -1,12 +1,18 @@
 from flask import flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import denegado
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/condiciones", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def condiciones(empresa_id, usuario_id):
     if request.method == "POST":
+        _deny = denegado("farmacia", "create")
+        if _deny:
+            return _deny
         temp = request.form.get("temperatura")
         hum = request.form.get("humedad")
         if not request.form.get("bodega_id") or (not temp and not hum):

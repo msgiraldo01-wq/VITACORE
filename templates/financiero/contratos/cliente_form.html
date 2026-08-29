@@ -473,11 +473,13 @@ textarea { min-height: 80px; resize: none; }
 
     <div class="contratos-toolbar">
       <h4>Contratos del cliente</h4>
+      {% if puede('contratos', 'create') %}
       <a class="btn-ax primary"
          href="/hc/configuracion/contratos/nuevo?cliente_id={{ cliente.id }}">
         <i class="fa-solid fa-plus"></i>
         Nuevo contrato
       </a>
+      {% endif %}
     </div>
 
     <div class="contratos-grid" id="contratosGrid">
@@ -498,6 +500,9 @@ textarea { min-height: 80px; resize: none; }
 
 const MODO       = {{ modo | tojson }}
 const CLIENTE_ID = {{ (cliente.id if cliente and cliente.id else None) | tojson }}
+const PUEDE_CREAR_CONTRATO = {{ 'true' if puede('contratos', 'create') else 'false' }}
+const PUEDE_EDITAR_CONTRATO = {{ 'true' if puede('contratos', 'edit') else 'false' }}
+const PUEDE_ELIMINAR_CONTRATO = {{ 'true' if puede('contratos', 'delete') else 'false' }}
 
 /* ── Tabs ── */
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -550,10 +555,11 @@ function renderContratos(data) {
       <div class="empty-contratos">
         <h4>Sin contratos registrados</h4>
         <p>Este cliente aún no tiene contratos asociados.</p>
+        ${PUEDE_CREAR_CONTRATO ? `
         <a class="btn-ax primary"
            href="/hc/configuracion/contratos/nuevo?cliente_id=${CLIENTE_ID}">
           <i class="fa-solid fa-plus"></i> Crear primer contrato
-        </a>
+        </a>` : ''}
       </div>`
     return
   }
@@ -603,10 +609,12 @@ function renderContratos(data) {
       </div>
 
       <div class="contrato-actions">
+        ${PUEDE_EDITAR_CONTRATO ? `
         <a class="btn-mini edit"
            href="/hc/configuracion/contratos/editar/${c.id}">
           <i class="fa-solid fa-pen"></i> Editar
-        </a>
+        </a>` : ''}
+        ${PUEDE_ELIMINAR_CONTRATO ? `
         <form method="POST"
               action="/hc/configuracion/contratos/toggle/${c.id}"
               class="toggleContratoForm">
@@ -614,7 +622,7 @@ function renderContratos(data) {
             <i class="fa-solid fa-power-off"></i>
             ${c.estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
           </button>
-        </form>
+        </form>` : ''}
       </div>
     </div>`).join("")
 

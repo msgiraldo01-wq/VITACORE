@@ -12,11 +12,251 @@
 </a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .param-hint {
+    font-size: .85rem;
+    color: var(--text-soft);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .param-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    max-width: 520px;
+  }
+
+  .param-card + .param-card {
+    margin-top: 14px;
+  }
+
+  .param-label {
+    font-weight: 700;
+    font-size: .92rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .param-desc {
+    font-size: .82rem;
+    color: var(--text-soft);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .param-form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .param-form-row input[type="number"] {
+    width: 100px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .9rem;
+  }
+
+  .param-form-row span.unidad {
+    font-size: .85rem;
+    color: var(--text-soft);
+  }
+
+  .param-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .param-switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .param-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .param-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #cbd5e1;
+    transition: .2s;
+    border-radius: 999px;
+  }
+
+  .param-switch-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: .2s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(15,23,42,.25);
+  }
+
+  .param-switch input:checked + .param-switch-slider {
+    background-color: #0d5c63;
+  }
+
+  .param-switch input:checked + .param-switch-slider::before {
+    transform: translateX(20px);
+  }
+
+  .param-switch-estado {
+    font-weight: 700;
+    font-size: .88rem;
+  }
+
+  .param-switch-estado.on { color: #0d5c63; }
+  .param-switch-estado.off { color: #94a3b8; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="content-block">
-  <h3 style="margin-top:0;">Módulo de parámetros generales</h3>
-  <p style="margin-bottom:0; color:var(--muted);">
-    Aquí construiremos los parámetros maestros del sistema clínico.
-  </p>
+
+<p class="param-hint">
+  Aquí quedan valores sueltos de configuración del sistema (no listas de varios registros como
+  Festivos o Motivos, sino números o textos únicos que ajustan el comportamiento).
+</p>
+
+<div class="param-card">
+  <div class="param-label">Horas límite para confirmar/cancelar una cita por correo</div>
+  <div class="param-desc">
+    Cuando se le manda un correo al paciente (al crear o reprogramar su cita), el enlace le permite
+    confirmar su asistencia o cancelarla con un clic, sin tener que llamar. Este número define hasta
+    cuántas horas antes de la cita ese enlace sigue funcionando — después de ese punto deja de estar
+    disponible y el paciente debe comunicarse directamente con la clínica.
+  </div>
+
+  {% if puede('configuracion', 'edit') %}
+  <div class="param-form-row">
+    <input type="number" id="horasLimiteConfirmacion" min="0" step="0.5" value="{{ horas_limite }}">
+    <span class="unidad">horas antes de la cita</span>
+    <button class="btn-ax primary" type="button" onclick="guardarHorasLimite()">
+      <i class="fa-solid fa-floppy-disk"></i> Guardar
+    </button>
+  </div>
+  {% else %}
+  <div class="param-form-row">
+    <strong>{{ horas_limite }}</strong>&nbsp;<span class="unidad">horas antes de la cita</span>
+  </div>
+  {% endif %}
 </div>
+
+<div class="param-card">
+  <div class="param-label">Envío de correos a pacientes</div>
+  <div class="param-desc">
+    Interruptor general para los 4 correos automáticos (cita creada, confirmada, cancelada y
+    reprogramada). Si lo apagas, el sistema sigue funcionando normalmente y nada más deja de
+    mandar esos correos -- útil para pruebas o si necesitas pausar el envío temporalmente.
+  </div>
+
+  {% if puede('configuracion', 'edit') %}
+  <div class="param-switch-row">
+    <label class="param-switch">
+      <input type="checkbox" id="correosActivosSwitch" {% if correos_activos %}checked{% endif %} onchange="toggleCorreosActivos(this.checked)">
+      <span class="param-switch-slider"></span>
+    </label>
+    <span class="param-switch-estado {{ 'on' if correos_activos else 'off' }}" id="correosActivosEstado">
+      {{ 'Activado' if correos_activos else 'Desactivado' }}
+    </span>
+  </div>
+  {% else %}
+  <div class="param-switch-row">
+    <span class="param-switch-estado {{ 'on' if correos_activos else 'off' }}">
+      {{ 'Activado' if correos_activos else 'Desactivado' }}
+    </span>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+async function guardarHorasLimite() {
+  const valor = document.getElementById('horasLimiteConfirmacion').value;
+
+  if (valor === '' || isNaN(valor) || Number(valor) < 0) {
+    Swal.fire({ title: 'Valor inválido', text: 'Ingresa un número de horas de 0 o más.', icon: 'warning' });
+    return;
+  }
+
+  Swal.fire({
+    title: 'Guardando…',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    const res = await fetch('/hc/configuracion/parametros/guardar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ horas_limite_confirmacion_cita: valor })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      await Swal.fire({ icon: 'success', title: 'Guardado', timer: 1200, timerProgressBar: true, showConfirmButton: false });
+    } else {
+      Swal.fire({ title: 'No se pudo guardar', text: data.msg || 'Intenta de nuevo.', icon: 'error' });
+    }
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+
+async function toggleCorreosActivos(activo) {
+  const checkbox = document.getElementById('correosActivosSwitch');
+  const estadoEl  = document.getElementById('correosActivosEstado');
+
+  try {
+    const res = await fetch('/hc/configuracion/parametros/correos/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      estadoEl.textContent = data.activo ? 'Activado' : 'Desactivado';
+      estadoEl.classList.toggle('on', data.activo);
+      estadoEl.classList.toggle('off', !data.activo);
+      Swal.fire({
+        icon: 'success',
+        title: data.activo ? 'Correos activados' : 'Correos desactivados',
+        timer: 1200,
+        timerProgressBar: true,
+        showConfirmButton: false
+      });
+    } else {
+      checkbox.checked = !activo;
+      Swal.fire({ title: 'No se pudo guardar', text: data.msg || 'Intenta de nuevo.', icon: 'error' });
+    }
+  } catch (e) {
+    checkbox.checked = !activo;
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+</script>
 {% endblock %}

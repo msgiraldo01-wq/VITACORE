@@ -1,0 +1,265 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Motivos de reprogramación{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-calendar-days"></i>{% endblock %}
+{% block header_title %}Configuración · Motivos de reprogramación{% endblock %}
+{% block header_subtitle %}Catálogo de motivos que se piden al reprogramar una cita{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .mot-hint {
+    font-size: .85rem;
+    color: var(--text-soft);
+    margin: 0 0 16px;
+  }
+
+  .mot-form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 22px;
+  }
+
+  .mot-form-row .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mot-form-row .field label {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-soft);
+  }
+
+  .mot-form-row input[type="text"] {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .88rem;
+  }
+
+  .mot-form-row .field.nombre { flex: 1; min-width: 260px; }
+
+  .mot-tabla-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  table.mot-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 480px;
+  }
+
+  .mot-tabla th, .mot-tabla td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: .9rem;
+  }
+
+  .mot-tabla th {
+    background: rgba(13,92,99,.06);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-soft);
+  }
+
+  .mot-tabla tr:last-child td { border-bottom: none; }
+
+  .mot-badge {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .mot-badge.activo   { background: var(--success-soft); color: var(--success); }
+  .mot-badge.inactivo { background: var(--surface-3, var(--border)); color: var(--text-soft); }
+
+  .mot-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-soft);
+    font-size: .9rem;
+  }
+
+  .btn-icon-sm {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; border-radius: 8px; cursor: pointer;
+    font-size: .82rem; transition: background .15s, color .15s;
+  }
+  .btn-icon-sm.des { background: var(--danger-soft); color: var(--danger); }
+  .btn-icon-sm.des:hover { background: var(--danger); color: #fff; }
+  .btn-icon-sm.act { background: var(--success-soft); color: var(--success); }
+  .btn-icon-sm.act:hover { background: var(--success); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="mot-hint">
+  Estos motivos aparecen para elegir cuando alguien reprograma una cita (cambia su fecha u hora).
+  Un motivo desactivado deja de ofrecerse al reprogramar, pero las citas que ya lo usaron lo
+  conservan en su historial.
+</p>
+
+{% if puede('configuracion', 'create') %}
+<form id="formMotivo" class="mot-form-row" onsubmit="return false;">
+  <div class="field nombre">
+    <label>Nombre del motivo</label>
+    <input type="text" id="motNombre" placeholder="Ej: Solicitud del paciente" maxlength="120">
+  </div>
+  <button class="btn-ax primary" type="button" onclick="agregarMotivo()">
+    <i class="fa-solid fa-plus"></i> Agregar
+  </button>
+</form>
+{% endif %}
+
+<div class="mot-tabla-wrap">
+  <table class="mot-tabla">
+    <thead>
+      <tr>
+        <th>Motivo</th>
+        <th>Estado</th>
+        {% if puede('configuracion', 'edit') %}<th style="width:70px;"></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="motivosBody">
+      {% if items %}
+        {% for m in items %}
+        <tr data-id="{{ m.id }}">
+          <td>{{ m.nombre }}</td>
+          <td>
+            {% if m.activo %}
+              <span class="mot-badge activo">Activo</span>
+            {% else %}
+              <span class="mot-badge inactivo">Inactivo</span>
+            {% endif %}
+          </td>
+          {% if puede('configuracion', 'edit') %}
+          <td>
+            {% if m.activo %}
+            <button class="btn-icon-sm des" onclick="cambiarEstadoMotivo({{ m.id }}, false)" title="Desactivar">
+              <i class="fa-solid fa-ban"></i>
+            </button>
+            {% else %}
+            <button class="btn-icon-sm act" onclick="cambiarEstadoMotivo({{ m.id }}, true)" title="Activar">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="3" class="mot-empty">
+          <i class="fa-solid fa-calendar-days" style="font-size:1.4rem; margin-bottom:8px; display:block;"></i>
+          No hay motivos registrados todavía.
+        </td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function swalCargando(texto) {
+  Swal.fire({
+    title: texto,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
+  })
+}
+
+function swalExito(texto) {
+  return Swal.fire({
+    icon: 'success',
+    title: texto,
+    timer: 1200,
+    timerProgressBar: true,
+    showConfirmButton: false
+  })
+}
+
+async function agregarMotivo() {
+  const nombre = document.getElementById('motNombre').value.trim();
+
+  if (!nombre) {
+    Swal.fire({ title: 'Nombre requerido', text: 'Escribe el nombre del motivo.', icon: 'warning', confirmButtonColor: '#0ea5ff' });
+    return;
+  }
+
+  swalCargando('Agregando motivo…');
+
+  try {
+    const res = await fetch('/hc/configuracion/motivos-reprogramacion/agregar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      await swalExito('Motivo agregado');
+      window.location.reload();
+    } else {
+      Swal.fire({ title: 'No se pudo agregar', text: data.msg || 'Error al guardar el motivo.', icon: 'error' });
+    }
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+
+async function cambiarEstadoMotivo(id, activo) {
+  const conf = await Swal.fire({
+    title: activo ? '¿Activar motivo?' : '¿Desactivar motivo?',
+    text: activo
+      ? 'Volverá a aparecer en la lista al reprogramar una cita.'
+      : 'Dejará de ofrecerse al reprogramar una cita nueva. Las citas que ya lo usaron no se ven afectadas.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: activo ? 'Sí, activar' : 'Sí, desactivar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: activo ? '#22c55e' : '#ef4444'
+  });
+  if (!conf.isConfirmed) return;
+
+  swalCargando('Guardando…');
+
+  try {
+    await fetch(`/hc/configuracion/motivos-reprogramacion/${id}/estado`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo })
+    });
+    await swalExito('Guardado');
+    window.location.reload();
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+</script>
+{% endblock %}

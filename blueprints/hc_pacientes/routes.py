@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import hc_pacientes_repo as repo
 from repositories import hc_tipos_documento_repo as repo_doc
 from repositories import hc_paises_repo as repo_paises
@@ -20,6 +22,7 @@ bp_hc_pacientes = Blueprint(
 # ======================================
 
 @bp_hc_pacientes.route("/")
+@login_required
 def pacientes():
 
     pacientes = repo.listar()
@@ -35,6 +38,8 @@ def pacientes():
 # ======================================
 
 @bp_hc_pacientes.route("/nuevo")
+@login_required
+@requiere_permiso("pacientes", "create")
 def pacientes_nuevo():
 
     tipos_doc = repo_doc.listar()
@@ -60,6 +65,8 @@ def pacientes_nuevo():
 # ======================================
 
 @bp_hc_pacientes.route("/crear", methods=["POST"])
+@login_required
+@requiere_permiso("pacientes", "create")
 def pacientes_crear():
 
     numero_doc = request.form.get("numero_documento")
@@ -133,6 +140,8 @@ def pacientes_crear():
 # ======================================
 
 @bp_hc_pacientes.route("/editar/<int:item_id>")
+@login_required
+@requiere_permiso("pacientes", "edit")
 def pacientes_editar(item_id):
 
     paciente = repo.obtener(item_id)
@@ -164,6 +173,8 @@ def pacientes_editar(item_id):
 # ======================================
 
 @bp_hc_pacientes.route("/actualizar/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("pacientes", "edit")
 def pacientes_actualizar(item_id):
 
     municipio_id = request.form.get("municipio_id")
@@ -239,6 +250,8 @@ def pacientes_actualizar(item_id):
 # ======================================
 
 @bp_hc_pacientes.route("/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("pacientes", "delete")
 def pacientes_toggle(item_id):
 
     paciente = repo.obtener(item_id)
@@ -264,6 +277,7 @@ def pacientes_toggle(item_id):
 # ======================================
 
 @bp_hc_pacientes.route("/ver/<int:item_id>")
+@login_required
 def pacientes_ver(item_id):
 
     paciente = repo.obtener(item_id)
@@ -283,6 +297,7 @@ def pacientes_ver(item_id):
 # ======================================
 
 @bp_hc_pacientes.route("/api/municipios")
+@login_required
 def municipios():
 
     dep_id = request.args.get("departamento_id")
@@ -297,6 +312,7 @@ def municipios():
 # ======================================
 
 @bp_hc_pacientes.route("/buscar")
+@login_required
 def pacientes_buscar():
     q = request.args.get("q", "")
     items = repo.buscar(q)

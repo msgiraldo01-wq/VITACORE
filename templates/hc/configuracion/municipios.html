@@ -21,10 +21,12 @@ Catálogo de municipios del sistema
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/municipios/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo municipio
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -211,12 +213,15 @@ font-size:.95rem;
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/municipios/{{ item.id }}/editar">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/municipios/toggle/{{ item.id }}"
 class="formToggle">
@@ -227,6 +232,7 @@ class="formToggle">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -249,11 +255,13 @@ class="formToggle">
 
 <p>Agrega el primer municipio para comenzar la configuración territorial.</p>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/municipios/nuevo">
 <i class="fa-solid fa-plus"></i>
 Crear municipio
 </a>
+{% endif %}
 
 </div>
 

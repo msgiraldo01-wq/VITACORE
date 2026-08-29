@@ -215,10 +215,12 @@
     <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
     Exportar
 </button>
+{% if puede('radicacion', 'create') %}
 <button class="btn-ax primary" onclick="abrirModalRadicacion()">
     <i class="fa-solid fa-paper-plane"></i>
     Nueva radicación
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -367,11 +369,13 @@
                                         class="btn-ax-table">
                                     <i class="fa-solid fa-eye"></i> Ver
                                 </button>
+                                {% if puede('radicacion', 'edit') %}
                                 <button onclick="cambiarEstado('{{ r.id }}', '{{ r.estado }}')"
                                         class="btn-ax-table"
                                         style="background:var(--surface-2); color:var(--text-soft);">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}
@@ -439,6 +443,7 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if puede('radicacion', 'create') %}
                                 <button
                                     onclick="abrirModalRadicacion(
                                         '{{ f.numero_factura }}',
@@ -451,6 +456,7 @@
                                     <i class="fa-solid fa-paper-plane"></i>
                                     Radicar
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}

@@ -6,12 +6,14 @@
 {% block header_subtitle %}Todo lo que la app le ha enviado a Factus y lo que Factus respondió — para no tener que revisarlo desde la consola del navegador.{% endblock %}
 
 {% block header_actions %}
+{% if puede_ver('facturacion') %}
 <a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
   <i class="fa-solid fa-arrow-left"></i> Facturar
 </a>
 <a class="btn-ax ghost" href="/facturacion/prefacturas" style="gap:8px;">
   <i class="fa-solid fa-file-lines"></i> Prefacturas
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -154,14 +156,18 @@
       </div>
     </div>
     <div class="fe-modal-footer" id="modalFooter" style="display:none; padding:16px 24px; border-top:1px solid var(--border); justify-content:flex-end; gap:10px;">
+      {% if puede('facturacion_diagnostico', 'delete') %}
       <button class="fe-btn" style="background:var(--danger, #c0392b);" onclick="eliminarPendiente()">
         <i class="fa-solid fa-trash"></i> Eliminar factura pendiente en Factus
       </button>
+      {% endif %}
     </div>
   </div>
 </div>
 
 <script>
+const PUEDE_ELIMINAR_PENDIENTE_FACTUS = {{ 'true' if puede('facturacion_diagnostico', 'delete') else 'false' }};
+
 let eventosData = [];
 let eventoActual = null;
 let autoRefreshTimer = null;
@@ -270,7 +276,7 @@ function abrirModal(idx) {
   // documento que ya estaba limpio simplemente responde "no encontrado" y
   // no hace daño.
   const tieneReferencia = !!(ev.payload_envio && ev.payload_envio.reference_code);
-  const puedeEliminar = !ev.ok && ev.accion === 'CREAR_VALIDAR' && tieneReferencia;
+  const puedeEliminar = PUEDE_ELIMINAR_PENDIENTE_FACTUS && !ev.ok && ev.accion === 'CREAR_VALIDAR' && tieneReferencia;
   document.getElementById('modalFooter').style.display = puedeEliminar ? 'flex' : 'none';
 
   document.getElementById('modalEvento').classList.add('active');
@@ -372,7 +378,7 @@ function renderPendientes(facturas) {
         <td>${escapeHtml(numero)}</td>
         <td>${validada ? '<span class="fe-badge ok">Validada</span>' : '<span class="fe-badge error">Pendiente</span>'}</td>
         <td class="fe-pend-acciones">
-          <button class="fe-pend-del" onclick="eliminarPendienteDirecto(${i})"><i class="fa-solid fa-trash"></i> Eliminar</button>
+          ${PUEDE_ELIMINAR_PENDIENTE_FACTUS ? `<button class="fe-pend-del" onclick="eliminarPendienteDirecto(${i})"><i class="fa-solid fa-trash"></i> Eliminar</button>` : ''}
           <button class="fe-pend-raw" onclick="verJsonPendiente(${i})"><i class="fa-solid fa-code"></i> JSON</button>
         </td>
       </tr>`;

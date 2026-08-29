@@ -7,8 +7,10 @@
 {% block header_title %}Traslados entre bodegas{% endblock %}
 {% block header_subtitle %}Movimiento de stock con despacho y confirmación de recepción.{% endblock %}
 {% block header_actions %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.traslados_nuevo') }}">
     <i class="fa-solid fa-plus"></i> Nuevo traslado</a>
+  {% endif %}
 {% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
@@ -33,6 +35,9 @@
 </div>
 {% else %}
 <div class="inv-vacio">Sin traslados aún.
-  <a href="{{ url_for('inventario.traslados_nuevo') }}">Crea el primero</a>.</div>
+  {% if puede('farmacia', 'create') %}
+  <a href="{{ url_for('inventario.traslados_nuevo') }}">Crea el primero</a>.
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}

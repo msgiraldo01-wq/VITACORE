@@ -333,10 +333,12 @@
     <i class="fa-solid fa-print"></i>
     Imprimir
 </button>
+{% if puede('cartera', 'create') %}
 <button class="btn-ax primary" onclick="abrirModalPago()">
     <i class="fa-solid fa-hand-holding-dollar"></i>
     Registrar pago
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -738,12 +740,14 @@
                       font-weight:700; text-decoration:none;">
                 Ver todos →
             </a>
+            {% if puede('cartera', 'create') %}
             <button class="btn-ax primary"
                     onclick="abrirModalDocumento()"
                     style="min-height:36px; padding:0 14px; font-size:13px;">
                 <i class="fa-solid fa-plus"></i>
                 Nuevo documento
             </button>
+            {% endif %}
         </div>
     </div>
     <p class="cartera-section-sub">
@@ -881,6 +885,7 @@
                             onmouseout="this.style.background='var(--brand-soft)';this.style.color='var(--brand)';">
                             <i class="fa-solid fa-eye"></i> Ver
                         </button>
+                        {% if puede('cartera', 'delete') %}
                         <button onclick="anularDocumento('{{ doc.numero_documento }}')"
                                 style="border:none; background:none;
                                        color:var(--text-faint); cursor:pointer;
@@ -891,6 +896,7 @@
                                 onmouseout="this.style.background='none';this.style.color='var(--text-faint)';">
                             <i class="fa-solid fa-ban"></i>
                         </button>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

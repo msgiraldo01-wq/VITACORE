@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import hc_evoluciones_repo as repo
 from repositories import hc_evolucion_medicamentos_repo as repo_meds
 from repositories import hc_profesionales_repo as repo_prof
@@ -20,6 +22,7 @@ bp_hc_evoluciones = Blueprint(
 # =========================
 
 @bp_hc_evoluciones.route("/paciente/<int:paciente_id>")
+@login_required
 def evoluciones_paciente(paciente_id):
     """Lista las evoluciones de un paciente"""
     
@@ -44,6 +47,8 @@ def evoluciones_paciente(paciente_id):
 # =========================
 
 @bp_hc_evoluciones.route("/nuevo/<int:paciente_id>")
+@login_required
+@requiere_permiso("historia_clinica", "create")
 def evolucion_nuevo(paciente_id):
     """Muestra el formulario wizard de nueva evolución"""
     
@@ -79,6 +84,8 @@ def evolucion_nuevo(paciente_id):
 # =========================
 
 @bp_hc_evoluciones.route("/crear/<int:paciente_id>", methods=["POST"])
+@login_required
+@requiere_permiso("historia_clinica", "create")
 def evolucion_crear(paciente_id):
 
     # =========================
@@ -224,6 +231,7 @@ def evolucion_crear(paciente_id):
 # =========================
 
 @bp_hc_evoluciones.route("/cie10/buscar")
+@login_required
 def cie10_buscar():
     """API para buscar códigos CIE10"""
     q = request.args.get("q", "")
@@ -236,6 +244,7 @@ def cie10_buscar():
 # =========================
 
 @bp_hc_evoluciones.route("/medicamentos/buscar")
+@login_required
 def medicamentos_buscar():
     """API para buscar medicamentos"""
     q = request.args.get("q", "")
@@ -268,6 +277,7 @@ def medicamentos_buscar():
 # =========================
 
 @bp_hc_evoluciones.route("/ver/<int:evolucion_id>")
+@login_required
 def evolucion_ver(evolucion_id):
     """Muestra el detalle de una evolución"""
     
@@ -296,6 +306,7 @@ def evolucion_ver(evolucion_id):
 # =========================
 
 @bp_hc_evoluciones.route("/formula/<int:evolucion_id>")
+@login_required
 def formula_medica(evolucion_id):
     """Muestra la fórmula médica en HTML"""
     
@@ -324,6 +335,7 @@ def formula_medica(evolucion_id):
 # =========================
 
 @bp_hc_evoluciones.route("/formula_pdf/<int:evolucion_id>")
+@login_required
 def formula_pdf(evolucion_id):
     """Muestra el reporte completo de historia clínica (versión para imprimir/PDF)"""
     

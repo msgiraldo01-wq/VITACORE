@@ -328,12 +328,14 @@ textarea { min-height: 100px; resize: none; }
   </p>
 
   <!-- Buscador CUPS -->
+  {% if puede('configuracion', 'create') %}
   <div class="cups-search-wrap">
     <i class="fa-solid fa-magnifying-glass ico-search"></i>
     <input type="text" id="cupsSearch"
            placeholder="Buscar procedimiento por código o nombre...">
     <div class="cups-dropdown" id="cupsDropdown"></div>
   </div>
+  {% endif %}
 
   <!-- Tabla de procedimientos asignados -->
   <div class="proc-table-wrap">
@@ -371,6 +373,8 @@ const REC_ID = {{ (recurso.id if recurso and recurso.id else None) | tojson }}
 const MODO      = {{ modo | tojson }}
 const BASE_PROC = `/hc/configuracion/recursos/${REC_ID}/procedimientos`
 const BASE_CUPS = `/hc/configuracion/cups/buscar`
+const PUEDE_EDITAR_RECURSO   = {{ 'true' if puede('configuracion', 'edit') else 'false' }}
+const PUEDE_ELIMINAR_RECURSO = {{ 'true' if puede('configuracion', 'delete') else 'false' }}
 
 /* ── tabs ────────────────────────────────────────── */
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -425,14 +429,15 @@ function renderProcs(data) {
       <td><strong>${p.hc_cups?.codigo || "—"}</strong></td>
       <td>${p.hc_cups?.descripcion || "—"}</td>
       <td>
-        <input class="dur-input" type="number" min="1" max="480"
+        <input class="dur-input" type="number" min="1" max="480" ${PUEDE_EDITAR_RECURSO ? '' : 'disabled'}
                value="${p.duracion_min}"
                onchange="guardarDuracion(${p.id}, this.value)">
       </td>
       <td>
+        ${PUEDE_ELIMINAR_RECURSO ? `
         <button class="btn-del-proc" onclick="eliminarProc(${p.id})">
           <i class="fa-solid fa-trash"></i>
-        </button>
+        </button>` : ''}
       </td>
     </tr>`).join("")
 }

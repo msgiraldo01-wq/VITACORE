@@ -179,9 +179,11 @@
             <a class="hc-icon-btn" title="Ver historia" href="/hc/historia/paciente/{{ e.paciente_id }}">
               <i class="fa-solid fa-eye"></i>
             </a>
+            {% if puede('historia_clinica', 'create') %}
             <a class="hc-icon-btn new" title="Nueva evolución" href="/hc/evoluciones/nuevo/{{ e.paciente_id }}">
               <i class="fa-solid fa-file-circle-plus"></i>
             </a>
+            {% endif %}
           </div>
         </td>
       </tr>
@@ -200,6 +202,8 @@
 
 {% block extra_js %}
 <script>
+const PUEDE_CREAR_EVOLUCION = {{ 'true' if puede('historia_clinica', 'create') else 'false' }};
+
 (function(){
   const input = document.getElementById('hcBuscarInput');
   const resultados = document.getElementById('hcResultados');
@@ -247,7 +251,7 @@
         </div>
         <div class="hc-result-actions">
           <a class="hc-icon-btn" title="Ver historia" href="/hc/historia/paciente/${p.id}"><i class="fa-solid fa-eye"></i></a>
-          <a class="hc-icon-btn new" title="Nueva evolución" href="/hc/evoluciones/nuevo/${p.id}"><i class="fa-solid fa-file-circle-plus"></i></a>
+          ${PUEDE_CREAR_EVOLUCION ? `<a class="hc-icon-btn new" title="Nueva evolución" href="/hc/evoluciones/nuevo/${p.id}"><i class="fa-solid fa-file-circle-plus"></i></a>` : ''}
         </div>
       </div>
     `).join('');

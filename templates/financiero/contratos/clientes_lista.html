@@ -11,10 +11,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('contratos', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/clientes/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo cliente
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -329,12 +331,15 @@ tbody tr:last-child td { border-bottom: none; }
                title="Ver detalle">
               <i class="fa-solid fa-eye"></i> Ver
             </a>
+            {% if puede('contratos', 'edit') %}
             <!-- Editar -->
             <a class="btn-mini edit"
                href="/hc/configuracion/clientes/editar/{{ c.id }}"
                title="Editar cliente">
               <i class="fa-solid fa-pen"></i> Editar
             </a>
+            {% endif %}
+            {% if puede('contratos', 'delete') %}
             <!-- Toggle estado -->
             <form method="POST"
                   action="/hc/configuracion/clientes/toggle/{{ c.id }}"
@@ -345,6 +350,7 @@ tbody tr:last-child td { border-bottom: none; }
                 {{ 'Inactivar' if c.estado == 'ACTIVO' else 'Activar' }}
               </button>
             </form>
+            {% endif %}
           </div>
         </td>
       </tr>
@@ -358,10 +364,12 @@ tbody tr:last-child td { border-bottom: none; }
 <div class="empty-box">
   <h3>No hay clientes registrados</h3>
   <p>Crea el primer cliente para comenzar.</p>
+  {% if puede('contratos', 'create') %}
   <a class="btn-ax primary" href="/hc/configuracion/clientes/nuevo">
     <i class="fa-solid fa-plus"></i>
     Crear cliente
   </a>
+  {% endif %}
 </div>
 
 {% endif %}

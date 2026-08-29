@@ -32,6 +32,7 @@
     {% if s.motivo_rechazo %} · Motivo rechazo: {{ s.motivo_rechazo }}{% endif %}</p>
 </div>
 {% if s.estado == 'PENDIENTE' %}
+{% if puede('farmacia', 'edit') %}
 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
   <form method="post"><input type="hidden" name="accion" value="aprobar">
     <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Aprobar</button></form>
@@ -41,7 +42,9 @@
       <input type="text" name="motivo_rechazo" style="min-width:260px"></div>
     <button class="btn-ax ghost"><i class="fa-solid fa-xmark"></i> Rechazar</button></form>
 </div>
+{% endif %}
 {% elif s.estado == 'APROBADA' %}
+{% if puede('farmacia', 'edit') %}
 <form method="post" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
   <input type="hidden" name="accion" value="convertir">
   <div class="inv-campo"><label>Proveedor para la OC *</label>
@@ -53,6 +56,7 @@
   <p class="inv-ayuda" style="width:100%">Los ítems pasan con el precio de la última compra
     (o el costo promedio); el precio definitivo se confirma en la recepción.</p>
 </form>
+{% endif %}
 {% elif s.estado == 'CONVERTIDA_OC' and s.orden_id %}
 <a class="btn-ax primary" href="{{ url_for('inventario.compras_detalle', orden_id=s.orden_id) }}">
   <i class="fa-solid fa-file-invoice"></i> Ver la orden de compra generada</a>

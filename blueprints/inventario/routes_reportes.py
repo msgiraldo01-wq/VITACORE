@@ -4,6 +4,8 @@ from datetime import date
 
 from flask import Response, flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
 from . import contexto_empresa, inventario_bp
 
 # Definición de cada reporte: título, función y columnas (clave → encabezado CSV)
@@ -89,12 +91,14 @@ def _datos(clave, empresa_id, desde, hasta):
 
 
 @inventario_bp.route("/reportes")
+@login_required
 @contexto_empresa
 def reportes(empresa_id, usuario_id):
     return render_template("inventario/reportes/index.html", reportes=REPORTES)
 
 
 @inventario_bp.route("/reportes/<clave>")
+@login_required
 @contexto_empresa
 def reportes_ver(empresa_id, usuario_id, clave):
     if clave not in REPORTES:
@@ -110,6 +114,7 @@ def reportes_ver(empresa_id, usuario_id, clave):
 
 
 @inventario_bp.route("/reportes/<clave>/csv")
+@login_required
 @contexto_empresa
 def reportes_csv(empresa_id, usuario_id, clave):
     if clave not in REPORTES:
@@ -133,9 +138,13 @@ def reportes_csv(empresa_id, usuario_id, clave):
 # ============================ FARMACOVIGILANCIA ============================
 
 @inventario_bp.route("/farmacovigilancia", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def farmacovigilancia(empresa_id, usuario_id):
     if request.method == "POST":
+        _deny = denegado("farmacia", "create")
+        if _deny:
+            return _deny
         descripcion = request.form.get("descripcion", "").strip()
         fecha_evento = request.form.get("fecha_evento")
         if not descripcion or not fecha_evento:
@@ -160,6 +169,8 @@ def farmacovigilancia(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/farmacovigilancia/<evento_id>/reportado", methods=["POST"])
+@login_required
+@requiere_permiso("farmacia", "edit")
 @contexto_empresa
 def farmacovigilancia_reportado(empresa_id, usuario_id, evento_id):
     repo.marcar_fv_reportado(evento_id, request.form.get("fecha") or date.today().isoformat())

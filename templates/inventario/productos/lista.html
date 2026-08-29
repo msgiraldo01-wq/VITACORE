@@ -7,8 +7,10 @@
 {% block header_title %}Catálogo de productos{% endblock %}
 {% block header_subtitle %}Maestro de medicamentos, dispositivos médicos e insumos.{% endblock %}
 {% block header_actions %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.productos_form') }}">
     <i class="fa-solid fa-plus"></i> Nuevo producto</a>
+  {% endif %}
   <a class="btn-ax ghost" href="{{ url_for('inventario.principios') }}">
     <i class="fa-solid fa-flask"></i> Principios activos</a>
 {% endblock %}
@@ -51,8 +53,12 @@
         <td>{{ p.cum or '—' }}</td>
         <td>{% if p.es_control_especial %}<span class="inv-insignia morado">CONTROL</span>{% else %}—{% endif %}</td>
         <td><span class="inv-insignia {{ 'verde' if p.estado=='ACTIVO' else 'gris' }}">{{ p.estado }}</span></td>
-        <td><a href="{{ url_for('inventario.productos_form', producto_id=p.id) }}">
-            <i class="fa-solid fa-pen"></i> Editar</a></td>
+        <td>
+          {% if puede('farmacia', 'edit') %}
+          <a href="{{ url_for('inventario.productos_form', producto_id=p.id) }}">
+            <i class="fa-solid fa-pen"></i> Editar</a>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -60,6 +66,9 @@
 </div>
 {% else %}
 <div class="inv-vacio">No hay productos que coincidan.
-  <a href="{{ url_for('inventario.productos_form') }}">Crea el primero</a>.</div>
+  {% if puede('farmacia', 'create') %}
+  <a href="{{ url_for('inventario.productos_form') }}">Crea el primero</a>.
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}

@@ -12,10 +12,12 @@
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/departamentos/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo departamento
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -176,11 +178,14 @@ color:#64748b;
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/departamentos/editar/{{ item.id }}">
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/departamentos/toggle/{{ item.id }}"
 class="formToggle">
@@ -190,6 +195,7 @@ class="formToggle">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -211,10 +217,12 @@ class="formToggle">
 <h3>No hay departamentos registrados</h3>
 <p>Agrega el primero para comenzar.</p>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/departamentos/nuevo">
 Crear departamento
 </a>
+{% endif %}
 
 </div>
 

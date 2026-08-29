@@ -1,0 +1,22 @@
+{% extends "emails/_base_email.html" %}
+{% block titulo %}Tu cita quedó agendada — Vitacore{% endblock %}
+{% block cuerpo %}
+<div style="font-size:16px; font-weight:800; color:#0d5c63; margin-bottom:8px;">Hola {{ cita.paciente_nombre }},</div>
+<div style="font-size:14px; color:#334155; line-height:1.55; margin-bottom:4px;">
+  Te confirmamos que quedó agendada tu cita con estos datos:
+</div>
+
+{% include "emails/_resumen_cita.html" %}
+
+<div style="font-size:13px; color:#475569; line-height:1.5; margin-bottom:18px;">
+  Por favor, entra al siguiente enlace para confirmarnos si podrás asistir, o para avisarnos si necesitas cancelarla.
+</div>
+
+<div style="text-align:center;">
+  <a href="{{ url_cita }}"
+     style="display:inline-block; background:#0d5c63; color:#ffffff; text-decoration:none;
+            font-weight:700; font-size:14px; padding:13px 26px; border-radius:9px;">
+    Confirmar o cancelar mi cita
+  </a>
+</div>
+{% endblock %}

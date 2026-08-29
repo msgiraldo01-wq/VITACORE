@@ -7,6 +7,9 @@ from repositories import inventario_repository as repo
 from services import inventario_service as svc
 from services.inventario_service import InventarioError
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
+
 from . import contexto_empresa, inventario_bp
 
 
@@ -14,6 +17,7 @@ from . import contexto_empresa, inventario_bp
 
 @inventario_bp.route("/")
 @inventario_bp.route("/dashboard")
+@login_required
 @contexto_empresa
 def dashboard(empresa_id, usuario_id):
     resumen = repo.dashboard(empresa_id) or {}
@@ -25,6 +29,7 @@ def dashboard(empresa_id, usuario_id):
 # ------------------------------- PRODUCTOS ---------------------------------
 
 @inventario_bp.route("/productos")
+@login_required
 @contexto_empresa
 def productos_lista(empresa_id, usuario_id):
     busqueda = request.args.get("q", "").strip()
@@ -36,8 +41,12 @@ def productos_lista(empresa_id, usuario_id):
 
 @inventario_bp.route("/productos/nuevo", methods=["GET", "POST"])
 @inventario_bp.route("/productos/<producto_id>/editar", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def productos_form(empresa_id, usuario_id, producto_id=None):
+    _deny = denegado("farmacia", "edit" if producto_id else "create")
+    if _deny:
+        return _deny
     producto = repo.obtener_producto(producto_id) if producto_id else None
 
     if request.method == "POST":
@@ -62,6 +71,7 @@ def productos_form(empresa_id, usuario_id, producto_id=None):
 
 
 @inventario_bp.route("/api/cum")
+@login_required
 @contexto_empresa
 def api_buscar_cum(empresa_id, usuario_id):
     """Autocompletar desde el catálogo oficial INVIMA."""
@@ -74,9 +84,13 @@ def api_buscar_cum(empresa_id, usuario_id):
 # --------------------------- PRINCIPIOS ACTIVOS ----------------------------
 
 @inventario_bp.route("/principios", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def principios(empresa_id, usuario_id):
     if request.method == "POST":
+        _deny = denegado("farmacia", "create")
+        if _deny:
+            return _deny
         nombre = request.form.get("nombre", "").strip()
         if not nombre:
             flash("El nombre del principio activo es obligatorio.", "error")
@@ -94,6 +108,8 @@ def principios(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/principios/<principio_id>/estado", methods=["POST"])
+@login_required
+@requiere_permiso("farmacia", "delete")
 @contexto_empresa
 def principios_estado(empresa_id, usuario_id, principio_id):
     nuevo = request.form.get("estado", "INACTIVO")

@@ -1,0 +1,48 @@
+{# Fragmento reutilizable: solo las secciones de módulos con checkboxes.
+   Se usa tanto para la carga inicial (vía fetch, ver roles_permisos.html)
+   como fuente única de verdad del markup, para no duplicarlo. #}
+{% for section, items in matriz.items() %}
+  <div class="rp-section">
+    <div class="rp-section-head">{{ section }}</div>
+
+    <div class="rp-table-wrap">
+      <table class="rp-table">
+        <thead>
+          <tr>
+            <th>Módulo</th>
+            <th>Ver</th>
+            <th>Crear</th>
+            <th>Editar</th>
+            <th>Eliminar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td class="mod-cell">
+                <input type="hidden" name="modulo_ids" value="{{ item.id }}">
+                <div class="mod-name">
+                  <i class="fa-solid {{ item.icon }}"></i>
+                  {{ item.name }}
+                </div>
+                <div class="mod-endpoint">{{ item.endpoint }}</div>
+              </td>
+              <td>
+                <input class="chk" type="checkbox" name="view_{{ item.id }}" value="1" {% if item.can_view %}checked{% endif %}>
+              </td>
+              <td>
+                <input class="chk" type="checkbox" name="create_{{ item.id }}" value="1" {% if item.can_create %}checked{% endif %}>
+              </td>
+              <td>
+                <input class="chk" type="checkbox" name="edit_{{ item.id }}" value="1" {% if item.can_edit %}checked{% endif %}>
+              </td>
+              <td>
+                <input class="chk" type="checkbox" name="delete_{{ item.id }}" value="1" {% if item.can_delete %}checked{% endif %}>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endfor %}

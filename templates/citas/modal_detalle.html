@@ -163,6 +163,52 @@
               <span class="detalle-label">Nro. Autorización</span>
               <span class="detalle-value" id="d-nro-autorizacion">—</span>
             </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Tipo de consulta</span>
+              <span class="detalle-value" id="d-tipo-consulta">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CANCELACIÓN (solo si la cita está cancelada) -->
+        <div class="detalle-seccion" id="detalle-seccion-cancelacion" style="display:none;">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-ban" style="color:var(--color-cancelada);"></i> Cancelación
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field" style="grid-column: span 2;">
+              <span class="detalle-label">Motivo</span>
+              <span class="detalle-value" id="d-motivo-cancelacion">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPROGRAMACIÓN (solo si la cita ya fue reprogramada) -->
+        <div class="detalle-seccion" id="detalle-seccion-reprogramacion" style="display:none;">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-calendar-days" style="color:#7c3aed;"></i> Reprogramación
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Fecha/hora anterior</span>
+              <span class="detalle-value" id="d-reprog-anterior">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Veces reprogramada</span>
+              <span class="detalle-value" id="d-reprog-veces">—</span>
+            </div>
+            <div class="detalle-field" style="grid-column: span 2;">
+              <span class="detalle-label">Motivo</span>
+              <span class="detalle-value" id="d-reprog-motivo">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Reprogramada por</span>
+              <span class="detalle-value" id="d-reprog-usuario">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Fecha de reprogramación</span>
+              <span class="detalle-value" id="d-reprog-fecha">—</span>
+            </div>
           </div>
         </div>
 
@@ -174,6 +220,35 @@
           <div id="detalle-cups-lista"></div>
         </div>
 
+        <!-- TRAZABILIDAD -->
+        <div class="detalle-seccion" id="detalle-seccion-traza">
+          <div class="detalle-seccion-titulo">
+            <i class="fa-solid fa-fingerprint"></i> Trazabilidad
+          </div>
+          <div class="detalle-grid">
+            <div class="detalle-field">
+              <span class="detalle-label">Fecha de solicitud</span>
+              <span class="detalle-value" id="d-traza-solicitud">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Creada por</span>
+              <span class="detalle-value" id="d-traza-creador">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">Creada el</span>
+              <span class="detalle-value" id="d-traza-creacion">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">IP privada</span>
+              <span class="detalle-value" id="d-traza-ip-privada">—</span>
+            </div>
+            <div class="detalle-field">
+              <span class="detalle-label">IP pública</span>
+              <span class="detalle-value" id="d-traza-ip-publica">—</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -181,14 +256,13 @@
     <div class="modal-footer" id="detalleFooter" style="display: none;">
       <div class="btn-group" id="detalle-acciones"></div>
       <div class="btn-group btn-group-utilidades">
-        <a class="btn btn-outline btn-sm" 
-           id="btn-ver-html" 
-           href="#" 
-           target="_blank"
-           title="Ver en pantalla completa">
+        <button class="btn btn-outline btn-sm"
+                id="btn-ver-html"
+                onclick="verCitaHtml(this.dataset.citaId)"
+                title="Ver en pantalla completa">
           <i class="fa-solid fa-eye" style="color:#0d5c63;"></i>
           <span class="btn-label">Ver</span>
-        </a>
+        </button>
         <button class="btn btn-primary btn-sm" 
                 id="btn-descargar-pdf"
                 onclick="descargarPDF()"
@@ -374,11 +448,13 @@
 .btn-accion-iniciar    { background: var(--color-atencion);   color: white; }
 .btn-accion-finalizar  { background: var(--color-finalizada); color: white; }
 .btn-accion-cancelar   { background: var(--color-cancelada);  color: white; }
+.btn-accion-reprogramar { background: #7c3aed; color: white; }
 
 .btn-accion-confirmar:hover  { background: #2563eb; }
 .btn-accion-iniciar:hover    { background: #059669; }
 .btn-accion-finalizar:hover  { background: #4b5563; }
 .btn-accion-cancelar:hover   { background: #dc2626; }
+.btn-accion-reprogramar:hover { background: #6d28d9; }
 
 @media (max-width: 540px) {
   .modal-footer {

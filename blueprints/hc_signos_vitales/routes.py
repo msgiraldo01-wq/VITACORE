@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, flash, url_for
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import hc_signos_repo as repo
 
 
@@ -11,6 +13,7 @@ bp_hc_signos = Blueprint(
 
 
 @bp_hc_signos.route("/paciente/<int:paciente_id>")
+@login_required
 def signos_paciente(paciente_id):
 
     signos = repo.listar_por_paciente(paciente_id)
@@ -23,6 +26,8 @@ def signos_paciente(paciente_id):
 
 
 @bp_hc_signos.route("/nuevo/<int:paciente_id>")
+@login_required
+@requiere_permiso("historia_clinica", "create")
 def signos_nuevo(paciente_id):
 
     return render_template(
@@ -32,6 +37,8 @@ def signos_nuevo(paciente_id):
 
 
 @bp_hc_signos.route("/crear/<int:paciente_id>", methods=["POST"])
+@login_required
+@requiere_permiso("historia_clinica", "create")
 def signos_crear(paciente_id):
 
     peso = float(request.form.get("peso") or 0)

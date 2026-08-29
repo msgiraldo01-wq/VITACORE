@@ -1,5 +1,7 @@
 from flask import flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
 from . import contexto_empresa, inventario_bp
 
 CHECKS = ("factura_conforme", "cantidades_conformes", "embalaje_conforme",
@@ -7,9 +9,13 @@ CHECKS = ("factura_conforme", "cantidades_conformes", "embalaje_conforme",
 
 
 @inventario_bp.route("/proveedores", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def proveedores(empresa_id, usuario_id):
     if request.method == "POST":
+        _deny = denegado("farmacia", "edit" if request.form.get("proveedor_id") else "create")
+        if _deny:
+            return _deny
         nit = request.form.get("numero_documento", "").strip()
         razon = request.form.get("razon_social", "").strip()
         if not nit or not razon:
@@ -43,6 +49,7 @@ def proveedores(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/compras")
+@login_required
 @contexto_empresa
 def compras_lista(empresa_id, usuario_id):
     return render_template("inventario/compras/lista.html",
@@ -50,6 +57,8 @@ def compras_lista(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/compras/nueva", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def compras_nueva(empresa_id, usuario_id):
     if request.method == "POST":
@@ -90,10 +99,14 @@ def compras_nueva(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/compras/<orden_id>", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def compras_detalle(empresa_id, usuario_id, orden_id):
     if request.method == "POST":
         accion = request.form.get("accion")
+        _deny = denegado("farmacia", "delete" if accion == "anular" else "edit")
+        if _deny:
+            return _deny
         if accion == "aprobar":
             repo.cambiar_estado_orden(empresa_id, orden_id, "APROBADA", usuario_id)
             flash("Orden aprobada. Ya puedes registrar recepciones.", "success")
@@ -110,6 +123,8 @@ def compras_detalle(empresa_id, usuario_id, orden_id):
 
 
 @inventario_bp.route("/compras/<orden_id>/recepcion", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def compras_recepcion(empresa_id, usuario_id, orden_id):
     oc, items, _ = repo.obtener_orden(empresa_id, orden_id)

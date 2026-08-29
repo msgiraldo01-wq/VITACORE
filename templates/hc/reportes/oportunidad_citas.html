@@ -1,0 +1,208 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Reportes · Oportunidad de citas{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-calendar-check"></i>{% endblock %}
+{% block header_title %}Oportunidad de citas — Resolución 256{% endblock %}
+{% block header_subtitle %}Días entre la solicitud y la asignación de citas médicas de primera vez, por especialidad.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/reportes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax" href="{{ url_for('hc_reportes.oportunidad_citas_csv', desde=desde, hasta=hasta) }}">
+  <i class="fa-solid fa-file-csv"></i>
+  Exportar CSV
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .op-hint {
+    font-size: .85rem;
+    color: var(--text-soft);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .op-filtros {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 22px;
+  }
+
+  .op-filtros .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .op-filtros .field label {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .op-filtros input[type="date"] {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: .9rem;
+  }
+
+  .op-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .op-kpi {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+
+  .op-kpi .op-kpi-label {
+    font-size: .75rem;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+
+  .op-kpi .op-kpi-valor {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .op-table-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .op-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+  }
+
+  .op-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface-3, var(--surface));
+    color: var(--text-soft);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .op-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .op-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .op-table tfoot td {
+    font-weight: 700;
+    background: var(--surface);
+  }
+
+  .op-vacio {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-soft);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="op-hint">
+  El indicador mide los días calendario entre el primer contacto (fecha de solicitud) y la fecha en que
+  quedó asignada la cita. Solo incluye citas marcadas como <strong>Primera vez</strong> al agendarlas, y
+  excluye las canceladas. Cuando no se registró una fecha de solicitud distinta, se usa la fecha en que
+  se creó la cita en el sistema. Las citas creadas antes de este campo no tienen este dato y no entran al cálculo.
+</p>
+
+<form class="op-filtros" method="get">
+  <div class="field">
+    <label for="desde">Desde</label>
+    <input type="date" id="desde" name="desde" value="{{ desde }}">
+  </div>
+  <div class="field">
+    <label for="hasta">Hasta</label>
+    <input type="date" id="hasta" name="hasta" value="{{ hasta }}">
+  </div>
+  <button type="submit" class="btn-ax">
+    <i class="fa-solid fa-filter"></i> Aplicar
+  </button>
+</form>
+
+<div class="op-kpis">
+  <div class="op-kpi">
+    <div class="op-kpi-label">Citas de primera vez (periodo)</div>
+    <div class="op-kpi-valor">{{ data.total_citas }}</div>
+  </div>
+  <div class="op-kpi">
+    <div class="op-kpi-label">Oportunidad promedio</div>
+    <div class="op-kpi-valor">{{ data.promedio_general }} días</div>
+  </div>
+  {% if data.excluidas %}
+  <div class="op-kpi">
+    <div class="op-kpi-label">Excluidas del cálculo</div>
+    <div class="op-kpi-valor">{{ data.excluidas }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="op-table-wrap">
+  {% if data.filas %}
+  <table class="op-table">
+    <thead>
+      <tr>
+        <th>Especialidad</th>
+        <th>Citas de primera vez</th>
+        <th>Promedio días de oportunidad</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in data.filas %}
+      <tr>
+        <td>{{ f.especialidad }}</td>
+        <td>{{ f.citas }}</td>
+        <td>{{ f.promedio_dias }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Total</td>
+        <td>{{ data.total_citas }}</td>
+        <td>{{ data.promedio_general }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% else %}
+  <div class="op-vacio">
+    No hay citas de primera vez en este período (o todavía no tienen el campo "Tipo de consulta" diligenciado).
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

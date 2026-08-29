@@ -12,6 +12,7 @@
 {% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
+{% if puede('farmacia', 'create') %}
 <div class="content-block inv-seccion">
   <h3 style="margin:0 0 10px">Registrar evento</h3>
   <form method="post" class="inv-form">
@@ -53,6 +54,7 @@
         <i class="fa-solid fa-floppy-disk"></i> Registrar evento</button></div>
   </form>
 </div>
+{% endif %}
 
 {% if eventos %}
 <div class="content-block">
@@ -74,7 +76,7 @@
         <td>{% if e.reportado_invima %}
               <span class="inv-insignia verde">{{ e.fecha_reporte_invima or 'SÍ' }}</span>
             {% else %}<span class="inv-insignia amarillo">PENDIENTE</span>{% endif %}</td>
-        <td>{% if not e.reportado_invima %}
+        <td>{% if not e.reportado_invima and puede('farmacia', 'edit') %}
             <form method="post" action="{{ url_for('inventario.farmacovigilancia_reportado', evento_id=e.id) }}">
               <button class="btn-ax ghost" style="min-height:30px;padding:0 10px;font-size:11.5px">
                 Marcar reportado</button></form>{% endif %}</td>

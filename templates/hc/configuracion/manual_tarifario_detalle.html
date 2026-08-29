@@ -10,11 +10,13 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('contratos', 'edit') %}
 <a class="btn-ax primary"
    href="/hc/configuracion/manuales-tarifarios/editar/{{ manual.id }}">
   <i class="fa-solid fa-pen"></i>
   Editar manual
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -537,10 +539,12 @@
     </div>
 
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
+      {% if puede('contratos', 'edit') %}
       <a class="btn-ax primary" style="justify-content:center;"
          href="/hc/configuracion/manuales-tarifarios/editar/{{ manual.id }}">
         <i class="fa-solid fa-pen"></i> Editar manual completo
       </a>
+      {% endif %}
 
     </div>
 
@@ -690,6 +694,7 @@
 <script>
 
 const MANUAL_ID  = {{ manual.id | tojson }}
+const PUEDE_EDITAR_MANUAL = {{ 'true' if puede('contratos', 'edit') else 'false' }}
 const EDIT_URL   = `/hc/configuracion/manuales-tarifarios/editar/${MANUAL_ID}`
 const PROCS_URL  = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/procedimientos`
 const ITEMS_URL  = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/items`
@@ -781,9 +786,10 @@ async function cargarProcs() {
                 <td class="val-col">${fmt(p.valor_paquete)}</td>
                 <td class="val-col">${fmt(p.valor_procedimiento)}</td>
                 <td style="text-align:center;">
+                  ${PUEDE_EDITAR_MANUAL ? `
                   <button class="btn-edit-row" onclick="abrirModalDetalle(${p.id})">
                     <i class="fa-solid fa-pen"></i>
-                  </button>
+                  </button>` : ''}
                 </td>
               </tr>`).join("")}
           </tbody>

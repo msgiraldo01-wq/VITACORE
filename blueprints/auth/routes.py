@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from repositories.auth_repository import obtener_perfil_por_username
 from services.supabase_service import get_supabase_public
-from . decorators import rol_required, login_required
+from . decorators import login_required
 
 bp_auth = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -57,7 +57,8 @@ def login():
             "username": perfil["username"],
             "full_name": perfil.get("full_name") or "",
             "email": perfil.get("email") or "",
-            "role": perfil.get("role", ""),          # 🔥 DESDE BD
+            "role": perfil.get("role", ""),          # 🔥 DESDE BD (legado, SUPER_ADMIN vive aquí)
+            "role_id": perfil.get("role_id"),        # 🔥 NECESARIO para la matriz de permisos por módulo
             "empresa_id": perfil.get("empresa_id")   # 🔥 CLAVE MULTIEMPRESA
         }
 
@@ -101,7 +102,6 @@ def logout():
 
 @bp_auth.route("/mi-perfil")
 @login_required
-@rol_required(usar_matriz=True)
 def mi_perfil():
 
     if not session.get("user"):
@@ -117,7 +117,6 @@ def mi_perfil():
 
 @bp_auth.route("/cambiar-password", methods=["POST"])
 @login_required
-@rol_required(usar_matriz=True)
 def cambiar_password():
 
     if not session.get("user"):

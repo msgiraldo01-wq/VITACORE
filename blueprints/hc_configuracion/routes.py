@@ -23,7 +23,14 @@ import csv
 import repositories.hc_clientes_repo as repo_clientes
 import repositories.hc_contratos_repo as repo_contratos
 import repositories.hc_manuales_repo as repo_manuales
+import repositories.hc_festivos_repo as repo_fest
+import repositories.hc_motivos_cancelacion_repo as repo_motivos_cancel
+import repositories.hc_motivos_reprogramacion_repo as repo_motivos_reprog
+import repositories.hc_parametros_repo as repo_parametros
 from services.supabase_service import get_supabase_public
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
+from postgrest.exceptions import APIError
 
 
 bp_hc_configuracion = Blueprint(
@@ -34,6 +41,7 @@ bp_hc_configuracion = Blueprint(
 
 
 @bp_hc_configuracion.route("/")
+@login_required
 def index():
     return render_template("hc/configuracion/index.html")
 
@@ -43,12 +51,15 @@ def index():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/sedes")
+@login_required
 def sedes():
     items = repo.listar()
     return render_template("hc/configuracion/sedes.html", items=items)
 
 
 @bp_hc_configuracion.route("/sedes/nueva", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def sede_nueva():
     if request.method == "POST":
         data = {
@@ -75,6 +86,8 @@ def sede_nueva():
 
 
 @bp_hc_configuracion.route("/sedes/editar/<int:sede_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def sede_editar(sede_id):
     item = repo.obtener(sede_id)
     if not item:
@@ -105,6 +118,8 @@ def sede_editar(sede_id):
 
 
 @bp_hc_configuracion.route("/sedes/toggle/<int:sede_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def sede_toggle(sede_id):
     item = repo.obtener(sede_id)
     if not item:
@@ -121,12 +136,15 @@ def sede_toggle(sede_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/tipos-documento")
+@login_required
 def tipos_documento():
     items = repo_td.listar()
     return render_template("hc/configuracion/tipos_documento.html", items=items)
 
 
 @bp_hc_configuracion.route("/tipos-documento/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def tipo_documento_nuevo():
     if request.method == "POST":
         data = {
@@ -151,6 +169,8 @@ def tipo_documento_nuevo():
 
 
 @bp_hc_configuracion.route("/tipos-documento/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def tipo_documento_editar(item_id):
     item = repo_td.obtener(item_id)
     if not item:
@@ -179,6 +199,8 @@ def tipo_documento_editar(item_id):
 
 
 @bp_hc_configuracion.route("/tipos-documento/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def tipo_documento_toggle(item_id):
     item = repo_td.obtener(item_id)
     if not item:
@@ -195,12 +217,15 @@ def tipo_documento_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/especialidades")
+@login_required
 def especialidades():
     items = repo_esp.listar()
     return render_template("hc/configuracion/especialidades.html", items=items)
 
 
 @bp_hc_configuracion.route("/especialidades/nueva", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def especialidad_nueva():
     if request.method == "POST":
         data = {
@@ -225,6 +250,8 @@ def especialidad_nueva():
 
 
 @bp_hc_configuracion.route("/especialidades/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def especialidad_editar(item_id):
     item = repo_esp.obtener(item_id)
     if not item:
@@ -253,6 +280,8 @@ def especialidad_editar(item_id):
 
 
 @bp_hc_configuracion.route("/especialidades/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def especialidad_toggle(item_id):
     item = repo_esp.obtener(item_id)
     if not item:
@@ -269,12 +298,15 @@ def especialidad_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/consultorios")
+@login_required
 def consultorios():
     items = repo_cons.listar()
     return render_template("hc/configuracion/consultorios.html", items=items)
 
 
 @bp_hc_configuracion.route("/consultorios/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def consultorio_nuevo():
     sedes = repo_sedes.listar()
     if request.method == "POST":
@@ -309,6 +341,8 @@ def consultorio_nuevo():
 
 
 @bp_hc_configuracion.route("/consultorios/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def consultorio_editar(item_id):
     item = repo_cons.obtener(item_id)
     if not item:
@@ -347,6 +381,8 @@ def consultorio_editar(item_id):
 
 
 @bp_hc_configuracion.route("/consultorios/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def consultorio_toggle(item_id):
     item = repo_cons.obtener(item_id)
     if not item:
@@ -363,12 +399,15 @@ def consultorio_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/profesionales")
+@login_required
 def profesionales():
     items = repo_prof.listar()
     return render_template("hc/configuracion/profesionales.html", items=items)
 
 
 @bp_hc_configuracion.route("/profesionales/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def profesional_nuevo():
     tipos_documento = repo_td.listar()
     especialidades  = repo_esp.listar()
@@ -387,6 +426,7 @@ def profesional_nuevo():
             "correo":               request.form.get("correo"),
             "telefono":             request.form.get("telefono"),
             "estado":               request.form.get("estado"),
+            "trabaja_festivos":     request.form.get("trabaja_festivos") == "on",
         }
         ctx = dict(modo="crear", item=data, tipos_documento=tipos_documento,
                    especialidades=especialidades, sedes=sedes, consultorios=consultorios)
@@ -414,6 +454,8 @@ def profesional_nuevo():
 
 
 @bp_hc_configuracion.route("/profesionales/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def profesional_editar(item_id):
     item = repo_prof.obtener(item_id)
     if not item:
@@ -436,6 +478,7 @@ def profesional_editar(item_id):
             "correo":               request.form.get("correo"),
             "telefono":             request.form.get("telefono"),
             "estado":               request.form.get("estado"),
+            "trabaja_festivos":     request.form.get("trabaja_festivos") == "on",
         }
         if repo_prof.existe_documento(data["tipo_documento_id"], data["numero_documento"], exclude_id=item_id):
             flash("Ya existe otro profesional con ese tipo y número de documento.", "warning")
@@ -452,6 +495,8 @@ def profesional_editar(item_id):
 
 
 @bp_hc_configuracion.route("/profesionales/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def profesional_toggle(item_id):
     item = repo_prof.obtener(item_id)
     if not item:
@@ -464,11 +509,14 @@ def profesional_toggle(item_id):
 
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/programacion", methods=["GET"])
+@login_required
 def prof_programacion_listar(prof_id):
     data = repo_prog.listar_por_profesional(prof_id)
     return jsonify(data)
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/programacion/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def prof_programacion_agregar(prof_id):
     body = request.get_json()
     try:
@@ -487,18 +535,23 @@ def prof_programacion_agregar(prof_id):
 
     
 @bp_hc_configuracion.route("/profesionales/programacion/<int:bloque_id>/eliminar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def prof_programacion_eliminar(bloque_id):
     repo_prog.eliminar_bloque(bloque_id)
     return jsonify({"ok": True})
 
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/bloqueos", methods=["GET"])
+@login_required
 def prof_bloqueos_listar(prof_id):
     data = repo_prog.listar_bloqueos(prof_id)
     return jsonify(data)
  
  
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/bloqueos/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def prof_bloqueos_agregar(prof_id):
     body = request.get_json()
     try:
@@ -516,13 +569,35 @@ def prof_bloqueos_agregar(prof_id):
  
  
 @bp_hc_configuracion.route("/profesionales/bloqueos/<int:bloqueo_id>/eliminar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def prof_bloqueos_eliminar(bloqueo_id):
     repo_prog.eliminar_bloqueo(bloqueo_id)
     return jsonify({"ok": True})
 
 
+@bp_hc_configuracion.route("/profesionales/bloqueos/<int:bloqueo_id>/actualizar", methods=["PUT"])
+@login_required
+@requiere_permiso("configuracion", "edit")
+def prof_bloqueos_actualizar(bloqueo_id):
+    body = request.get_json()
+    try:
+        resultado = repo_prog.actualizar_bloqueo(
+            bloqueo_id=bloqueo_id,
+            fecha_inicio=body["fecha_inicio"],
+            fecha_fin=body["fecha_fin"],
+            motivo=body.get("motivo"),
+            hora_inicio=body.get("hora_inicio"),
+            hora_fin=body.get("hora_fin"),
+        )
+        return jsonify({"ok": True, "data": resultado})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/disponibilidad", methods=["GET"])
+@login_required
 def prof_disponibilidad(prof_id):
     """
     GET /hc/configuracion/profesionales/<id>/disponibilidad?fecha=2026-05-15
@@ -538,6 +613,7 @@ def prof_disponibilidad(prof_id):
         return jsonify({"ok": False, "msg": str(e)}), 400
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/alertas", methods=["GET"])
+@login_required
 def prof_alertas(prof_id):
     """
     GET /hc/configuracion/profesionales/<id>/alertas?fecha=2026-05-15
@@ -553,6 +629,7 @@ def prof_alertas(prof_id):
         return jsonify({"ok": False, "msg": str(e)}), 400
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/siguiente-disponible", methods=["GET"])
+@login_required
 def prof_siguiente_disponible(prof_id):
     fecha = request.args.get("fecha")
     duracion = int(request.args.get("duracion", 20))
@@ -569,12 +646,15 @@ def prof_siguiente_disponible(prof_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/servicios")
+@login_required
 def servicios():
     servicios = hc_servicios_repo.listar_servicios()
     return render_template("hc/configuracion/servicios.html", servicios=servicios)
 
 
 @bp_hc_configuracion.route("/servicios/nuevo")
+@login_required
+@requiere_permiso("configuracion", "create")
 def servicios_nuevo():
     especialidades = repo_esp.listar()
     return render_template("hc/configuracion/servicios_form.html",
@@ -582,6 +662,8 @@ def servicios_nuevo():
 
 
 @bp_hc_configuracion.route("/servicios/crear", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def servicios_crear():
     data = {
         "codigo":          request.form.get("codigo"),
@@ -595,6 +677,8 @@ def servicios_crear():
 
 
 @bp_hc_configuracion.route("/servicios/<int:id>/editar")
+@login_required
+@requiere_permiso("configuracion", "edit")
 def servicios_editar(id):
     servicio       = hc_servicios_repo.obtener_servicio(id)
     especialidades = repo_esp.listar()
@@ -603,6 +687,8 @@ def servicios_editar(id):
 
 
 @bp_hc_configuracion.route("/servicios/<int:id>/actualizar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def servicios_actualizar(id):
     data = {
         "codigo":          request.form.get("codigo"),
@@ -616,6 +702,8 @@ def servicios_actualizar(id):
 
 
 @bp_hc_configuracion.route("/servicios/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def servicio_toggle(item_id):
     item = hc_servicios_repo.obtener_servicio(item_id)
     if not item:
@@ -632,12 +720,15 @@ def servicio_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/paises")
+@login_required
 def paises():
     items = repo_paises.listar()
     return render_template("hc/configuracion/paises.html", items=items)
 
 
 @bp_hc_configuracion.route("/paises/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def pais_nuevo():
     if request.method == "POST":
         data = {
@@ -666,6 +757,8 @@ def pais_nuevo():
 
 
 @bp_hc_configuracion.route("/paises/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def pais_editar(item_id):
     item = repo_paises.obtener(item_id)
     if not item:
@@ -698,6 +791,8 @@ def pais_editar(item_id):
 
 
 @bp_hc_configuracion.route("/paises/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def pais_toggle(item_id):
     item = repo_paises.obtener(item_id)
     if not item:
@@ -714,17 +809,22 @@ def pais_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/cie10")
+@login_required
 def cie10():
     items = repo_cie10.listar()
     return render_template("hc/configuracion/cie10.html", items=items)
 
 
 @bp_hc_configuracion.route("/cie10/nuevo")
+@login_required
+@requiere_permiso("configuracion", "create")
 def cie10_nuevo():
     return render_template("hc/configuracion/cie10_form.html", modo="crear", item=None)
 
 
 @bp_hc_configuracion.route("/cie10/crear", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def cie10_crear():
     data = {
         "codigo":      request.form.get("codigo"),
@@ -738,12 +838,16 @@ def cie10_crear():
 
 
 @bp_hc_configuracion.route("/cie10/<int:item_id>/editar")
+@login_required
+@requiere_permiso("configuracion", "edit")
 def cie10_editar(item_id):
     item = repo_cie10.obtener(item_id)
     return render_template("hc/configuracion/cie10_form.html", modo="editar", item=item)
 
 
 @bp_hc_configuracion.route("/cie10/<int:item_id>/actualizar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def cie10_actualizar(item_id):
     data = {
         "codigo":      request.form.get("codigo"),
@@ -757,6 +861,8 @@ def cie10_actualizar(item_id):
 
 
 @bp_hc_configuracion.route("/cie10/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def cie10_toggle(item_id):
     item = repo_cie10.obtener(item_id)
     if not item:
@@ -769,6 +875,7 @@ def cie10_toggle(item_id):
 
 
 @bp_hc_configuracion.route("/cie10/buscar")
+@login_required
 def cie10_buscar():
     q = request.args.get("q", "")
     items = repo_cie10.buscar(q)
@@ -780,12 +887,15 @@ def cie10_buscar():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/departamentos")
+@login_required
 def departamentos():
     items = repo_dep.listar()
     return render_template("hc/configuracion/departamentos.html", items=items)
 
 
 @bp_hc_configuracion.route("/departamentos/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def departamento_nuevo():
     paises = repo_paises.listar()
     if request.method == "POST":
@@ -802,6 +912,8 @@ def departamento_nuevo():
 
 
 @bp_hc_configuracion.route("/departamentos/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def departamento_editar(item_id):
     item   = repo_dep.obtener(item_id)
     paises = repo_paises.listar()
@@ -819,6 +931,8 @@ def departamento_editar(item_id):
 
 
 @bp_hc_configuracion.route("/departamentos/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def departamento_toggle(item_id):
     item = repo_dep.obtener(item_id)
     nuevo_estado = "INACTIVO" if item["estado"] == "ACTIVO" else "ACTIVO"
@@ -832,12 +946,15 @@ def departamento_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/municipios")
+@login_required
 def municipios():
     items = repo_muni.listar()
     return render_template("hc/configuracion/municipios.html", items=items)
 
 
 @bp_hc_configuracion.route("/municipios/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def municipio_nuevo():
     departamentos = repo_dep.listar()
     if request.method == "POST":
@@ -853,6 +970,8 @@ def municipio_nuevo():
 
 
 @bp_hc_configuracion.route("/municipios/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def municipio_editar(item_id):
     item          = repo_muni.obtener(item_id)
     departamentos = repo_dep.listar()
@@ -870,6 +989,8 @@ def municipio_editar(item_id):
 
 
 @bp_hc_configuracion.route("/municipios/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def municipio_toggle(item_id):
     item = repo_muni.obtener(item_id)
     nuevo_estado = "INACTIVO" if item["estado"] == "ACTIVO" else "ACTIVO"
@@ -883,12 +1004,15 @@ def municipio_toggle(item_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/eps")
+@login_required
 def eps():
     items = repo_eps.listar()
     return render_template("hc/configuracion/eps.html", items=items)
 
 
 @bp_hc_configuracion.route("/eps/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def eps_nuevo():
     if request.method == "POST":
         data = {
@@ -904,6 +1028,8 @@ def eps_nuevo():
 
 
 @bp_hc_configuracion.route("/eps/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def eps_editar(item_id):
     item = repo_eps.obtener(item_id)
     if request.method == "POST":
@@ -920,6 +1046,8 @@ def eps_editar(item_id):
 
 
 @bp_hc_configuracion.route("/eps/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def eps_toggle(item_id):
     item = repo_eps.obtener(item_id)
     nuevo_estado = "INACTIVO" if item["estado"] == "ACTIVO" else "ACTIVO"
@@ -929,6 +1057,7 @@ def eps_toggle(item_id):
 
 
 @bp_hc_configuracion.route("/eps/buscar")
+@login_required
 def eps_buscar():
     q = request.args.get("q", "")
     items = repo_eps.buscar(q)
@@ -940,12 +1069,15 @@ def eps_buscar():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/recursos")
+@login_required
 def recursos_listar():
     data = repo_recursos.listar()
     return render_template("hc/configuracion/recursos.html", data=data)
 
 
 @bp_hc_configuracion.route("/recursos/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def recursos_nuevo():
     if request.method == "POST":
         data = {
@@ -965,6 +1097,8 @@ def recursos_nuevo():
 
 
 @bp_hc_configuracion.route("/recursos/editar/<int:id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def recursos_editar(id):
     recurso = repo_recursos.obtener(id)
     if request.method == "POST":
@@ -984,6 +1118,8 @@ def recursos_editar(id):
 
 
 @bp_hc_configuracion.route("/recursos/toggle/<int:id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def recursos_toggle(id):
     repo_recursos.toggle(id)
     return redirect(url_for("hc_configuracion.recursos_listar"))
@@ -994,12 +1130,15 @@ def recursos_toggle(id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/agendas")
+@login_required
 def agendas():
     data = agendas_repo.listar()
     return render_template("hc/configuracion/agendas.html", data=data)
 
 
 @bp_hc_configuracion.route("/agendas/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def agendas_nuevo():
     if request.method == "POST":
         data = {
@@ -1017,6 +1156,8 @@ def agendas_nuevo():
 
 
 @bp_hc_configuracion.route("/agendas/toggle/<int:id>")
+@login_required
+@requiere_permiso("configuracion", "delete")
 def agendas_toggle(id):
     agendas_repo.toggle(id)
     return redirect(url_for("hc_configuracion.agendas"))
@@ -1027,17 +1168,22 @@ def agendas_toggle(id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/cups")
+@login_required
 def cups():
     items = repo_cups.listar()
     return render_template("hc/configuracion/cups.html", items=items)
 
 
 @bp_hc_configuracion.route("/cups/nuevo")
+@login_required
+@requiere_permiso("configuracion", "create")
 def cups_nuevo():
     return render_template("hc/configuracion/cups_form.html", modo="crear", item=None)
 
 
 @bp_hc_configuracion.route("/cups/crear", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def cups_crear():
     data = {
         "codigo":      request.form.get("codigo", "").strip().upper(),
@@ -1050,6 +1196,8 @@ def cups_crear():
 
 
 @bp_hc_configuracion.route("/cups/<int:item_id>/editar")
+@login_required
+@requiere_permiso("configuracion", "edit")
 def cups_editar(item_id):
     item = repo_cups.obtener(item_id)
     if not item:
@@ -1059,6 +1207,8 @@ def cups_editar(item_id):
 
 
 @bp_hc_configuracion.route("/cups/<int:item_id>/actualizar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def cups_actualizar(item_id):
     data = {
         "codigo":      request.form.get("codigo", "").strip().upper(),
@@ -1071,6 +1221,8 @@ def cups_actualizar(item_id):
 
 
 @bp_hc_configuracion.route("/cups/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def cups_toggle(item_id):
     item = repo_cups.obtener(item_id)
     if not item:
@@ -1083,6 +1235,7 @@ def cups_toggle(item_id):
 
 
 @bp_hc_configuracion.route("/cups/buscar")
+@login_required
 def cups_buscar():
     q = request.args.get("q", "").strip()
     items = repo_cups.buscar(q) if q else []
@@ -1090,6 +1243,7 @@ def cups_buscar():
 
 
 @bp_hc_configuracion.route("/cups/exportar/csv")
+@login_required
 def cups_exportar_csv():
     items = repo_cups.listar_todos_exportar()
     def generate():
@@ -1106,12 +1260,15 @@ def cups_exportar_csv():
 
 
 @bp_hc_configuracion.route("/cups/exportar/json")
+@login_required
 def cups_exportar_json():
     items = repo_cups.listar_todos_exportar()
     return jsonify(items)
 
 
 @bp_hc_configuracion.route("/cups/importar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def cups_importar():
     archivo = request.files.get("archivo")
     if not archivo:
@@ -1164,11 +1321,14 @@ def cups_importar():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/procedimientos", methods=["GET"])
+@login_required
 def prof_procedimientos_listar(prof_id):
     return jsonify(prof_proc_repo.listar_por_profesional(prof_id))
 
 
 @bp_hc_configuracion.route("/profesionales/<int:prof_id>/procedimientos/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def prof_procedimientos_agregar(prof_id):
     body = request.get_json()
     try:
@@ -1183,6 +1343,8 @@ def prof_procedimientos_agregar(prof_id):
 
 
 @bp_hc_configuracion.route("/profesionales/procedimientos/<int:id>/duracion", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def prof_procedimientos_duracion(id):
     body = request.get_json()
     prof_proc_repo.actualizar_duracion(id, int(body["duracion_min"]))
@@ -1190,6 +1352,8 @@ def prof_procedimientos_duracion(id):
 
 
 @bp_hc_configuracion.route("/profesionales/procedimientos/<int:id>/eliminar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def prof_procedimientos_eliminar(id):
     prof_proc_repo.eliminar(id)
     return jsonify({"ok": True})
@@ -1200,11 +1364,14 @@ def prof_procedimientos_eliminar(id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/recursos/<int:rec_id>/procedimientos", methods=["GET"])
+@login_required
 def rec_procedimientos_listar(rec_id):
     return jsonify(rec_proc_repo.listar_por_recurso(rec_id))
 
 
 @bp_hc_configuracion.route("/recursos/<int:rec_id>/procedimientos/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def rec_procedimientos_agregar(rec_id):
     body = request.get_json()
     try:
@@ -1219,6 +1386,8 @@ def rec_procedimientos_agregar(rec_id):
 
 
 @bp_hc_configuracion.route("/recursos/procedimientos/<int:id>/duracion", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def rec_procedimientos_duracion(id):
     body = request.get_json()
     rec_proc_repo.actualizar_duracion(id, int(body["duracion_min"]))
@@ -1226,12 +1395,15 @@ def rec_procedimientos_duracion(id):
 
 
 @bp_hc_configuracion.route("/recursos/procedimientos/<int:id>/eliminar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def rec_procedimientos_eliminar(id):
     rec_proc_repo.eliminar(id)
     return jsonify({"ok": True})
 
 
 @bp_hc_configuracion.route("/cups/buscar-ajax")
+@login_required
 def cups_buscar_ajax():
     q = request.args.get("q", "").strip()
     if len(q) < 2:
@@ -1256,12 +1428,15 @@ def cups_buscar_ajax():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/medicos-remitentes")
+@login_required
 def medicos_remitentes():
     items = repo_mr.listar()
     return render_template("hc/configuracion/medicos_remitentes.html", items=items)
 
 
 @bp_hc_configuracion.route("/medicos-remitentes/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
 def medico_remitente_nuevo():
     tipos_documento = repo_td.listar()
     if request.method == "POST":
@@ -1300,6 +1475,8 @@ def medico_remitente_nuevo():
 
 
 @bp_hc_configuracion.route("/medicos-remitentes/editar/<int:item_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
 def medico_remitente_editar(item_id):
     item = repo_mr.obtener(item_id)
     if not item:
@@ -1330,6 +1507,8 @@ def medico_remitente_editar(item_id):
 
 
 @bp_hc_configuracion.route("/medicos-remitentes/toggle/<int:item_id>", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
 def medico_remitente_toggle(item_id):
     item = repo_mr.obtener(item_id)
     if not item:
@@ -1342,6 +1521,7 @@ def medico_remitente_toggle(item_id):
 
 
 @bp_hc_configuracion.route("/medicos-remitentes/buscar")
+@login_required
 def medico_remitente_buscar():
     q = request.args.get("q", "")
     items = repo_mr.buscar(q)
@@ -1359,12 +1539,15 @@ def medico_remitente_buscar():
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/clientes")
+@login_required
 def clientes():
     data = repo_clientes.listar()
     return render_template("financiero/contratos/clientes_lista.html", data=data)
 
 
 @bp_hc_configuracion.route("/clientes/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def cliente_nuevo():
     if request.method == "GET":
         return render_template("financiero/contratos/cliente_form.html", modo="crear", cliente={})
@@ -1403,6 +1586,7 @@ def cliente_nuevo():
 
 
 @bp_hc_configuracion.route("/clientes/ver/<int:cliente_id>")
+@login_required
 def cliente_ver(cliente_id):
     cliente = repo_clientes.obtener(cliente_id)
     if not cliente:
@@ -1412,6 +1596,7 @@ def cliente_ver(cliente_id):
 
 
 @bp_hc_configuracion.route("/clientes/conteos")
+@login_required
 def clientes_conteos():
     ids_raw = request.args.get("ids", "")
     if not ids_raw:
@@ -1440,6 +1625,8 @@ def clientes_conteos():
 
 
 @bp_hc_configuracion.route("/clientes/editar/<int:cliente_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def cliente_editar(cliente_id):
     cliente = repo_clientes.obtener(cliente_id)
     if not cliente:
@@ -1482,6 +1669,8 @@ def cliente_editar(cliente_id):
 
 
 @bp_hc_configuracion.route("/clientes/toggle/<int:cliente_id>", methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "delete")
 def cliente_toggle(cliente_id):
     cliente = repo_clientes.obtener(cliente_id)
     if not cliente:
@@ -1494,6 +1683,8 @@ def cliente_toggle(cliente_id):
 
 
 @bp_hc_configuracion.route("/clientes/toggle-adquiriente/<int:cliente_id>", methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def cliente_toggle_adquiriente(cliente_id):
     """
     Botón rápido (2026-08-27) para marcar/desmarcar
@@ -1519,6 +1710,7 @@ def cliente_toggle_adquiriente(cliente_id):
 
 
 @bp_hc_configuracion.route("/clientes/<int:cliente_id>/contratos")
+@login_required
 def cliente_contratos_json(cliente_id):
     data = repo_contratos.listar_por_cliente(cliente_id)
     return jsonify(data)
@@ -1529,6 +1721,8 @@ def cliente_contratos_json(cliente_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/contratos/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def contrato_nuevo():
     cliente_id_raw = request.args.get("cliente_id") or request.form.get("cliente_id")
     if not cliente_id_raw:
@@ -1571,6 +1765,8 @@ def contrato_nuevo():
 
 
 @bp_hc_configuracion.route("/contratos/editar/<int:contrato_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def contrato_editar(contrato_id):
     contrato = repo_contratos.obtener(contrato_id)
     if not contrato:
@@ -1609,6 +1805,8 @@ def contrato_editar(contrato_id):
 
 
 @bp_hc_configuracion.route("/contratos/toggle/<int:contrato_id>", methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "delete")
 def contrato_toggle(contrato_id):
     contrato = repo_contratos.obtener(contrato_id)
     if not contrato:
@@ -1670,12 +1868,15 @@ def _contrato_payload(form, cliente_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/manuales-tarifarios")
+@login_required
 def manuales_tarifarios():
     data = repo_manuales.listar()
     return render_template("hc/configuracion/manuales_tarifarios.html", data=data)
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def manual_tarifario_nuevo():
     manuales_base = repo_manuales.listar_activos()
     if request.method == "GET":
@@ -1728,6 +1929,7 @@ def manual_tarifario_nuevo():
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/conteos")
+@login_required
 def manuales_conteos():
     ids_raw = request.args.get("ids", "")
     if not ids_raw:
@@ -1752,6 +1954,7 @@ def manuales_conteos():
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/ver/<int:manual_id>")
+@login_required
 def manual_tarifario_ver(manual_id):
     manual = repo_manuales.obtener(manual_id)
     if not manual:
@@ -1761,6 +1964,8 @@ def manual_tarifario_ver(manual_id):
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/editar/<int:manual_id>", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def manual_tarifario_editar(manual_id):
     manual = repo_manuales.obtener(manual_id)
     if not manual:
@@ -1817,6 +2022,8 @@ def manual_tarifario_editar(manual_id):
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/toggle/<int:manual_id>", methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "delete")
 def manual_tarifario_toggle(manual_id):
     manual = repo_manuales.obtener(manual_id)
     if not manual:
@@ -1834,6 +2041,8 @@ def manual_tarifario_toggle(manual_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/procedimientos/<int:proc_id>/actualizar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def mt_procedimientos_actualizar(proc_id):
     """
     Acepta todos los campos del procedimiento:
@@ -1871,18 +2080,23 @@ def mt_procedimientos_actualizar(proc_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/procedimientos/<int:proc_id>/eliminar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "delete")
 def mt_procedimientos_eliminar(proc_id):
     repo_manuales.eliminar_procedimiento(proc_id)
     return jsonify({"ok": True})
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos", methods=["GET"])
+@login_required
 def mt_procedimientos_listar(manual_id):
     return jsonify(repo_manuales.listar_procedimientos(manual_id))
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos/agregar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def mt_procedimientos_agregar(manual_id):
     body = request.get_json()
     try:
@@ -1909,6 +2123,8 @@ def mt_procedimientos_agregar(manual_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/procedimientos/importar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def mt_procedimientos_importar(manual_id):
     archivo = request.files.get("archivo")
     if not archivo:
@@ -2040,12 +2256,15 @@ def mt_procedimientos_importar(manual_id):
 # ══════════════════════════════════════════════════════════════════
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items", methods=["GET"])
+@login_required
 def mt_items_listar(manual_id):
     return jsonify(repo_manuales.listar_items(manual_id))
 
 
 @bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/actualizar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "edit")
 def mt_items_actualizar(item_id):
     body = request.get_json()
     try:
@@ -2058,12 +2277,15 @@ def mt_items_actualizar(item_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/items/<int:item_id>/eliminar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "delete")
 def mt_items_eliminar(item_id):
     repo_manuales.eliminar_item(item_id)
     return jsonify({"ok": True})
 
 
 @bp_hc_configuracion.route("/hc/configuracion/manuales-tarifarios/<int:manual_id>/items/buscar-medicamento")
+@login_required
 def mt_items_buscar_medicamento(manual_id):
     q = request.args.get("q", "")
     return jsonify(repo_manuales.buscar_medicamentos(q))
@@ -2071,6 +2293,8 @@ def mt_items_buscar_medicamento(manual_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items/agregar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def mt_items_agregar(manual_id):
     body = request.get_json()
     try:
@@ -2089,6 +2313,8 @@ def mt_items_agregar(manual_id):
 
 @bp_hc_configuracion.route("/manuales-tarifarios/<int:manual_id>/items/importar",
                            methods=["POST"])
+@login_required
+@requiere_permiso("contratos", "create")
 def mt_items_importar(manual_id):
     archivo = request.files.get("archivo")
     if not archivo:
@@ -2165,6 +2391,7 @@ def mt_items_importar(manual_id):
 
 
 @bp_hc_configuracion.route("/medicamentos/buscar-ajax")
+@login_required
 def medicamentos_buscar_ajax():
     q = (request.args.get("q") or "").strip()
     if len(q) < 2:
@@ -2212,3 +2439,186 @@ def _manual_payload(form):
         "vigencia_hasta":  txt("vigencia_hasta"),
         "tipo_moneda":    (form.get("tipo_moneda") or "COP").strip(),
     }
+
+
+# --------------------------------------------------
+# MAESTRA: FESTIVOS
+# --------------------------------------------------
+
+@bp_hc_configuracion.route("/festivos")
+@login_required
+def festivos():
+    items = repo_fest.listar()
+    return render_template("hc/configuracion/festivos.html", items=items)
+
+
+@bp_hc_configuracion.route("/festivos/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
+def festivos_agregar():
+    body = request.get_json(force=True, silent=True) or {}
+    fecha  = (body.get("fecha") or "").strip()
+    nombre = (body.get("nombre") or "").strip()
+
+    if not fecha:
+        return jsonify({"ok": False, "msg": "La fecha es obligatoria."}), 400
+    if not nombre:
+        return jsonify({"ok": False, "msg": "El nombre del festivo es obligatorio."}), 400
+
+    try:
+        resultado = repo_fest.crear(fecha, nombre)
+        return jsonify({"ok": True, "data": resultado})
+    except APIError as e:
+        if e.code == "23505":
+            return jsonify({"ok": False, "msg": "Ya existe un festivo registrado en esa fecha."}), 409
+        return jsonify({"ok": False, "msg": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/festivos/<int:festivo_id>/eliminar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "delete")
+def festivos_eliminar(festivo_id):
+    repo_fest.eliminar(festivo_id)
+    return jsonify({"ok": True})
+
+
+# --------------------------------------------------
+# MAESTRA: MOTIVOS DE CANCELACIÓN
+# --------------------------------------------------
+
+@bp_hc_configuracion.route("/motivos-cancelacion")
+@login_required
+def motivos_cancelacion():
+    items = repo_motivos_cancel.listar()
+    return render_template("hc/configuracion/motivos_cancelacion.html", items=items)
+
+
+@bp_hc_configuracion.route("/motivos-cancelacion/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
+def motivos_cancelacion_agregar():
+    body   = request.get_json(force=True, silent=True) or {}
+    nombre = (body.get("nombre") or "").strip()
+
+    if not nombre:
+        return jsonify({"ok": False, "msg": "El nombre del motivo es obligatorio."}), 400
+
+    try:
+        resultado = repo_motivos_cancel.crear(nombre)
+        return jsonify({"ok": True, "data": resultado})
+    except APIError as e:
+        if e.code == "23505":
+            return jsonify({"ok": False, "msg": "Ya existe un motivo con ese nombre."}), 409
+        return jsonify({"ok": False, "msg": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/motivos-cancelacion/<int:motivo_id>/estado", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
+def motivos_cancelacion_estado(motivo_id):
+    body   = request.get_json(force=True, silent=True) or {}
+    activo = bool(body.get("activo", True))
+    repo_motivos_cancel.cambiar_estado(motivo_id, activo)
+    return jsonify({"ok": True})
+
+
+# --------------------------------------------------
+# MAESTRA: MOTIVOS DE REPROGRAMACIÓN
+# --------------------------------------------------
+
+@bp_hc_configuracion.route("/motivos-reprogramacion")
+@login_required
+def motivos_reprogramacion():
+    items = repo_motivos_reprog.listar()
+    return render_template("hc/configuracion/motivos_reprogramacion.html", items=items)
+
+
+@bp_hc_configuracion.route("/motivos-reprogramacion/agregar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "create")
+def motivos_reprogramacion_agregar():
+    body   = request.get_json(force=True, silent=True) or {}
+    nombre = (body.get("nombre") or "").strip()
+
+    if not nombre:
+        return jsonify({"ok": False, "msg": "El nombre del motivo es obligatorio."}), 400
+
+    try:
+        resultado = repo_motivos_reprog.crear(nombre)
+        return jsonify({"ok": True, "data": resultado})
+    except APIError as e:
+        if e.code == "23505":
+            return jsonify({"ok": False, "msg": "Ya existe un motivo con ese nombre."}), 409
+        return jsonify({"ok": False, "msg": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)}), 400
+
+
+@bp_hc_configuracion.route("/motivos-reprogramacion/<int:motivo_id>/estado", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
+def motivos_reprogramacion_estado(motivo_id):
+    body   = request.get_json(force=True, silent=True) or {}
+    activo = bool(body.get("activo", True))
+    repo_motivos_reprog.cambiar_estado(motivo_id, activo)
+    return jsonify({"ok": True})
+
+
+# --------------------------------------------------
+# PARÁMETROS GENERALES
+# --------------------------------------------------
+# Valores de configuración sueltos que no ameritan su propia maestra
+# (lista de varios registros); se guardan clave/valor en
+# hc_parametros_sistema. El primero: cuántas horas antes de la cita deja
+# de funcionar el enlace de confirmar/cancelar por correo del paciente.
+
+PARAMETRO_HORAS_LIMITE_CONFIRMACION = "horas_limite_confirmacion_cita"
+
+# Interruptor general del envío de correos a pacientes (crear/confirmar/
+# cancelar/reprogramar cita). Guardado como texto "true"/"false"; si el
+# parámetro todavía no existe en la base de datos se asume activo, para
+# no romper nada mientras se corre la migración correspondiente.
+PARAMETRO_CORREOS_ACTIVOS = "correos_activos"
+
+
+@bp_hc_configuracion.route("/parametros")
+@login_required
+def parametros():
+    horas_limite = repo_parametros.obtener(PARAMETRO_HORAS_LIMITE_CONFIRMACION, "24")
+    correos_activos = (repo_parametros.obtener(PARAMETRO_CORREOS_ACTIVOS, "true") or "true").strip().lower() == "true"
+    return render_template(
+        "hc/configuracion/parametros.html",
+        horas_limite=horas_limite,
+        correos_activos=correos_activos,
+    )
+
+
+@bp_hc_configuracion.route("/parametros/guardar", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
+def parametros_guardar():
+    body = request.get_json(force=True, silent=True) or {}
+
+    try:
+        horas_limite = float(body.get("horas_limite_confirmacion_cita"))
+        if horas_limite < 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "msg": "Ingresa un número de horas válido (0 o más)."}), 400
+
+    repo_parametros.establecer(PARAMETRO_HORAS_LIMITE_CONFIRMACION, horas_limite)
+    return jsonify({"ok": True})
+
+
+@bp_hc_configuracion.route("/parametros/correos/toggle", methods=["POST"])
+@login_required
+@requiere_permiso("configuracion", "edit")
+def parametros_correos_toggle():
+    body = request.get_json(force=True, silent=True) or {}
+    activo = bool(body.get("activo", True))
+    repo_parametros.establecer(PARAMETRO_CORREOS_ACTIVOS, "true" if activo else "false")
+    return jsonify({"ok": True, "activo": activo})

@@ -19,10 +19,12 @@ Gestión operativa y consulta rápida del registro de pacientes
   <i class="fa-solid fa-chart-line"></i>
   Dashboard
 </a>
+{% if puede('pacientes', 'create') %}
 <a class="btn-ax primary" href="/hc/pacientes/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo paciente
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -593,10 +595,12 @@ Gestión operativa y consulta rápida del registro de pacientes
         </div>
       </div>
 
+      {% if puede('pacientes', 'create') %}
       <a href="/hc/pacientes/nuevo" class="btn-ax primary">
         <i class="fa-solid fa-plus"></i>
         Nuevo paciente
       </a>
+      {% endif %}
     </aside>
   </section>
 
@@ -752,12 +756,15 @@ Gestión operativa y consulta rápida del registro de pacientes
                   <i class="fa-solid fa-notes-medical"></i>
                 </a>
 
+                {% if puede('pacientes', 'edit') %}
                 <a class="btn-icon btn-edit"
                    href="/hc/pacientes/editar/{{ p.id }}"
                    title="Editar paciente">
                   <i class="fa-solid fa-pen"></i>
                 </a>
+                {% endif %}
 
+                {% if puede('pacientes', 'delete') %}
                 <form method="POST"
                       action="{{ url_for('hc_pacientes.pacientes_toggle', item_id=p.id) }}"
                       class="form-toggle"
@@ -768,6 +775,7 @@ Gestión operativa y consulta rápida del registro de pacientes
                     <i class="fa-solid fa-power-off"></i>
                   </button>
                 </form>
+                {% endif %}
               </div>
             </td>
 
@@ -781,10 +789,12 @@ Gestión operativa y consulta rápida del registro de pacientes
       <i class="fa-solid fa-users-slash"></i>
       <h3>No hay pacientes registrados</h3>
       <p>Comienza agregando tu primer paciente para iniciar el seguimiento clínico.</p>
+      {% if puede('pacientes', 'create') %}
       <a class="btn-ax primary" href="/hc/pacientes/nuevo">
         <i class="fa-solid fa-plus"></i>
         Nuevo paciente
       </a>
+      {% endif %}
     </div>
     {% endif %}
   </section>

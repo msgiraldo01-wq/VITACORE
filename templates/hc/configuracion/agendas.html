@@ -21,10 +21,12 @@ Definición de horarios por profesional o recurso
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/agendas/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nueva agenda
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -74,6 +76,7 @@ Nueva agenda
 
 <td>
 
+{% if puede('configuracion', 'delete') %}
 <form method="GET"
 action="/hc/configuracion/agendas/toggle/{{ a.id }}"
 class="formToggle">
@@ -83,6 +86,7 @@ Toggle
 </button>
 
 </form>
+{% endif %}
 
 </td>
 
@@ -100,10 +104,12 @@ Toggle
 
 <div class="empty-box">
 <h3>No hay agendas configuradas</h3>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/agendas/nuevo">
 Crear agenda
 </a>
+{% endif %}
 </div>
 
 {% endif %}

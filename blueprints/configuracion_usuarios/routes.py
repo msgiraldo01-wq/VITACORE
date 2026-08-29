@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from blueprints.auth.decorators import login_required, rol_required
 from repositories.users_repository import (
-    listar_roles_activos,
+    listar_roles_asignables,
     listar_usuarios,
     obtener_usuario,
     crear_usuario_con_perfil,
@@ -55,7 +55,7 @@ def index():
             flash(f"Error al crear usuario: {str(e)}", "danger")
             return redirect(url_for("configuracion_usuarios.index"))
 
-    roles = listar_roles_activos()
+    roles = listar_roles_asignables()
     usuarios = listar_usuarios()
 
     return render_template(
@@ -73,7 +73,7 @@ def editar(user_id: str):
         flash("Usuario no encontrado.", "danger")
         return redirect(url_for("configuracion_usuarios.index"))
 
-    roles = listar_roles_activos()
+    roles = listar_roles_asignables()
 
     if request.method == "POST":
         username = (request.form.get("username") or "").strip().lower()

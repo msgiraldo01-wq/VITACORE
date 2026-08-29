@@ -6,9 +6,11 @@
 {% block header_subtitle %}Gestiona consecutivos, prefijos y resoluciones DIAN para la emisión de facturas.{% endblock %}
 
 {% block header_actions %}
+{% if puede_ver('facturacion') %}
 <a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
   <i class="fa-solid fa-arrow-left"></i> Volver a facturación
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -516,9 +518,11 @@
   <!-- TOOLBAR -->
   <div class="cfg-toolbar">
     <h3><i class="fa-solid fa-hashtag"></i> Consecutivos de facturación</h3>
+    {% if puede('facturacion_config', 'create') %}
     <button class="cfg-btn-nuevo" onclick="abrirModalConsecutivo()">
       <i class="fa-solid fa-plus"></i> Nuevo consecutivo
     </button>
+    {% endif %}
   </div>
 
   <!-- TABLA DE CONSECUTIVOS -->
@@ -679,6 +683,9 @@
 </div>
 
 <script>
+// ===== PERMISOS =====
+const PUEDE_EDITAR_FACTUS_CONFIG = {{ 'true' if puede('facturacion_config', 'edit') else 'false' }};
+
 // ===== ESTADO =====
 let consecutivosData = [];
 
@@ -754,12 +761,12 @@ function renderConsecutivos() {
     // La celda Factus es clicable: muestra el estado y, al hacer clic,
     // abre el selector de rangos de numeración reales de la cuenta Factus.
     const factusInfo = c.factus_numbering_range_id
-      ? `<span class="cfg-factus-chip cfg-factus-ok" title="Editar rango de Factus">
+      ? `<span class="cfg-factus-chip cfg-factus-ok" ${PUEDE_EDITAR_FACTUS_CONFIG ? 'title="Editar rango de Factus"' : ''}>
            <i class="fa-solid fa-bolt"></i> Rango #${c.factus_numbering_range_id}
-           <i class="fa-solid fa-pen cfg-factus-edit-icon"></i>
+           ${PUEDE_EDITAR_FACTUS_CONFIG ? '<i class="fa-solid fa-pen cfg-factus-edit-icon"></i>' : ''}
          </span>`
-      : `<span class="cfg-factus-chip cfg-factus-pendiente" title="Configurar rango de Factus">
-           <i class="fa-solid fa-triangle-exclamation"></i> Configurar
+      : `<span class="cfg-factus-chip cfg-factus-pendiente" ${PUEDE_EDITAR_FACTUS_CONFIG ? 'title="Configurar rango de Factus"' : ''}>
+           <i class="fa-solid fa-triangle-exclamation"></i> ${PUEDE_EDITAR_FACTUS_CONFIG ? 'Configurar' : 'Pendiente'}
          </span>`;
 
     html += `
@@ -780,7 +787,7 @@ function renderConsecutivos() {
         <td style="font-size:13px;">${c.sede_nombre || 'Todas'}</td>
         <td><span class="cfg-estado ${c.estado}"><span class="cfg-estado-dot"></span> ${c.estado}</span></td>
         <td><div class="cfg-dian-info">${dianInfo}</div></td>
-        <td onclick="abrirModalFactusRango(${c.id}, ${c.factus_numbering_range_id || 'null'})" style="cursor:pointer;">${factusInfo}</td>
+        <td ${PUEDE_EDITAR_FACTUS_CONFIG ? `onclick="abrirModalFactusRango(${c.id}, ${c.factus_numbering_range_id || 'null'})" style="cursor:pointer;"` : ''}>${factusInfo}</td>
         <td>
           ${c.es_principal ? '<span class="cfg-principal"><i class="fa-solid fa-star" style="font-size:10px;"></i> Principal</span>' : '<span style="font-size:12px; color:var(--text-faint);">Secundario</span>'}
         </td>

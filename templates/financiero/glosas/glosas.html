@@ -158,10 +158,12 @@
     <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
     Exportar Excel
 </a>
+{% if puede('glosas', 'create') %}
 <button class="btn-ax primary" onclick="abrirNuevaGlosa()">
     <i class="fa-solid fa-plus"></i>
     Nueva glosa
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}

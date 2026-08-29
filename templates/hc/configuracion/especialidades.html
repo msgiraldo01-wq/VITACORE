@@ -10,10 +10,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/especialidades/nueva">
   <i class="fa-solid fa-plus"></i>
   Nueva especialidad
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -153,12 +155,15 @@
           </td>
           <td>
             <div class="actions">
-              <a class="btn-mini edit" href="/hc/configuracion/especialidades/editar/{{ item.id }}">
+              {% if puede('configuracion', 'edit') %}
+<a class="btn-mini edit" href="/hc/configuracion/especialidades/editar/{{ item.id }}">
                 <i class="fa-solid fa-pen"></i>
                 Editar
               </a>
+{% endif %}
 
-              <form method="POST"
+              {% if puede('configuracion', 'delete') %}
+<form method="POST"
                     action="/hc/configuracion/especialidades/toggle/{{ item.id }}"
                     class="btn-inline-form js-toggle-form"
                     data-nombre="{{ item.nombre }}"
@@ -168,6 +173,7 @@
                   {{ 'Inactivar' if item.estado == 'ACTIVA' else 'Activar' }}
                 </button>
               </form>
+{% endif %}
             </div>
           </td>
         </tr>
@@ -179,10 +185,12 @@
   <div class="empty-box">
     <h3 style="margin-top:0;">Aún no hay especialidades registradas</h3>
     <p style="margin-bottom:16px;">Crea la primera especialidad para continuar parametrizando profesionales y agendas.</p>
-    <a class="btn-ax primary" href="/hc/configuracion/especialidades/nueva">
+    {% if puede('configuracion', 'create') %}
+<a class="btn-ax primary" href="/hc/configuracion/especialidades/nueva">
       <i class="fa-solid fa-plus"></i>
       Crear primera especialidad
     </a>
+{% endif %}
   </div>
 {% endif %}
 {% endblock %}

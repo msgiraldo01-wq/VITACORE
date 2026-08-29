@@ -1,9 +1,8 @@
-from flask import Flask, render_template, session, redirect, url_for # type: ignore
+from flask import Flask, render_template, session, redirect, url_for, request, jsonify # type: ignore
 from config import Config
+from services import permisos_service
 from blueprints.auth.routes import bp_auth
 from blueprints.configuracion_roles.routes import bp_roles
-from blueprints.configuracion_roles.routes_admin import bp_admin
-from blueprints.configuracion_roles.routes_rutas import bp_permisos_rutas
 from blueprints.configuracion_usuarios.routes import bp_usuarios
 from blueprints.hc_configuracion.routes import bp_hc_configuracion
 from routes import bp_hc_dashboard
@@ -27,6 +26,7 @@ from blueprints.bp_financiero.configuracion.configuracion import bp_financiero_c
 from blueprints.rda.routes import bp_rda
 from blueprints.inventario import inventario_bp
 from blueprints.hc.historia_clinica.routes import bp_hc_home
+from blueprints.hc_reportes.routes import bp_hc_reportes
 
 
 
@@ -41,8 +41,6 @@ app.config.from_object(Config)
 
 app.register_blueprint(bp_auth)
 app.register_blueprint(bp_roles)
-app.register_blueprint(bp_admin)
-app.register_blueprint(bp_permisos_rutas)
 app.register_blueprint(bp_usuarios)
 app.register_blueprint(bp_hc_configuracion)
 app.register_blueprint(bp_hc_dashboard)
@@ -66,6 +64,7 @@ app.register_blueprint(bp_financiero_configuracion)
 app.register_blueprint(bp_rda)
 app.register_blueprint(inventario_bp)
 app.register_blueprint(bp_hc_home)
+app.register_blueprint(bp_hc_reportes)
 
 @app.route("/")
 def inicio():
@@ -78,6 +77,36 @@ def inicio():
 def ping():
     return '', 204
 
+
+# =========================================================
+# CONTROL DE ACCESO CENTRAL POR MÓDULO
+# =========================================================
+# Reemplaza la verificación por rutas técnicas (que dependía de un
+# role_id que el login nunca guardaba en sesión, ver
+# blueprints/auth/routes.py) por una sola matriz por módulo de
+# negocio (roles_modulos), la misma que se configura con checkboxes
+# en /hc/configuracion/roles-permisos.
+@app.before_request
+def gate_permisos_por_modulo():
+    if not session.get("user"):
+        return None  # login_required de cada vista se encarga de esto
+
+    modulo_code = permisos_service.resolver_modulo_code(request.path)
+    if not modulo_code:
+        return None  # ruta pública o todavía no mapeada a un módulo
+
+    if permisos_service.puede(modulo_code, "view"):
+        return None
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"error": "No tienes permisos para acceder a este recurso."}), 403
+    return render_template("/hc/acceso_denegado.html"), 403
+
+
+@app.context_processor
+def inyectar_helpers_permisos():
+    return {"puede_ver": permisos_service.puede_ver, "puede": permisos_service.puede}
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
 

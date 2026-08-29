@@ -4,6 +4,8 @@
 # =============================================
 
 from flask import Blueprint, render_template, request, jsonify, session, Response
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories.fin_cartera_repo import (
     obtener_todas_facturas,
     obtener_factura_por_numero,
@@ -36,6 +38,7 @@ bp_financiero_cartera = Blueprint(
 # LISTA DE CARTERA
 # --------------------------------------------------
 @bp_financiero_cartera.route("/")
+@login_required
 def index():
     actualizar_dias_mora()
     facturas = obtener_todas_facturas()
@@ -51,6 +54,7 @@ def index():
 # DETALLE DE FACTURA
 # --------------------------------------------------
 @bp_financiero_cartera.route("/detalle/<numero_factura>")
+@login_required
 def detalle(numero_factura):
     factura    = obtener_factura_por_numero(numero_factura)
     pagos      = obtener_pagos_por_factura(numero_factura)
@@ -74,6 +78,7 @@ def detalle(numero_factura):
 # MÓDULO DE DOCUMENTOS (lista general)
 # --------------------------------------------------
 @bp_financiero_cartera.route("/documentos")
+@login_required
 def documentos():
     docs = obtener_todos_documentos()
     kpis = obtener_kpis_documentos()
@@ -89,6 +94,8 @@ def documentos():
 # REGISTRAR PAGO (RC)
 # --------------------------------------------------
 @bp_financiero_cartera.route("/registrar-pago", methods=["POST"])
+@login_required
+@requiere_permiso("cartera", "create")
 def api_registrar_pago():
     factura_id     = request.form.get("factura_id")
     numero_factura = request.form.get("numero_factura")
@@ -125,6 +132,8 @@ def api_registrar_pago():
 # REGISTRAR DOCUMENTO (NC, ND, DEV, ACL, CRU)
 # --------------------------------------------------
 @bp_financiero_cartera.route("/registrar-documento", methods=["POST"])
+@login_required
+@requiere_permiso("cartera", "create")
 def api_registrar_documento():
     factura_id     = request.form.get("factura_id")
     numero_factura = request.form.get("numero_factura")
@@ -163,6 +172,8 @@ def api_registrar_documento():
 # ANULAR DOCUMENTO
 # --------------------------------------------------
 @bp_financiero_cartera.route("/anular-documento", methods=["POST"])
+@login_required
+@requiere_permiso("cartera", "delete")
 def api_anular_documento():
     body             = request.get_json(silent=True) or {}
     numero_documento = body.get("numero_documento")
@@ -183,6 +194,7 @@ def api_anular_documento():
 # EXPORTAR EXCEL CARTERA
 # --------------------------------------------------
 @bp_financiero_cartera.route("/exportar-excel")
+@login_required
 def exportar_excel():
     facturas = obtener_facturas_para_excel()
 

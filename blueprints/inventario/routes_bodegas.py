@@ -7,14 +7,21 @@ from repositories import inventario_repository as repo
 from services import inventario_service as svc
 from services.inventario_service import InventarioError
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import denegado
+
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/bodegas", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def bodegas(empresa_id, usuario_id):
     if request.method == "POST":
         bodega_id = request.form.get("bodega_id") or None
+        _deny = denegado("farmacia", "edit" if bodega_id else "create")
+        if _deny:
+            return _deny
         try:
             svc.guardar_bodega(empresa_id, usuario_id, request.form, bodega_id)
             flash("Bodega guardada correctamente.", "success")

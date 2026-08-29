@@ -12,10 +12,12 @@
 Volver
 </a>
 
+{% if puede('medicamentos', 'create') %}
 <a class="btn-ax primary" href="/hc/medicamentos/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo medicamento
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -212,12 +214,15 @@ font-size:.95rem;
 <td>
 <div class="actions">
 
+{% if puede('medicamentos', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/medicamentos/{{ item.id }}/editar">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('medicamentos', 'delete') %}
 <form method="POST"
 action="/hc/medicamentos/toggle/{{ item.id }}"
 class="formToggle">
@@ -228,6 +233,7 @@ class="formToggle">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 </td>
@@ -253,10 +259,12 @@ Aún no hay medicamentos registrados
 Agrega el primer medicamento para comenzar la prescripción clínica.
 </p>
 
+{% if puede('medicamentos', 'create') %}
 <a class="btn-ax primary" href="/hc/medicamentos/nuevo">
 <i class="fa-solid fa-plus"></i>
 Crear medicamento
 </a>
+{% endif %}
 
 </div>
 
@@ -269,6 +277,9 @@ Crear medicamento
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+
+const PUEDE_EDITAR_MEDICAMENTO = {{ 'true' if puede('medicamentos', 'edit') else 'false' }};
+const PUEDE_ELIMINAR_MEDICAMENTO = {{ 'true' if puede('medicamentos', 'delete') else 'false' }};
 
 /* BUSCADOR */
 
@@ -329,15 +340,15 @@ tableBody.innerHTML += `
 <td>${estadoBadge}</td>
 <td>
 <div class="actions">
-<a class="btn-mini edit" href="/hc/medicamentos/${item.id}/editar">
+${PUEDE_EDITAR_MEDICAMENTO ? `<a class="btn-mini edit" href="/hc/medicamentos/${item.id}/editar">
 <i class="fa-solid fa-pen"></i>Editar
-</a>
-<form method="POST" action="/hc/medicamentos/${item.id}/estado" class="formToggle">
+</a>` : ''}
+${PUEDE_ELIMINAR_MEDICAMENTO ? `<form method="POST" action="/hc/medicamentos/${item.id}/estado" class="formToggle">
 <button class="btn-mini toggle" type="button">
 <i class="fa-solid fa-power-off"></i>
 ${estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
 </button>
-</form>
+</form>` : ''}
 </div>
 </td>
 </tr>`
