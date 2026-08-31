@@ -28,3 +28,12 @@ class Config:
     RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
     EMAIL_FROM = os.getenv("EMAIL_FROM", "")
 
+    # Dominio público real de la app (p. ej. https://vitacore.cloud, SIN
+    # slash al final), para armar el enlace de confirmar/cancelar que va
+    # en esos correos. Si se deja vacío, se usa request.host_url como
+    # respaldo (el host con el que el navegador del personal llegó a la
+    # app -- útil en desarrollo, pero un localhost/IP interna no le sirve
+    # de nada a un paciente real, así que en producción esto SIEMPRE debe
+    # quedar configurado).
+    APP_BASE_URL = os.getenv("APP_BASE_URL", "")
+

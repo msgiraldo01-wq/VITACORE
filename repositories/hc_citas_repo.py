@@ -245,6 +245,48 @@ def cambiar_estado(cita_id, nuevo_estado, extra: dict = None):
     return res.data
 
 
+def registrar_llegada(cita_id, hora_llegada=None):
+    """
+    Marca la hora de llegada del paciente SIN cambiar el estado de la
+    cita -- la cita se queda en PENDIENTE/CONFIRMADA (que es justo lo
+    que filtra Admisiones para seguir mostrándola en su lista) mientras
+    espera en sala a que el profesional la llame a consulta.
+
+    Ese llamado a consulta sigue siendo responsabilidad de "Iniciar
+    atención" en la agenda del médico (sin cambios: sigue pasando por
+    cambiar_estado(cita_id, "EN_ATENCION", ...), que ya registra
+    hora_inicio_real como siempre).
+
+    Separar estos dos momentos (llegada vs. inicio real de atención)
+    es lo que permite que Admisiones muestre un cronómetro real de
+    tiempo de espera en sala, en vez de que la cita desaparezca de la
+    lista apenas llega el paciente.
+    """
+    sb = _supabase()
+    empresa = _empresa_id()
+
+    if not empresa:
+        cita = _obtener_raw_por_id(cita_id)
+        if not cita:
+            raise ValueError("Cita no encontrada")
+        empresa = cita.get("empresa_id")
+
+    payload = {
+        "hora_llegada": hora_llegada or datetime.now().time().isoformat(),
+        "fecha_modificacion": datetime.now().isoformat(),
+    }
+
+    res = (
+        sb.table(_table())
+        .update(payload)
+        .eq("id", cita_id)
+        .eq("empresa_id", empresa)
+        .execute()
+    )
+
+    return res.data
+
+
 def reprogramar(cita_id, nueva_fecha, nueva_hora_inicio, nueva_hora_fin,
                  motivo_reprogramacion_id, usuario_reprogramacion):
     """

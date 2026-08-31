@@ -26,17 +26,20 @@ def index():
         password = request.form.get("password") or ""
         role_id_raw = (request.form.get("role_id") or "").strip()
 
+        # error="crear" le indica al template que reabra solo el modal
+        # de "Crear usuario" -- si no, el usuario vuelve a la lista sin
+        # el formulario a la vista y sin saber qué campo corregir.
         if not username or not full_name or not email or not password or not role_id_raw:
             flash("Debes completar todos los campos.", "warning")
-            return redirect(url_for("configuracion_usuarios.index"))
+            return redirect(url_for("configuracion_usuarios.index", error="crear"))
 
         if len(password) < 6:
             flash("La contraseña debe tener al menos 6 caracteres.", "warning")
-            return redirect(url_for("configuracion_usuarios.index"))
+            return redirect(url_for("configuracion_usuarios.index", error="crear"))
 
         if not role_id_raw.isdigit():
             flash("Rol inválido.", "danger")
-            return redirect(url_for("configuracion_usuarios.index"))
+            return redirect(url_for("configuracion_usuarios.index", error="crear"))
 
         role_id = int(role_id_raw)
 
@@ -53,7 +56,7 @@ def index():
 
         except Exception as e:
             flash(f"Error al crear usuario: {str(e)}", "danger")
-            return redirect(url_for("configuracion_usuarios.index"))
+            return redirect(url_for("configuracion_usuarios.index", error="crear"))
 
     roles = listar_roles_asignables()
     usuarios = listar_usuarios()

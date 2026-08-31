@@ -1288,13 +1288,22 @@
 
 {% block extra_js %}
 <script>
+// Fecha de "hoy" en hora local (Colombia), no UTC -- toISOString()
+// da la fecha en UTC, y entre las 7 p.m. y la medianoche hora local
+// Colombia ya cambió de día en UTC, así que los campos de fecha se
+// llenaban con el día de MAÑANA en vez de hoy en esa ventana horaria.
+function hoyLocalISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 // ID de la factura para enviarlo al backend
 const FACTURA_ID     = "{{ data.id }}";
 const FACTURA_NUM    = "{{ data.numero_factura }}";
 
 function abrirModalPago(){
     // Poner fecha de hoy por defecto
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyLocalISO();
     document.getElementById("fechaPago").value = hoy;
     document.getElementById("modalPago").classList.add("active");
 }
@@ -1369,7 +1378,7 @@ async function guardarPago(){
 
 // ── DOCUMENTOS DE CARTERA ─────────────────────
 function abrirModalDocumento(){
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyLocalISO();
     document.getElementById("fechaDocumento").value = hoy;
     document.getElementById("modalDocumento").classList.add("active");
 }

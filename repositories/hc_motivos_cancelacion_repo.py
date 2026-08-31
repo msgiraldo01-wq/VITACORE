@@ -55,3 +55,28 @@ def crear(nombre: str) -> dict:
 
 def cambiar_estado(motivo_id: int, activo: bool):
     _sb().table(_table()).update({"activo": activo}).eq("id", motivo_id).execute()
+
+
+def obtener_o_crear_por_nombre(nombre: str) -> dict:
+    """
+    Busca un motivo por nombre (sin importar mayúsculas/espacios) entre
+    TODOS los motivos (activos e inactivos, vía listar()); si existe pero
+    está desactivado lo reactiva, y si no existe lo crea. Pensado para
+    que una funcionalidad nueva (p.ej. "marcar inasistencia" en
+    Admisiones) pueda garantizar que su motivo reservado exista, sin
+    depender de que un administrador lo haya creado a mano primero en
+    Configuración → Motivos de cancelación.
+    """
+    nombre_norm = (nombre or "").strip()
+    if not nombre_norm:
+        raise ValueError("nombre es requerido")
+
+    existentes = listar()
+    for m in existentes:
+        if (m.get("nombre") or "").strip().lower() == nombre_norm.lower():
+            if not m.get("activo", True):
+                cambiar_estado(m["id"], True)
+                m["activo"] = True
+            return m
+
+    return crear(nombre_norm)

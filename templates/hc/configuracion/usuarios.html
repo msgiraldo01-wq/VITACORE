@@ -4,19 +4,26 @@
 {% block header_title %}Usuarios{% endblock %}
 {% block header_subtitle %}Crea y administra usuarios del sistema{% endblock %}
 
+{% block header_actions %}
+<button type="button" class="btn-ax primary" onclick="abrirModalCrearUsuario()">
+  <i class="fa-solid fa-user-plus"></i>
+  Nuevo usuario
+</button>
+{% endblock %}
+
 {% block extra_css %}
 <style>
-  .users-wrap{
-    display:grid;
-    grid-template-columns: 380px 1fr;
-    gap:18px;
-  }
-
   .users-card{
     background:var(--surface-2);
     border:1px solid rgba(226,232,240,.95);
     border-radius:20px;
     padding:18px;
+    /* Un item de grid/flex nunca se encoge más allá del ancho mínimo
+       de su contenido -- y la tabla de abajo tiene min-width:980px.
+       Sin esto, esa medida "empuja" la tarjeta (y con ella la página
+       entera) más ancha que la ventana, en vez de quedarse contenida
+       y hacer scroll interno. */
+    min-width:0;
   }
 
   body.dark-mode .users-card{
@@ -24,23 +31,39 @@
     border-color:rgba(51,65,85,.7);
   }
 
+  .users-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+
   .users-title{
-    margin:0 0 14px;
+    margin:0;
     font-size:1rem;
     font-weight:800;
     color:var(--text);
   }
 
+  .users-count{
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--muted);
+  }
+
   .user-form{
     display:flex;
     flex-direction:column;
-    gap:12px;
+    gap:4px;
   }
 
   .field{
     display:flex;
     flex-direction:column;
     gap:6px;
+    margin-bottom:10px;
   }
 
   .field label{
@@ -71,6 +94,32 @@
   .field select:focus{
     border-color:rgba(14,165,255,.55);
     box-shadow:0 0 0 3px rgba(14,165,255,.10);
+  }
+
+  /* ── Validación propia -- sin los globos nativos del navegador.
+     Los campos obligatorios/incompletos se marcan en rojo con un
+     mensaje debajo, en vez de mostrar el tooltip nativo "Completa
+     este campo". ── */
+  .field.has-error input,
+  .field.has-error select{
+    border-color:var(--danger);
+  }
+
+  .field.has-error input:focus,
+  .field.has-error select:focus{
+    border-color:var(--danger);
+    box-shadow:0 0 0 3px rgba(220,53,69,.14);
+  }
+
+  .field-error-msg{
+    display:none;
+    font-size:.78rem;
+    font-weight:700;
+    color:var(--danger);
+  }
+
+  .field-error-msg.show{
+    display:block;
   }
 
   .users-table-wrap{
@@ -107,6 +156,31 @@
 
   body.dark-mode .users-table tbody tr:hover{
     background:rgba(14,165,255,.08);
+  }
+
+  /* Columna Acciones siempre visible: aunque la tabla tenga que
+     hacer scroll horizontal en pantallas angostas, los botones de
+     Editar/Activar/Inactivar quedan "pegados" al borde derecho en
+     vez de perderse fuera de vista. */
+  .users-table th:last-child,
+  .users-table td:last-child{
+    position:sticky;
+    right:0;
+    background:var(--surface-2);
+    box-shadow:-6px 0 10px -6px rgba(15,23,42,.14);
+  }
+
+  body.dark-mode .users-table th:last-child,
+  body.dark-mode .users-table td:last-child{
+    background:#0f172a;
+  }
+
+  .users-table tbody tr:hover td:last-child{
+    background:#eef8ff;
+  }
+
+  body.dark-mode .users-table tbody tr:hover td:last-child{
+    background:#132238;
   }
 
   .pill{
@@ -247,157 +321,401 @@
     text-align:center;
   }
 
-  @media (max-width: 980px){
-    .users-wrap{
-      grid-template-columns:1fr;
+  /* ══════════════════════════════════════════════════════════
+     MODAL CREAR USUARIO
+     Antes vivía como una tarjeta permanente al lado de la lista,
+     apretando la tabla contra el borde. Ahora es un modal que solo
+     aparece cuando se necesita, y la lista de usuarios queda con
+     todo el ancho para respirar.
+     ══════════════════════════════════════════════════════════ */
+  .um-modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    backdrop-filter:blur(4px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:1000;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+
+  .um-modal-overlay.active{
+    opacity:1;
+    pointer-events:all;
+  }
+
+  .um-modal{
+    background:var(--surface);
+    border-radius:20px;
+    width:100%;
+    max-width:480px;
+    max-height:90vh;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 20px 45px rgba(0,0,0,.28);
+    transform:translateY(16px);
+    transition:transform .2s ease;
+  }
+
+  .um-modal-overlay.active .um-modal{
+    transform:translateY(0);
+  }
+
+  .um-modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 22px;
+    border-bottom:1px solid rgba(148,163,184,.2);
+    flex-shrink:0;
+  }
+
+  .um-modal-header h2{
+    margin:0;
+    font-size:1.05rem;
+    font-weight:800;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .um-modal-close{
+    background:none;
+    border:none;
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    color:var(--muted);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+  }
+
+  .um-modal-close:hover{
+    background:rgba(148,163,184,.16);
+    color:var(--text);
+  }
+
+  .um-modal-body{
+    padding:22px 22px 6px;
+    overflow-y:auto;
+  }
+
+  .um-modal-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:16px 22px;
+    border-top:1px solid rgba(148,163,184,.2);
+    flex-shrink:0;
+  }
+
+  @media (max-width: 560px){
+    .um-modal-footer{
+      flex-direction:column-reverse;
+    }
+    .um-modal-footer .btn-ax{
+      width:100%;
+      justify-content:center;
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="users-wrap">
-  <section class="users-card">
-    <h3 class="users-title">Crear usuario</h3>
+<section class="users-card">
+  <div class="users-card-head">
+    <h3 class="users-title">Usuarios registrados</h3>
+    <span class="users-count">{{ usuarios|length }} usuario{{ "s" if usuarios|length != 1 else "" }}</span>
+  </div>
 
-    <form method="POST" class="user-form" id="crearUsuarioForm">
+  {% if usuarios %}
+    <div class="users-table-wrap">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+            <tr>
+              <td>
+                <div class="user-name">{{ u.username }}</div>
+              </td>
+              <td>{{ u.full_name }}</td>
+              <td>
+                <div class="user-email">{{ u.email }}</div>
+              </td>
+              <td>
+                {% if u.roles %}
+                  <span class="role-badge">
+                    <i class="fa-solid fa-user-shield"></i>
+                    {{ u.roles.name }}
+                  </span>
+                {% else %}
+                  <span class="role-badge">
+                    <i class="fa-solid fa-circle-question"></i>
+                    Sin rol
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="pill ok">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Activo
+                  </span>
+                {% else %}
+                  <span class="pill off">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    Inactivo
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="action-stack">
+                  <a class="btn-mini btn-edit" href="{{ url_for('configuracion_usuarios.editar', user_id=u.id) }}">
+                    <i class="fa-solid fa-pen"></i>
+                    Editar
+                  </a>
+
+                  <form
+                    method="POST"
+                    action="{{ url_for('configuracion_usuarios.cambiar_estado', user_id=u.id) }}"
+                    class="estadoUsuarioForm"
+                    data-username="{{ u.username }}"
+                    data-estado="{{ 'inactivar' if u.is_active else 'activar' }}"
+                  >
+                    <button class="btn-mini {% if u.is_active %}btn-danger-soft{% else %}btn-success-soft{% endif %}" type="submit">
+                      {% if u.is_active %}
+                        <i class="fa-solid fa-user-slash"></i>
+                        Inactivar
+                      {% else %}
+                        <i class="fa-solid fa-user-check"></i>
+                        Activar
+                      {% endif %}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="users-empty">
+      No hay usuarios registrados todavía.
+    </div>
+  {% endif %}
+</section>
+
+<!-- ═══ MODAL: Crear usuario ═══ -->
+<div class="um-modal-overlay" id="modalCrearUsuario">
+  <div class="um-modal">
+    <div class="um-modal-header">
+      <h2><i class="fa-solid fa-user-plus"></i> Crear usuario</h2>
+      <button type="button" class="um-modal-close" onclick="cerrarModalCrearUsuario()" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <form method="POST" class="user-form um-modal-body" id="crearUsuarioForm" novalidate>
       <div class="field">
         <label for="username">Usuario</label>
-        <input id="username" name="username" type="text" placeholder="ej: medico1" required>
+        <input id="username" name="username" type="text" placeholder="ej: medico1">
+        <span class="field-error-msg" id="err-username"></span>
       </div>
 
       <div class="field">
         <label for="full_name">Nombre completo</label>
-        <input id="full_name" name="full_name" type="text" placeholder="Ej: Juan Pérez" required>
+        <input id="full_name" name="full_name" type="text" placeholder="Ej: Juan Pérez">
+        <span class="field-error-msg" id="err-full_name"></span>
       </div>
 
       <div class="field">
         <label for="email">Correo</label>
-        <input id="email" name="email" type="email" placeholder="usuario@empresa.com" required>
+        <input id="email" name="email" type="text" placeholder="usuario@empresa.com">
+        <span class="field-error-msg" id="err-email"></span>
       </div>
 
       <div class="field">
         <label for="password">Contraseña</label>
-        <input id="password" name="password" type="password" placeholder="Mínimo 6 caracteres" required>
+        <input id="password" name="password" type="password" placeholder="Mínimo 6 caracteres">
+        <span class="field-error-msg" id="err-password"></span>
       </div>
 
       <div class="field">
         <label for="role_id">Rol</label>
-        <select id="role_id" name="role_id" required>
+        <select id="role_id" name="role_id">
           <option value="">Selecciona un rol</option>
           {% for rol in roles %}
             <option value="{{ rol.id }}">{{ rol.name }} ({{ rol.code }})</option>
           {% endfor %}
         </select>
+        <span class="field-error-msg" id="err-role_id"></span>
       </div>
+    </form>
 
-      <button class="btn-ax primary" type="submit">
+    <div class="um-modal-footer">
+      <button type="button" class="btn-ax ghost" onclick="cerrarModalCrearUsuario()">
+        <i class="fa-solid fa-xmark"></i>
+        Cancelar
+      </button>
+      <button type="submit" form="crearUsuarioForm" class="btn-ax primary">
         <i class="fa-solid fa-user-plus"></i>
         Crear usuario
       </button>
-    </form>
-  </section>
-
-  <section class="users-card">
-    <h3 class="users-title">Usuarios registrados</h3>
-
-    {% if usuarios %}
-      <div class="users-table-wrap">
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for u in usuarios %}
-              <tr>
-                <td>
-                  <div class="user-name">{{ u.username }}</div>
-                </td>
-                <td>{{ u.full_name }}</td>
-                <td>
-                  <div class="user-email">{{ u.email }}</div>
-                </td>
-                <td>
-                  {% if u.roles %}
-                    <span class="role-badge">
-                      <i class="fa-solid fa-user-shield"></i>
-                      {{ u.roles.name }}
-                    </span>
-                  {% else %}
-                    <span class="role-badge">
-                      <i class="fa-solid fa-circle-question"></i>
-                      Sin rol
-                    </span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if u.is_active %}
-                    <span class="pill ok">
-                      <i class="fa-solid fa-circle-check"></i>
-                      Activo
-                    </span>
-                  {% else %}
-                    <span class="pill off">
-                      <i class="fa-solid fa-circle-xmark"></i>
-                      Inactivo
-                    </span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div class="action-stack">
-                    <a class="btn-mini btn-edit" href="{{ url_for('configuracion_usuarios.editar', user_id=u.id) }}">
-                      <i class="fa-solid fa-pen"></i>
-                      Editar
-                    </a>
-
-                    <form
-                      method="POST"
-                      action="{{ url_for('configuracion_usuarios.cambiar_estado', user_id=u.id) }}"
-                      class="estadoUsuarioForm"
-                      data-username="{{ u.username }}"
-                      data-estado="{{ 'inactivar' if u.is_active else 'activar' }}"
-                    >
-                      <button class="btn-mini {% if u.is_active %}btn-danger-soft{% else %}btn-success-soft{% endif %}" type="submit">
-                        {% if u.is_active %}
-                          <i class="fa-solid fa-user-slash"></i>
-                          Inactivar
-                        {% else %}
-                          <i class="fa-solid fa-user-check"></i>
-                          Activar
-                        {% endif %}
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="users-empty">
-        No hay usuarios registrados todavía.
-      </div>
-    {% endif %}
-  </section>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  // Si la creación falló en el servidor (campos incompletos, rol
+  // inválido, contraseña corta, etc.), routes.py redirige de vuelta
+  // aquí con ?error=crear -- así el modal se vuelve a abrir solo, en
+  // vez de dejar al usuario viendo la lista con un flash de error
+  // sin saber por qué.
+  const ABRIR_MODAL_CREAR_AL_CARGAR = {{ "true" if request.args.get("error") == "crear" else "false" }};
+
+  function abrirModalCrearUsuario() {
+    document.getElementById("modalCrearUsuario").classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function cerrarModalCrearUsuario() {
+    document.getElementById("modalCrearUsuario").classList.remove("active");
+    document.body.style.overflow = "";
+  }
+
+  function marcarError(input, mensaje) {
+    if (!input) return;
+    input.closest(".field").classList.add("has-error");
+    const errorEl = document.getElementById("err-" + input.id);
+    if (errorEl) {
+      errorEl.textContent = mensaje;
+      errorEl.classList.add("show");
+    }
+  }
+
+  function limpiarError(input) {
+    if (!input) return;
+    input.closest(".field").classList.remove("has-error");
+    const errorEl = document.getElementById("err-" + input.id);
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.classList.remove("show");
+    }
+  }
+
+  function validarFormularioCrearUsuario() {
+    let valido = true;
+
+    const username = document.getElementById("username");
+    const fullName = document.getElementById("full_name");
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const roleId = document.getElementById("role_id");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!username.value.trim()) {
+      marcarError(username, "Ingresa un nombre de usuario.");
+      valido = false;
+    } else {
+      limpiarError(username);
+    }
+
+    if (!fullName.value.trim()) {
+      marcarError(fullName, "Ingresa el nombre completo.");
+      valido = false;
+    } else {
+      limpiarError(fullName);
+    }
+
+    if (!email.value.trim()) {
+      marcarError(email, "Ingresa un correo.");
+      valido = false;
+    } else if (!emailRegex.test(email.value.trim())) {
+      marcarError(email, "El correo no tiene un formato válido.");
+      valido = false;
+    } else {
+      limpiarError(email);
+    }
+
+    if (!password.value) {
+      marcarError(password, "Ingresa una contraseña.");
+      valido = false;
+    } else if (password.value.length < 6) {
+      marcarError(password, "Debe tener al menos 6 caracteres.");
+      valido = false;
+    } else {
+      limpiarError(password);
+    }
+
+    if (!roleId.value) {
+      marcarError(roleId, "Selecciona un rol.");
+      valido = false;
+    } else {
+      limpiarError(roleId);
+    }
+
+    return valido;
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    const modalOverlay = document.getElementById("modalCrearUsuario");
     const crearUsuarioForm = document.getElementById("crearUsuarioForm");
+
+    // Cerrar el modal al hacer clic fuera de la tarjeta.
+    modalOverlay.addEventListener("click", function (e) {
+      if (e.target.id === "modalCrearUsuario") cerrarModalCrearUsuario();
+    });
+
+    // Cerrar con Escape.
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modalOverlay.classList.contains("active")) {
+        cerrarModalCrearUsuario();
+      }
+    });
+
+    // Limpiar el error de un campo apenas el usuario empieza a
+    // corregirlo, en vez de esperar al siguiente intento de envío.
+    ["username", "full_name", "email", "password", "role_id"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener("input", () => limpiarError(input));
+        input.addEventListener("change", () => limpiarError(input));
+      }
+    });
 
     if (crearUsuarioForm) {
       crearUsuarioForm.addEventListener("submit", function (e) {
         e.preventDefault();
+
+        if (!validarFormularioCrearUsuario()) {
+          // Toast propio de Vitacore (definido en hc/base.html) --
+          // la misma tarjeta oscura con icono que ya se usa para los
+          // avisos de conexión, en vez de la ventana de SweetAlert2.
+          if (typeof Toast !== "undefined") {
+            Toast.show("Datos incompletos. Revisa los campos marcados en rojo.", "warning");
+          }
+          return;
+        }
 
         Swal.fire({
           title: "¿Crear usuario?",
@@ -445,6 +763,10 @@
         });
       });
     });
+
+    if (ABRIR_MODAL_CREAR_AL_CARGAR) {
+      abrirModalCrearUsuario();
+    }
   });
 </script>
 {% endblock %}

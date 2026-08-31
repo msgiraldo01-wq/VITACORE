@@ -1,6 +1,6 @@
 # blueprints/citas/routes.py
 
-from flask import Blueprint, jsonify, request, render_template, session, send_file
+from flask import Blueprint, jsonify, request, render_template, session, send_file, current_app
 from blueprints.auth.decorators import login_required
 from services.permisos_service import requiere_permiso
 from repositories import hc_citas_repo as repo
@@ -304,7 +304,7 @@ def api_crear_cita():
         try:
             detalle = repo.obtener_detalle(cita["id"], empresa_id=empresa)
             if detalle:
-                email_service.enviar_cita_creada(_enriquecer_para_correo(detalle), request.host_url)
+                email_service.enviar_cita_creada(_enriquecer_para_correo(detalle), _base_url_publico())
         except Exception as e:
             print(f"[api_crear_cita] No se pudo enviar el correo de cita creada: {e}")
 
@@ -561,7 +561,7 @@ def api_reprogramar_cita(cita_id):
         try:
             detalle = repo.obtener_detalle(cita_id)
             if detalle:
-                email_service.enviar_cita_reprogramada(_enriquecer_para_correo(detalle), request.host_url)
+                email_service.enviar_cita_reprogramada(_enriquecer_para_correo(detalle), _base_url_publico())
         except Exception as e:
             print(f"[api_reprogramar_cita] No se pudo enviar el correo de cita reprogramada: {e}")
 
@@ -838,6 +838,19 @@ def fmt_fecha_hora_creacion(f):
         return f"{d.day:02d}/{d.month:02d}/{d.year} {hora}:{d.strftime('%M')} {ampm}"
     except Exception:
         return str(f)
+
+
+def _base_url_publico() -> str:
+    """
+    URL base para armar el enlace público de confirmar/cancelar que va en
+    el correo del paciente. Usa APP_BASE_URL (configurable en el .env,
+    p. ej. https://vitacore.cloud) si está definida; si no, cae en
+    request.host_url -- que es el host con el que el NAVEGADOR DEL
+    PERSONAL llegó a la app (localhost, una IP interna, etc.), útil
+    solo en desarrollo pero inservible para un paciente real.
+    """
+    base = (current_app.config.get("APP_BASE_URL") or "").strip()
+    return base if base else request.host_url
 
 
 def _enriquecer_para_correo(detalle: dict) -> dict:

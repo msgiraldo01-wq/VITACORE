@@ -4,6 +4,7 @@ from services import permisos_service
 from blueprints.auth.routes import bp_auth
 from blueprints.configuracion_roles.routes import bp_roles
 from blueprints.configuracion_usuarios.routes import bp_usuarios
+from blueprints.configuracion_auditoria.routes import bp_auditoria
 from blueprints.hc_configuracion.routes import bp_hc_configuracion
 from routes import bp_hc_dashboard
 from blueprints.hc_pacientes.routes import bp_hc_pacientes
@@ -27,6 +28,8 @@ from blueprints.rda.routes import bp_rda
 from blueprints.inventario import inventario_bp
 from blueprints.hc.historia_clinica.routes import bp_hc_home
 from blueprints.hc_reportes.routes import bp_hc_reportes
+from blueprints.hc_admisiones.routes import bp_hc_admisiones
+from blueprints.hc_agenda_clinica.routes import bp_hc_agenda_clinica
 
 
 
@@ -42,6 +45,7 @@ app.config.from_object(Config)
 app.register_blueprint(bp_auth)
 app.register_blueprint(bp_roles)
 app.register_blueprint(bp_usuarios)
+app.register_blueprint(bp_auditoria)
 app.register_blueprint(bp_hc_configuracion)
 app.register_blueprint(bp_hc_dashboard)
 app.register_blueprint(bp_hc_pacientes)
@@ -65,6 +69,8 @@ app.register_blueprint(bp_rda)
 app.register_blueprint(inventario_bp)
 app.register_blueprint(bp_hc_home)
 app.register_blueprint(bp_hc_reportes)
+app.register_blueprint(bp_hc_admisiones)
+app.register_blueprint(bp_hc_agenda_clinica)
 
 @app.route("/")
 def inicio():
@@ -108,5 +114,5 @@ def inyectar_helpers_permisos():
     return {"puede_ver": permisos_service.puede_ver, "puede": permisos_service.puede}
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    app.run(debug=True)
 

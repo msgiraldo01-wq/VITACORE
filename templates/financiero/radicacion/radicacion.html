@@ -722,6 +722,15 @@
 
 {% block extra_js %}
 <script>
+// Fecha de "hoy" en hora local (Colombia), no UTC -- toISOString()
+// da la fecha en UTC, y entre las 7 p.m. y la medianoche hora local
+// Colombia ya cambió de día en UTC, así que los campos de fecha se
+// llenaban con el día de MAÑANA en vez de hoy en esa ventana horaria.
+function hoyLocalISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 // ── DATOS ────────────────────────────────────
 const RADICACIONES_DATA = {{ radicaciones | tojson }};
 let   RADICACION_ACTUAL = null;
@@ -772,7 +781,7 @@ let _nr_factura_id  = "";
 let _nr_nit_eps     = "";
 
 function abrirModalRadicacion(factura="", eps="", nit="", valor=0, facturaId=""){
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyLocalISO();
     document.getElementById("nr_fecha").value    = hoy;
     document.getElementById("nr_factura").value  = factura;
     document.getElementById("nr_eps").value      = eps;

@@ -46,6 +46,11 @@ RUTAS_MODULO = {
     "/hc/historia": "historia_clinica",
     "/hc/evoluciones": "historia_clinica",
     "/hc/signos": "historia_clinica",
+    # Agenda clínica (vista de trabajo: lista del día + cambiar estado +
+    # acceso directo a la nota) es otra puerta de entrada al mismo
+    # módulo -- quien ya puede ver Historia clínica la ve sin necesidad
+    # de que un administrador configure nada aparte.
+    "/hc/agenda-clinica": "historia_clinica",
     # Catálogo maestro de medicamentos (crear/editar el formulario del
     # medicamento en sí) -- es dato administrativo, no historia clínica
     # de un paciente, así que tiene su propio módulo.

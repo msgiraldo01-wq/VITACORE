@@ -1039,6 +1039,12 @@ let tarifasProcedimientos = {};
 let rangosDisponibilidad = [];
 let alertasAgenda = [];
 let abortControllerDisponibilidad = null;
+
+// Última disponibilidad/citas cargadas por cargarHorariosMedico() para
+// el médico+fecha vigentes -- se cachean acá para poder sugerir un
+// hueco libre (calcularHuecoMaximo) sin tener que volver a pedirlas.
+let ULTIMOS_RANGOS_DISPONIBILIDAD = [];
+let ULTIMAS_CITAS_MEDICO_DIA      = [];
 let citaDetalleActual = null; // última cita cargada en el modal de detalle (evita refetch al reprogramar)
 
 let citaForm = {
@@ -1080,6 +1086,29 @@ let citaForm = {
 // primer médico de la lista).
 const AGENDA_FILTROS_KEY = 'vitacore_agenda_filtros';
 
+// ---------------------------------------------------------------
+// FECHA "DE HOY" EN HORA LOCAL (Colombia), no UTC
+// ---------------------------------------------------------------
+// `new Date().toISOString()` siempre da la fecha en UTC. Colombia va
+// 5 horas detrás de UTC, así que entre las 7:00 p.m. y la medianoche
+// (hora local) el UTC ya cambió de día -- toISOString().slice(0,10)
+// devuelve el día de MAÑANA aunque en Colombia todavía sea hoy.
+// Todo el código de abajo compara esta fecha con getHours()/getMinutes()
+// (que sí son locales), así que mezclar los dos formatos hacía que,
+// en esa ventana de la noche, el sistema creyera que ya era mañana a
+// las 10-11 p.m. y descartara TODOS los horarios del día siguiente
+// por "ya pasados" -- por eso aparecía "0 slots disponibles" al
+// agendar para el día siguiente en la noche. Esta función arma la
+// fecha con getFullYear()/getMonth()/getDate(), que sí son locales,
+// para que la fecha y la hora usadas en las comparaciones vengan
+// siempre del mismo reloj.
+function hoyLocalISO() {
+  const d = new Date();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
 function guardarFiltrosAgenda() {
   try {
     localStorage.setItem(AGENDA_FILTROS_KEY, JSON.stringify({
@@ -1101,7 +1130,7 @@ function leerFiltrosAgendaGuardados() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocalISO();
   const filtrosGuardados = leerFiltrosAgendaGuardados();
   document.getElementById("filtroFecha").value = (filtrosGuardados && filtrosGuardados.fecha) || hoy;
 
@@ -2346,7 +2375,7 @@ async function cargarHorariosReprogramar(citaId, medicoId, duracion, fecha) {
     // Citas que ya ocupan agenda ese día, sin contar la que estamos reprogramando
     const citasExistentes = (dataCitas.data || []).filter(c => c.id !== citaId);
 
-    const hoy      = new Date().toISOString().slice(0, 10);
+    const hoy      = hoyLocalISO();
     const esHoy    = fecha === hoy;
     const ahora    = new Date();
     let minMinutos = 0;
@@ -2451,7 +2480,7 @@ async function reprogramarDesdeDetalle(id) {
 async function mostrarModalReprogramar(id, citaActual, motivos) {
 
   const opcionesMotivo = motivos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
-  const hoy            = new Date().toISOString().slice(0, 10);
+  const hoy            = hoyLocalISO();
   const medicoId       = citaActual.medico_id;
   const duracionCita   = citaActual.duracion || 20;
 
@@ -2552,7 +2581,7 @@ function abrirModalCita() {
   document.getElementById('modalCita').classList.add('active');
 
   // No permitir fechas pasadas
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocalISO();
   const inputFecha = document.getElementById('fecha_modal');
   if (inputFecha) inputFecha.min = hoy;
 }
@@ -2637,8 +2666,11 @@ function resetForm() {
 
 function toggleCitaAdicional() {
   citaForm.es_adicional = document.getElementById('es_adicional').checked;
-  // Recargar slots — si es adicional, muestra TODOS los horarios
-  cargarHorariosMedico();
+  // Recargar slots — si es adicional, muestra TODOS los horarios.
+  // Se revalida (no solo recarga) para que, si se desmarca y la hora
+  // ya elegida resulta que sí se cruza con otra cita, se avise aquí
+  // mismo en vez de dejarla seleccionada silenciosamente.
+  revalidarHoraSeleccionada();
 }
 
 // ---------------------------------------------------------------
@@ -2692,7 +2724,7 @@ async function buscarSiguienteDisponible(medicoId) {
   infoDisp.innerHTML   = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando próxima disponibilidad...';
   selectHora.innerHTML = '<option value="">Buscando...</option>';
 
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocalISO();
 
   try {
     const res = await fetch(
@@ -3043,7 +3075,7 @@ async function cargarHorariosMedico() {
   if (!medicoId || !fecha) return;
  
   // No permitir fechas pasadas
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocalISO();
   if (fecha < hoy) {
     mostrarToast('No se pueden agendar citas en fechas pasadas', 'error');
     document.getElementById('fecha_modal').value = hoy;
@@ -3072,8 +3104,11 @@ async function cargarHorariosMedico() {
     const festivoBloqueo  = alertasModal.find(a => a.tipo === 'bloqueo_total' && a.motivo?.startsWith('Festivo:'));
     const festivoInfoModal = alertasModal.find(a => a.tipo === 'festivo_informativo');
 
+    ULTIMOS_RANGOS_DISPONIBILIDAD = rangos;
+
     // Si no hay programación configurada, NO mostrar slots
     if (!rangos.length) {
+      ULTIMAS_CITAS_MEDICO_DIA = [];
       selectHora.innerHTML = '<option value="">Sin disponibilidad para este día</option>';
       if (festivoBloqueo) {
         infoDisp.innerHTML = `
@@ -3104,6 +3139,8 @@ async function cargarHorariosMedico() {
     const dataCitas      = await resCitas.json();
     const citasExistentes = dataCitas.data || [];
     const duracionActual  = parseInt(document.getElementById('duracion').value) || 20;
+
+    ULTIMAS_CITAS_MEDICO_DIA = citasExistentes;
  
     // Calcular hora mínima si es hoy
     const ahora    = new Date();
@@ -3431,7 +3468,328 @@ function sincronizarDuracion() {
     citaForm.duracion   = 20;
   }
 
-  actualizarHoraFin();
+  // No basta con recalcular la hora fin estimada -- la hora de inicio
+  // que el usuario ya había elegido se validó contra la duración de
+  // ESE momento (antes de agregar/quitar procedimientos). Si la
+  // duración cambió, esa misma hora puede ahora cruzarse con otra
+  // cita sin que nada lo avise hasta el paso 5, al guardar. Por eso
+  // se revalida aquí mismo, en el paso 2.
+  revalidarHoraSeleccionada();
+}
+
+// ---------------------------------------------------------------
+// CALCULAR EL HUECO LIBRE REAL (para sugerirlo en vez de adivinar)
+// ---------------------------------------------------------------
+// Resta las citas activas (sin CANCELADA) de los rangos de programación
+// del médico y devuelve la lista de tramos verdaderamente libres ese
+// día, cada uno como {inicio, fin} en minutos desde medianoche.
+function calcularSubintervalosLibres(rangos, citasOcupadas) {
+  const libres = [];
+  for (const rango of rangos) {
+    const [ri_h, ri_m] = rango.hora_inicio.split(':').map(Number);
+    const [rf_h, rf_m] = rango.hora_fin.split(':').map(Number);
+    let cursor        = ri_h * 60 + ri_m;
+    const finRango    = rf_h * 60 + rf_m;
+
+    const ocupadasEnRango = citasOcupadas
+      .filter(c => c.inicio < finRango && c.fin > cursor)
+      .sort((a, b) => a.inicio - b.inicio);
+
+    for (const c of ocupadasEnRango) {
+      if (c.inicio > cursor) {
+        libres.push({ inicio: cursor, fin: Math.min(c.inicio, finRango) });
+      }
+      cursor = Math.max(cursor, c.fin);
+      if (cursor >= finRango) break;
+    }
+    if (cursor < finRango) {
+      libres.push({ inicio: cursor, fin: finRango });
+    }
+  }
+  return libres;
+}
+
+// Sugiere el hueco libre más útil: el que contiene la hora deseada (o
+// el siguiente disponible después de ella), o -- si no se pidió una
+// hora en particular -- el hueco libre más grande del día. Usa la
+// disponibilidad y citas que ya cacheó cargarHorariosMedico(), así que
+// no vuelve a pedir nada al servidor.
+function calcularHuecoMaximo(horaObjetivoStr) {
+  const rangos = ULTIMOS_RANGOS_DISPONIBILIDAD;
+  if (!rangos || !rangos.length) return null;
+
+  const citasOcupadas = (ULTIMAS_CITAS_MEDICO_DIA || [])
+    .filter(c => c.estado !== 'CANCELADA')
+    .map(c => {
+      const [ch, cm] = c.hora_inicio.split(':').map(Number);
+      const inicio = ch * 60 + cm;
+      return { inicio, fin: inicio + (c.duracion || 20) };
+    });
+
+  const libres = calcularSubintervalosLibres(rangos, citasOcupadas);
+  if (!libres.length) return null;
+
+  let elegido = null;
+  let objetivoMin = null;
+
+  if (horaObjetivoStr) {
+    const [oh, om] = horaObjetivoStr.split(':').map(Number);
+    objetivoMin = oh * 60 + om;
+    elegido =
+      libres.find(l => objetivoMin >= l.inicio && objetivoMin < l.fin) ||
+      libres.filter(l => l.inicio >= objetivoMin).sort((a, b) => a.inicio - b.inicio)[0] ||
+      null;
+  }
+
+  if (!elegido) {
+    // Sin hora de referencia útil (el usuario todavía no había logrado
+    // elegir ninguna) -- ofrecer el hueco más próximo en el día, no el
+    // más grande, que podría estar horas después de donde se quería
+    // agendar en realidad.
+    elegido = [...libres].sort((a, b) => a.inicio - b.inicio)[0];
+  }
+  if (!elegido) return null;
+
+  const inicioMin    = objetivoMin != null ? Math.max(elegido.inicio, objetivoMin) : elegido.inicio;
+  const duracionLibre = Math.floor((elegido.fin - inicioMin) / 5) * 5;
+  if (duracionLibre < 5) return null;
+
+  const h = Math.floor(inicioMin / 60);
+  const m = inicioMin % 60;
+  return {
+    hora_inicio: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+    duracion: duracionLibre,
+  };
+}
+
+// ---------------------------------------------------------------
+// REGENERAR EL <select> DE HORA, SIN VOLVER A CONSULTAR AL SERVIDOR
+// ---------------------------------------------------------------
+// cargarHorariosMedico() vuelve a pedir disponibilidad + alertas +
+// agenda al servidor cada vez -- necesario cuando cambia médico o
+// fecha, pero innecesario (y lento: 3 llamadas de red) cuando lo único
+// que cambió es la duración y ya tenemos esos datos cacheados
+// (ULTIMOS_RANGOS_DISPONIBILIDAD / ULTIMAS_CITAS_MEDICO_DIA). Esta
+// versión hace exactamente el mismo cálculo de slots pero en el
+// navegador, al instante -- se usa al aplicar el hueco sugerido, para
+// que la hora se rellene de inmediato en vez de demorarse varios
+// segundos esperando otra vuelta al servidor.
+function regenerarSelectHoraDesdeCache(duracionMin) {
+  const selectHora = document.getElementById('hora_inicio');
+  const infoDisp    = document.getElementById('infoHorarioMedico');
+  if (!selectHora) return [];
+
+  const rangos          = ULTIMOS_RANGOS_DISPONIBILIDAD || [];
+  const citasExistentes = ULTIMAS_CITAS_MEDICO_DIA || [];
+
+  const fecha    = document.getElementById('fecha_modal').value;
+  const hoy      = hoyLocalISO();
+  const esHoy    = fecha === hoy;
+  let minMinutos = 0;
+  if (esHoy) {
+    const ahora = new Date();
+    minMinutos = Math.ceil((ahora.getHours() * 60 + ahora.getMinutes() + 1) / 5) * 5;
+  }
+
+  const slots = [];
+  for (const rango of rangos) {
+    const [ri_h, ri_m] = rango.hora_inicio.split(':').map(Number);
+    const [rf_h, rf_m] = rango.hora_fin.split(':').map(Number);
+    const rangoInicio   = ri_h * 60 + ri_m;
+    const rangoFin      = rf_h * 60 + rf_m;
+
+    for (let slotMin = rangoInicio; slotMin + duracionMin <= rangoFin; slotMin += 5) {
+      if (slotMin < minMinutos) continue;
+      const finSlot = slotMin + duracionMin;
+
+      const ocupado = citasExistentes.some(c => {
+        if (c.estado === 'CANCELADA') return false;
+        const [ch, cm] = c.hora_inicio.split(':').map(Number);
+        const inicioC  = ch * 60 + cm;
+        const finC     = inicioC + (c.duracion || 20);
+        return slotMin < finC && finSlot > inicioC;
+      });
+
+      if (!ocupado || citaForm.es_adicional) {
+        const h = Math.floor(slotMin / 60);
+        const m = slotMin % 60;
+        slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+      }
+    }
+  }
+
+  selectHora.innerHTML =
+    '<option value="">Seleccionar hora...</option>' +
+    slots.map(h => `<option value="${h}">${h}</option>`).join('');
+
+  selectHora.onchange = () => {
+    citaForm.hora_inicio = selectHora.value;
+    actualizarHoraFin();
+  };
+
+  if (infoDisp && rangos.length) {
+    const citasActivas = citasExistentes.filter(c => c.estado !== 'CANCELADA').length;
+    const rangosTexto  = rangos.map(r => `${r.hora_inicio} - ${r.hora_fin}`).join(' · ');
+    infoDisp.innerHTML = `
+      <i class="fa-solid fa-clock" style="color:var(--color-confirmada);"></i>
+      Horario: <strong>${rangosTexto}</strong><br>
+      <strong>${citasActivas}</strong> citas agendadas ·
+      <strong>${slots.length}</strong> slots disponibles para ${duracionMin} min
+      ${esHoy ? '<br><small style="color:var(--color-pendiente);">Solo se muestran horarios futuros</small>' : ''}
+    `;
+  }
+
+  return slots;
+}
+
+// ---------------------------------------------------------------
+// EDICIÓN MANUAL DEL CAMPO "DURACIÓN (MIN)"
+// ---------------------------------------------------------------
+// A diferencia de sincronizarDuracion() (que SIEMPRE pone ahí la suma
+// real de los procedimientos agregados), este campo también se puede
+// editar a mano -- y es la única forma de dejarlo por debajo de esa
+// suma. Bajarlo así no es ilegal (puede haber un motivo real), pero
+// con 2 o más procedimientos agendados es una señal de que se está
+// comprimiendo el tiempo real que toman, así que se confirma con el
+// usuario antes de aceptarlo, en vez de dejarlo pasar en silencio y
+// que luego "aparezca y desaparezca" un horario sin que quede claro
+// por qué.
+//
+// El campo Duración tiene step="5", así que si alguien baja de 30 a
+// 15 con la flechita, cada clic dispara su propio 'change' -- sin
+// esperar, eso serían 3 alertas seguidas antes de terminar de decidir.
+// Por eso la evaluación real se demora un momento (debounce): mientras
+// siga cambiando el valor, no se pregunta nada; solo cuando se
+// queda quieto se evalúa el valor final en el que aterrizó.
+let _debounceDuracionTimer = null;
+
+function onDuracionManualChange() {
+  const campoDuracion = document.getElementById('duracion');
+  const nuevaDuracion  = Math.max(5, parseInt(campoDuracion.value) || 5);
+  campoDuracion.value  = nuevaDuracion;
+  citaForm.duracion    = nuevaDuracion; // valor de trabajo mientras se decide si hace falta confirmar
+
+  clearTimeout(_debounceDuracionTimer);
+  _debounceDuracionTimer = setTimeout(evaluarDuracionCorta, 700);
+}
+
+async function evaluarDuracionCorta() {
+  const campoDuracion = document.getElementById('duracion');
+  const nuevaDuracion  = Math.max(5, parseInt(campoDuracion.value) || 5);
+  const sumaProcedimientos = procedimientosSeleccionados.reduce((s, p) => s + (p.duracion_min || 0), 0);
+
+  if (procedimientosSeleccionados.length < 2 || nuevaDuracion >= sumaProcedimientos) {
+    revalidarHoraSeleccionada();
+    return;
+  }
+
+  const horaPrevia = document.getElementById('hora_inicio').value;
+  const sugerencia = calcularHuecoMaximo(horaPrevia || null);
+
+  const result = await Swal.fire({
+    title: 'Duración corta para estos procedimientos',
+    html: `
+      Seleccionaste <strong>${procedimientosSeleccionados.length} procedimientos</strong>
+      que normalmente toman <strong>${sumaProcedimientos} min</strong> en total,
+      pero dejaste la duración de la cita en solo <strong>${nuevaDuracion} min</strong>.
+      ${sugerencia ? `
+        <br><br>
+        El hueco libre real más cercano es de <strong>${sugerencia.duracion} min</strong>,
+        a partir de las <strong>${sugerencia.hora_inicio}</strong>.
+      ` : ''}
+      <br><br>
+      ¿Qué quieres hacer?
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    showDenyButton: !!sugerencia,
+    confirmButtonText: `Sí, agendar con ${nuevaDuracion} min`,
+    denyButtonText: sugerencia ? `Usar el hueco: ${sugerencia.duracion} min` : undefined,
+    cancelButtonText: `No, usar ${sumaProcedimientos} min`,
+    confirmButtonColor: '#d97706',
+    denyButtonColor: '#0d5c63',
+    cancelButtonColor: '#64748b',
+    reverseButtons: true,
+  });
+
+  if (result.isDenied && sugerencia) {
+    // Usar directamente el hueco sugerido -- duración Y hora de inicio.
+    // Se regenera el <select> desde la caché (sin volver a consultar
+    // al servidor) para que quede lleno al instante, no varios
+    // segundos después.
+    campoDuracion.value = sugerencia.duracion;
+    citaForm.duracion    = sugerencia.duracion;
+
+    const slots = regenerarSelectHoraDesdeCache(sugerencia.duracion);
+
+    if (slots.includes(sugerencia.hora_inicio)) {
+      const selectHora = document.getElementById('hora_inicio');
+      selectHora.value     = sugerencia.hora_inicio;
+      citaForm.hora_inicio = sugerencia.hora_inicio;
+      actualizarHoraFin();
+    }
+    mostrarToast(`Duración ajustada a ${sugerencia.duracion} min, desde las ${sugerencia.hora_inicio}.`, 'success');
+    return;
+  }
+
+  if (result.isConfirmed) {
+    citaForm.duracion = nuevaDuracion;
+  } else {
+    campoDuracion.value = sumaProcedimientos;
+    citaForm.duracion   = sumaProcedimientos;
+  }
+
+  revalidarHoraSeleccionada();
+}
+
+// ---------------------------------------------------------------
+// REVALIDAR LA HORA DE INICIO YA ELEGIDA CONTRA LA DURACIÓN ACTUAL
+// ---------------------------------------------------------------
+// Se llama cada vez que cambia la duración (al agregar/quitar/editar
+// un procedimiento CUPS, o si el usuario edita el campo Duración a
+// mano). Vuelve a generar la lista de horarios disponibles con la
+// duración vigente y, si la hora que ya estaba elegida sigue cabiendo
+// sin cruzarse con otra cita, la deja seleccionada tal cual estaba;
+// si ya NO cabe, la limpia y avisa de una vez -- en el paso 2, no
+// hasta que intente guardar la cita en el paso 5.
+async function revalidarHoraSeleccionada() {
+  const selectHora = document.getElementById('hora_inicio');
+  if (!selectHora) return;
+
+  const horaPrevia = selectHora.value;
+
+  await cargarHorariosMedico();
+
+  if (!horaPrevia) return; // no había ninguna hora elegida todavía
+
+  const sigueDisponible = Array.from(selectHora.options).some(o => o.value === horaPrevia);
+
+  if (sigueDisponible) {
+    selectHora.value     = horaPrevia;
+    citaForm.hora_inicio = horaPrevia;
+    actualizarHoraFin();
+    return;
+  }
+
+  // La hora elegida ya no alcanza con la nueva duración -- limpiar y avisar.
+  citaForm.hora_inicio = '';
+  const campoFin = document.getElementById('hora_fin_estimada');
+  if (campoFin) campoFin.value = '';
+
+  const duracionActual = document.getElementById('duracion').value;
+  mostrarToast(
+    `La hora ${horaPrevia} ya no alcanza para ${duracionActual} min: se cruza con otra cita. Elige un nuevo horario de la lista.`,
+    'error'
+  );
+
+  const infoDisp = document.getElementById('infoHorarioMedico');
+  if (infoDisp) {
+    infoDisp.innerHTML += `
+      <br><small style="color:var(--color-cancelada); font-weight:700;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        La hora ${horaPrevia} ya no cabe con esta duración -- elige un nuevo horario.
+      </small>`;
+  }
 }
 
 
