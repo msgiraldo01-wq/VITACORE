@@ -21,10 +21,12 @@ Equipos, salas y consultorios del sistema
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/recursos/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo recurso
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -200,12 +202,15 @@ color:var(--muted);
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/recursos/editar/{{ r.id }}">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/recursos/toggle/{{ r.id }}"
 class="toggleForm">
@@ -216,6 +221,7 @@ class="toggleForm">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -235,10 +241,12 @@ class="toggleForm">
 <div class="empty-box">
 <h3>No hay recursos registrados</h3>
 <p>Crea el primero para comenzar.</p>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/recursos/nuevo">
 <i class="fa-solid fa-plus"></i>
 Crear recurso
 </a>
+{% endif %}
 </div>
 
 {% endif %}

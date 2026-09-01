@@ -37,8 +37,10 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
 <style>
   /* ============================================
      VITACORE DASHBOARD - HOME STYLES
+     Rediseño: menos capas repetidas de título/saludo,
+     sin duplicar los mismos 4 números en dos secciones.
      ============================================ */
-  
+
   /* CSS Custom Properties (fallbacks) */
   :root {
     --brand: #0d5c63;
@@ -61,126 +63,12 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
     --radius-lg: 24px;
   }
 
-  /* Layout Principal */
   .home-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
     max-width: 1400px;
     margin: 0 auto;
-  }
-
-  .home-top {
-    display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
-    gap: 20px;
-    align-items: start;
-  }
-
-  /* ============================================
-     HERO PANEL
-     ============================================ */
-  .hero-panel {
-    position: relative;
-    overflow: hidden;
-    padding: 28px;
-    border-radius: var(--radius-lg);
-    background: 
-      radial-gradient(circle at top left, rgba(13, 92, 99, 0.10), transparent 28%),
-      linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .hero-panel::after {
-    content: "";
-    position: absolute;
-    right: -70px;
-    top: -70px;
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(13, 92, 99, 0.10), transparent 68%);
-    pointer-events: none;
-  }
-
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: var(--brand-soft);
-    color: var(--brand-strong);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 16px;
-  }
-
-  .hero-title {
-    margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.7rem);
-    line-height: 1.02;
-    letter-spacing: -0.04em;
-    color: var(--text);
-  }
-
-  .hero-title span {
-    color: var(--brand);
-  }
-
-  .hero-copy {
-    margin: 14px 0 22px;
-    max-width: 720px;
-    color: var(--text-soft);
-    font-size: 15px;
-    line-height: 1.7;
-  }
-
-  .hero-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 700;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-  }
-
-  .meta-chip:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .meta-chip i {
-    color: var(--brand);
-    font-size: 14px;
-  }
-
-  .meta-chip time {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ============================================
-     SIDE STACK & CARDS
-     ============================================ */
-  .side-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
   }
 
   .card {
@@ -188,23 +76,6 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-  }
-
-  .card:hover {
-    box-shadow: var(--shadow-md);
-  }
-
-  .profile-card {
-    padding: 20px;
-  }
-
-  .profile-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
   }
 
   .section-kicker {
@@ -224,100 +95,90 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
   }
 
   /* ============================================
-     USER HUB (Dropdown Accesible)
+     BARRA DE SALUDO (reemplaza el hero grande +
+     la tarjeta de perfil -- la identidad del
+     usuario ya vive en el pie de la barra lateral)
      ============================================ */
-  .userhub {
-    position: relative;
-  }
-
-  .user-btn {
-    width: 100%;
+  .greet-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .greet-copy h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .greet-copy time {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-soft);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Menú de usuario, compacto -- único punto de logout de esta página */
+  .userhub { position: relative; flex-shrink: 0; }
+
+  .user-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 6px;
+    border-radius: 999px;
     border: 1px solid var(--border);
-    background: var(--surface-2);
+    background: var(--surface);
     cursor: pointer;
     color: var(--text);
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
     font-family: inherit;
-    font-size: inherit;
-    text-align: left;
+    transition: background 0.18s ease, border-color 0.18s ease;
   }
 
-  .user-btn:hover {
-    background: var(--surface-3);
-    border-color: var(--border-strong);
-    transform: translateY(-1px);
-  }
-
-  .user-btn:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-
-  .user-btn[aria-expanded="true"] {
-    border-color: var(--brand);
-    background: var(--surface-3);
-  }
-
-  .user-btn[aria-expanded="true"] .user-caret {
-    transform: rotate(180deg);
-  }
+  .user-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+  .user-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .user-btn[aria-expanded="true"] { border-color: var(--brand); background: var(--surface-2); }
+  .user-btn[aria-expanded="true"] .user-caret { transform: rotate(180deg); }
 
   .user-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 800;
     color: #fff;
     background: linear-gradient(135deg, var(--brand), #2d8b93);
-    box-shadow: 0 12px 20px rgba(13, 92, 99, 0.18);
     user-select: none;
   }
 
-  .user-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    text-align: left;
-    line-height: 1.15;
-  }
-
   .user-name {
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     color: var(--text);
+    max-width: 160px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .user-role {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--text-soft);
-  }
-
   .user-caret {
-    margin-left: auto;
     color: var(--text-faint);
-    font-size: 13px;
+    font-size: 11px;
     transition: transform 0.2s ease;
   }
 
-  /* Menú desplegable */
   .user-menu {
     position: absolute;
     right: 0;
-    top: calc(100% + 10px);
-    width: min(220px, calc(100vw - 40px));
+    top: calc(100% + 8px);
+    width: 200px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -330,346 +191,142 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
     z-index: 50;
   }
 
-  .user-menu.show {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-  }
+  .user-menu.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 
   .user-menu a {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     text-decoration: none;
     color: var(--text);
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     border-bottom: 1px solid var(--border);
-    transition: background 0.15s ease;
-    position: relative;
   }
 
-  .user-menu a:last-child {
-    border-bottom: none;
-    color: var(--danger);
-  }
-
-  .user-menu a:hover,
-  .user-menu a:focus-visible {
-    background: var(--surface-2);
-    outline: none;
-  }
-
-  .user-menu a:focus-visible::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--brand);
-  }
+  .user-menu a:last-child { border-bottom: none; color: var(--danger); }
+  .user-menu a:hover, .user-menu a:focus-visible { background: var(--surface-2); outline: none; }
 
   /* ============================================
-     PROFILE META
-     ============================================ */
-  .profile-meta {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 16px;
-  }
-
-  .mini-info {
-    padding: 12px;
-    border-radius: var(--radius-sm);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    transition: transform 0.18s ease;
-  }
-
-  .mini-info:hover {
-    transform: translateY(-1px);
-  }
-
-  .mini-info strong {
-    display: block;
-    margin-bottom: 4px;
-    color: var(--text);
-    font-size: 14px;
-  }
-
-  .mini-info span {
-    color: var(--text-soft);
-    font-size: 12px;
-  }
-
-  /* ============================================
-     STATS GRID
+     STATS -- solo número + etiqueta, sin frase
      ============================================ */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 18px;
+    gap: 14px;
   }
 
   .stat-card {
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .stat-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--brand), #2d8b93);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .stat-card:hover::before {
-    opacity: 1;
-  }
-
-  .stat-head {
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .stat-label {
-    color: var(--text-faint);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
+    gap: 14px;
   }
 
   .stat-icon {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     display: grid;
     place-items: center;
     border-radius: var(--radius-sm);
     background: var(--brand-soft);
     color: var(--brand);
     font-size: 16px;
-    transition: transform 0.2s ease, background 0.2s ease;
-  }
-
-  .stat-card:hover .stat-icon {
-    transform: scale(1.1);
-    background: rgba(13, 92, 99, 0.12);
+    flex-shrink: 0;
   }
 
   .stat-value {
-    margin: 0 0 6px;
-    font-size: 2rem;
+    margin: 0;
+    font-size: 1.7rem;
     line-height: 1;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
 
-  .stat-text {
+  .stat-label {
+    margin-top: 3px;
     color: var(--text-soft);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .empty-note {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    border: 1px dashed var(--border-strong);
+    color: var(--text-soft);
+    font-size: 13.5px;
   }
 
   /* ============================================
-     SECTION GRID (Quick Links & Activity)
+     ACCESOS RÁPIDOS
      ============================================ */
-  .section-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-    gap: 20px;
-    align-items: start;
-  }
+  .section-card { padding: 20px; }
 
-  .section-card {
-    padding: 22px;
-  }
+  .section-head { margin-bottom: 14px; }
 
-  .section-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 18px;
-  }
-
-  .section-head p {
-    margin: 6px 0 0;
-    color: var(--text-soft);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  /* Quick Links */
   .quick-list {
     display: grid;
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .quick-link {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px;
+    gap: 12px;
+    padding: 13px 14px;
     border-radius: var(--radius-md);
     text-decoration: none;
     background: var(--surface-2);
     border: 1px solid var(--border);
     color: var(--text);
-    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-    position: relative;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
   }
 
   .quick-link:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: var(--border-strong);
     background: var(--surface-3);
-    box-shadow: var(--shadow-sm);
   }
 
-  .quick-link:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-    transform: translateY(-2px);
-  }
+  .quick-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
   .quick-icon {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     display: grid;
     place-items: center;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
     background: var(--brand-soft);
     color: var(--brand);
-    font-size: 17px;
-    transition: transform 0.2s ease;
+    font-size: 14.5px;
   }
 
-  .quick-link:hover .quick-icon {
-    transform: scale(1.1) rotate(-5deg);
-  }
-
-  .quick-copy {
-    min-width: 0;
-    flex: 1;
-  }
+  .quick-copy { min-width: 0; flex: 1; }
 
   .quick-copy strong {
     display: block;
-    font-size: 14px;
+    font-size: 13.5px;
     color: var(--text);
-    margin-bottom: 3px;
   }
 
   .quick-copy span {
     display: block;
     color: var(--text-soft);
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    margin-top: 1px;
   }
 
-  .quick-arrow {
-    margin-left: auto;
-    color: var(--text-faint);
-    transition: transform 0.2s ease, color 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .quick-link:hover .quick-arrow {
-    transform: translateX(4px);
-    color: var(--brand);
-  }
-
-  /* Activity List */
-  .activity-list {
-    display: grid;
-    gap: 12px;
-  }
-
-  .activity-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px;
-    border-radius: var(--radius-md);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    transition: transform 0.18s ease, border-color 0.18s ease;
-  }
-
-  .activity-item:hover {
-    transform: translateX(4px);
-    border-color: var(--border-strong);
-  }
-
-  .activity-dot {
-    width: 12px;
-    height: 12px;
-    margin-top: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: var(--brand);
-    box-shadow: 0 0 0 6px rgba(13, 92, 99, 0.10);
-    position: relative;
-  }
-
-  .activity-dot::after {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    border-top-color: var(--brand);
-    animation: pulse-ring 2s linear infinite;
-  }
-
-  @keyframes pulse-ring {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  .activity-item strong {
-    display: block;
-    margin-bottom: 4px;
-    color: var(--text);
-    font-size: 14px;
-  }
-
-  .activity-item span {
-    display: block;
-    color: var(--text-soft);
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  /* Empty State */
-  .empty-note {
-    padding: 16px;
-    border-radius: var(--radius-md);
-    background: var(--surface-2);
-    border: 1px dashed var(--border-strong);
-    color: var(--text-soft);
-    font-size: 14px;
-    line-height: 1.6;
-    text-align: center;
-  }
+  .quick-arrow { color: var(--text-faint); flex-shrink: 0; font-size: 12px; }
+  .quick-link:hover .quick-arrow { color: var(--brand); }
 
   /* ============================================
-     SKIP LINK (Accesibilidad)
+     SKIP LINK / LIVE REGION (accesibilidad)
      ============================================ */
   .skip-link {
     position: absolute;
@@ -685,13 +342,8 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
     border-radius: 0 0 4px 0;
   }
 
-  .skip-link:focus {
-    top: 0;
-  }
+  .skip-link:focus { top: 0; }
 
-  /* ============================================
-     LIVE REGION (para reloj)
-     ============================================ */
   .sr-only {
     position: absolute;
     width: 1px;
@@ -705,77 +357,26 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
   }
 
   /* ============================================
-     RESPONSIVE DESIGN
+     RESPONSIVE
      ============================================ */
-  @media (max-width: 1160px) {
-    .home-top,
-    .section-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .quick-list { grid-template-columns: 1fr; }
   }
 
-  @media (max-width: 720px) {
-    .hero-panel,
-    .card,
-    .section-card {
-      border-radius: 20px;
-    }
-
-    .hero-panel {
-      padding: 20px;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-
-    .profile-meta {
-      grid-template-columns: 1fr;
-    }
-
-    .hero-meta {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .meta-chip {
-      width: 100%;
-      justify-content: flex-start;
-    }
-
-    .section-card {
-      padding: 18px;
-    }
-
-    .quick-link {
-      padding: 14px;
-    }
-
-    .quick-icon {
-      width: 40px;
-      height: 40px;
-      font-size: 15px;
-    }
+  @media (max-width: 560px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .greet-bar { align-items: flex-start; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
 
-  /* ============================================
-     UTILIDADES
-     ============================================ */
   .visually-hidden {
     position: absolute;
     width: 1px;
@@ -796,261 +397,136 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
 
 <main id="main-content" class="home-dashboard" role="main" aria-label="Panel principal de Vitacore">
 
-  <!-- Sección superior: Hero + Perfil -->
-  <section class="home-top" aria-labelledby="hero-heading">
-    
-    <!-- Panel Hero -->
-    <article class="hero-panel">
-      <header>
-        <div class="hero-badge" aria-label="Sistema activo">
-          <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
-          Vitacore · Panel principal
-        </div>
+  <!-- Saludo + reloj + menú de usuario (única fila, sin repetir el título de la página) -->
+  <section class="greet-bar" aria-labelledby="greet-heading">
+    <div class="greet-copy">
+      <h1 id="greet-heading">Bienvenido, {{ session['user']['full_name'] }}</h1>
+      <time id="clockNow" datetime="" aria-live="polite" aria-atomic="true">—</time>
+    </div>
 
-        <h1 id="hero-heading" class="hero-title">
-          Bienvenido, <span>{{ session['user']['full_name'] }}</span>
-        </h1>
-      </header>
+    <nav class="userhub" aria-label="Menú de usuario">
+      <button
+        class="user-btn"
+        id="perfilToggle"
+        type="button"
+        aria-expanded="false"
+        aria-haspopup="true"
+        aria-controls="perfilMenu"
+        aria-label="Abrir menú de perfil de {{ session['user']['full_name'] }}"
+      >
+        <span class="user-avatar" aria-hidden="true">{{ session['user']['full_name'][0] }}</span>
+        <span class="user-name">{{ session['user']['full_name'] }}</span>
+        <i class="fa-solid fa-chevron-down user-caret" aria-hidden="true"></i>
+      </button>
 
-      <p class="hero-copy">
-        Desde este espacio puedes iniciar tu jornada clínica, revisar el movimiento del día
-        y acceder rápidamente a los módulos más utilizados del sistema.
-      </p>
-
-      <div class="hero-meta" role="list" aria-label="Información de sesión">
-        <div class="meta-chip" role="listitem">
-          <i class="fa-solid fa-clock" aria-hidden="true"></i>
-          <time id="clockNow" datetime="" aria-live="polite" aria-atomic="true">—</time>
-        </div>
-
-        <div class="meta-chip" role="listitem">
-          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-          <span>Sesión institucional activa</span>
-        </div>
-
-        <div class="meta-chip" role="listitem">
-          <i class="fa-solid fa-hospital" aria-hidden="true"></i>
-          <span>Operación clínica en curso</span>
-        </div>
-      </div>
-    </article>
-
-    <!-- Panel lateral: Perfil de usuario -->
-    <aside class="side-stack" aria-labelledby="session-heading">
-      <section class="card profile-card">
-        <header class="profile-top">
-          <div>
-            <p class="section-kicker">Usuario</p>
-            <h2 id="session-heading" class="section-title">Sesión actual</h2>
-          </div>
-        </header>
-
-        <!-- Menú desplegable de usuario -->
-        <nav class="userhub" aria-label="Menú de usuario">
-          <button 
-            class="user-btn" 
-            id="perfilToggle" 
-            type="button" 
-            aria-expanded="false"
-            aria-haspopup="true"
-            aria-controls="perfilMenu"
-            aria-label="Abrir menú de perfil de {{ session['user']['full_name'] }}"
-          >
-            <figure class="user-avatar" aria-hidden="true">
-              {{ session['user']['full_name'][0] }}
-            </figure>
-
-            <div class="user-info">
-              <span class="user-name">{{ session['user']['full_name'] }}</span>
-              <span class="user-role">Administrador</span>
-            </div>
-
-            <i class="fa-solid fa-chevron-down user-caret" aria-hidden="true"></i>
-          </button>
-
-          <nav 
-            class="user-menu" 
-            id="perfilMenu" 
-            role="menu" 
-            aria-label="Opciones de perfil"
-            aria-hidden="true"
-          >
-            <a href="/auth/mi-perfil" role="menuitem" tabindex="-1">
-              <i class="fa-solid fa-user" aria-hidden="true"></i>
-              <span>Mi perfil</span>
-            </a>
-            <a href="/auth/logout" role="menuitem" tabindex="-1">
-              <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-              <span>Cerrar sesión</span>
-            </a>
-          </nav>
-        </nav>
-
-        <!-- Meta información del perfil -->
-        <footer class="profile-meta" aria-label="Estado de la sesión">
-         
-          <div class="mini-info">
-            <strong>Módulo</strong>
-            <span>Inicio general</span>
-          </div>
-        </footer>
-      </section>
-    </aside>
-  </section>
-
-  <!-- Estadísticas principales -->
-  <section class="stats-grid" aria-labelledby="stats-heading">
-    <h2 id="stats-heading" class="visually-hidden">Estadísticas del día</h2>
-    
-    <article class="card stat-card">
-      <header class="stat-head">
-        <span class="stat-label">Pacientes</span>
-        <div class="stat-icon" aria-hidden="true">
-          <i class="fa-solid fa-user-injured"></i>
-        </div>
-      </header>
-      <p class="stat-value" aria-label="{{ pacientes_hoy or 0 }} pacientes atendidos hoy">{{ pacientes_hoy or 0 }}</p>
-      <span class="stat-text">Pacientes atendidos o registrados durante la jornada.</span>
-    </article>
-
-    <article class="card stat-card">
-      <header class="stat-head">
-        <span class="stat-label">Evoluciones</span>
-        <div class="stat-icon" aria-hidden="true">
-          <i class="fa-solid fa-notes-medical"></i>
-        </div>
-      </header>
-      <p class="stat-value" aria-label="{{ evoluciones_hoy or 0 }} evoluciones registradas hoy">{{ evoluciones_hoy or 0 }}</p>
-      <span class="stat-text">Registros clínicos generados y seguimiento documentado hoy.</span>
-    </article>
-
-    <article class="card stat-card">
-      <header class="stat-head">
-        <span class="stat-label">Signos</span>
-        <div class="stat-icon" aria-hidden="true">
-          <i class="fa-solid fa-heart-pulse"></i>
-        </div>
-      </header>
-      <p class="stat-value" aria-label="{{ signos_hoy or 0 }} signos vitales registrados hoy">{{ signos_hoy or 0 }}</p>
-      <span class="stat-text">Capturas de signos vitales o controles clínicos registrados.</span>
-    </article>
-
-    <article class="card stat-card">
-      <header class="stat-head">
-        <span class="stat-label">Consultas</span>
-        <div class="stat-icon" aria-hidden="true">
-          <i class="fa-solid fa-hospital"></i>
-        </div>
-      </header>
-      <p class="stat-value" aria-label="{{ consultas_hoy or 0 }} consultas activas hoy">{{ consultas_hoy or 0 }}</p>
-      <span class="stat-text">Consultas activas con movimiento operativo dentro del sistema.</span>
-    </article>
-  </section>
-
-  <!-- Grid inferior: Accesos rápidos + Actividad -->
-  <div class="section-grid">
-    
-    <!-- Accesos rápidos -->
-    <section class="card section-card" aria-labelledby="quick-heading">
-      <header class="section-head">
-        <div>
-          <p class="section-kicker">Accesos rápidos</p>
-          <h2 id="quick-heading" class="section-title">Ir directo a lo importante</h2>
-          <p>Entradas pensadas para iniciar tareas frecuentes sin navegar por todo el menú.</p>
-        </div>
-      </header>
-
-      <nav class="quick-list" aria-label="Navegación rápida">
-        <a class="quick-link" href="/hc/pacientes" aria-label="Gestionar pacientes">
-          <div class="quick-icon" aria-hidden="true">
-            <i class="fa-solid fa-user-injured"></i>
-          </div>
-          <div class="quick-copy">
-            <strong>Pacientes</strong>
-            <span>Consulta, búsqueda y gestión del listado general de pacientes.</span>
-          </div>
-          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+      <nav
+        class="user-menu"
+        id="perfilMenu"
+        role="menu"
+        aria-label="Opciones de perfil"
+        aria-hidden="true"
+      >
+        <a href="/auth/mi-perfil" role="menuitem" tabindex="-1">
+          <i class="fa-solid fa-user" aria-hidden="true"></i>
+          <span>Mi perfil</span>
         </a>
-
-        <a class="quick-link" href="/citas" aria-label="Ver agenda de citas">
-          <div class="quick-icon" aria-hidden="true">
-            <i class="fa-solid fa-calendar-check"></i>
-          </div>
-          <div class="quick-copy">
-            <strong>Citas</strong>
-            <span>Revisa agenda, programación y flujo de atención del día.</span>
-          </div>
-          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-        </a>
-
-        <a class="quick-link" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
-          <div class="quick-icon" aria-hidden="true">
-            <i class="fa-solid fa-file-waveform"></i>
-          </div>
-          <div class="quick-copy">
-            <strong>Historia clínica</strong>
-            <span>Accede al módulo principal de consulta, evolución y seguimiento médico.</span>
-          </div>
-          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-        </a>
-
-        <a class="quick-link" href="/hc/reportes" aria-label="Ver reportes e indicadores">
-          <div class="quick-icon" aria-hidden="true">
-            <i class="fa-solid fa-chart-column"></i>
-          </div>
-          <div class="quick-copy">
-            <strong>Reportes</strong>
-            <span>Explora indicadores de gestión y rendimiento clínico o administrativo.</span>
-          </div>
-          <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+        <a href="/auth/logout" role="menuitem" tabindex="-1">
+          <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+          <span>Cerrar sesión</span>
         </a>
       </nav>
-    </section>
+    </nav>
+  </section>
 
-    <!-- Actividad del día -->
-    <section class="card section-card" aria-labelledby="activity-heading">
-      <header class="section-head">
-        <div>
-          <p class="section-kicker">Actividad</p>
-          <h2 id="activity-heading" class="section-title">Resumen del día</h2>
-          <p>Vista rápida del comportamiento operativo actual.</p>
-        </div>
-      </header>
+  <!-- Estadísticas del día -->
+  <section class="stats-grid" aria-labelledby="stats-heading">
+    <h2 id="stats-heading" class="visually-hidden">Estadísticas del día</h2>
 
-      <div class="activity-list" role="list" aria-label="Actividades recientes">
-        <div class="activity-item" role="listitem">
-          <div class="activity-dot" aria-hidden="true"></div>
-          <div>
-            <strong>{{ pacientes_hoy or 0 }} pacientes hoy</strong>
-            <span>Movimiento clínico registrado en el sistema durante la jornada actual.</span>
-          </div>
-        </div>
-
-        <div class="activity-item" role="listitem">
-          <div class="activity-dot" aria-hidden="true"></div>
-          <div>
-            <strong>{{ evoluciones_hoy or 0 }} evoluciones cargadas</strong>
-            <span>Seguimiento médico y documentación clínica generada en el día.</span>
-          </div>
-        </div>
-
-        <div class="activity-item" role="listitem">
-          <div class="activity-dot" aria-hidden="true"></div>
-          <div>
-            <strong>{{ consultas_hoy or 0 }} consultas activas</strong>
-            <span>Procesos asistenciales en curso dentro de los módulos principales.</span>
-          </div>
-        </div>
+    <article class="card stat-card">
+      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-user-injured"></i></div>
+      <div>
+        <p class="stat-value" aria-label="{{ pacientes_hoy or 0 }} pacientes hoy">{{ pacientes_hoy or 0 }}</p>
+        <p class="stat-label">Pacientes hoy</p>
       </div>
+    </article>
 
-      {% if not pacientes_hoy and not evoluciones_hoy and not signos_hoy and not consultas_hoy %}
-      <div class="empty-note" role="status" aria-live="polite">
-        <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 8px;"></i>
-        Aún no se registra actividad para hoy. Puedes comenzar desde pacientes, citas o historia clínica.
+    <article class="card stat-card">
+      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-notes-medical"></i></div>
+      <div>
+        <p class="stat-value" aria-label="{{ evoluciones_hoy or 0 }} evoluciones hoy">{{ evoluciones_hoy or 0 }}</p>
+        <p class="stat-label">Evoluciones hoy</p>
       </div>
-      {% endif %}
-    </section>
+    </article>
+
+    <article class="card stat-card">
+      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-heart-pulse"></i></div>
+      <div>
+        <p class="stat-value" aria-label="{{ signos_hoy or 0 }} signos vitales hoy">{{ signos_hoy or 0 }}</p>
+        <p class="stat-label">Signos vitales hoy</p>
+      </div>
+    </article>
+
+    <article class="card stat-card">
+      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-hospital"></i></div>
+      <div>
+        <p class="stat-value" aria-label="{{ consultas_hoy or 0 }} consultas activas">{{ consultas_hoy or 0 }}</p>
+        <p class="stat-label">Consultas activas</p>
+      </div>
+    </article>
+  </section>
+
+  {% if not pacientes_hoy and not evoluciones_hoy and not signos_hoy and not consultas_hoy %}
+  <div class="empty-note" role="status" aria-live="polite">
+    <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 6px;"></i>
+    Aún no se registra actividad para hoy. Puedes comenzar desde pacientes, citas o historia clínica.
   </div>
+  {% endif %}
+
+  <!-- Accesos rápidos -->
+  <section class="card section-card" aria-labelledby="quick-heading">
+    <header class="section-head">
+      <p class="section-kicker">Accesos rápidos</p>
+      <h2 id="quick-heading" class="section-title">Ir directo a lo importante</h2>
+    </header>
+
+    <nav class="quick-list" aria-label="Navegación rápida">
+      <a class="quick-link" href="/hc/pacientes" aria-label="Gestionar pacientes">
+        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-user-injured"></i></div>
+        <div class="quick-copy">
+          <strong>Pacientes</strong>
+          <span>Buscar y gestionar el listado general</span>
+        </div>
+        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+      </a>
+
+      <a class="quick-link" href="/citas" aria-label="Ver agenda de citas">
+        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="quick-copy">
+          <strong>Citas</strong>
+          <span>Agenda y flujo de atención del día</span>
+        </div>
+        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+      </a>
+
+      <a class="quick-link" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
+        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-file-waveform"></i></div>
+        <div class="quick-copy">
+          <strong>Historia clínica</strong>
+          <span>Consulta, evolución y seguimiento</span>
+        </div>
+        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+      </a>
+
+      <a class="quick-link" href="/hc/reportes" aria-label="Ver reportes e indicadores">
+        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></div>
+        <div class="quick-copy">
+          <strong>Reportes</strong>
+          <span>Indicadores de gestión clínica</span>
+        </div>
+        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
+      </a>
+    </nav>
+  </section>
 
 </main>
 
@@ -1261,7 +737,7 @@ Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
   }, observerOptions);
 
   // Aplicar animación sutil a las tarjetas
-  document.querySelectorAll('.card, .hero-panel').forEach(el => {
+  document.querySelectorAll('.card').forEach(el => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(12px)';
     el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';

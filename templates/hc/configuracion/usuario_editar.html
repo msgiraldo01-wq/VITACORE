@@ -30,6 +30,44 @@
     border-color:rgba(51,65,85,.7);
   }
 
+  /* ── Encabezado con el usuario que se está editando ── */
+  .ue-header{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding-bottom:18px;
+    margin-bottom:18px;
+    border-bottom:1px solid rgba(148,163,184,.22);
+  }
+
+  .ue-avatar{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:grid;
+    place-items:center;
+    font-size:18px;
+    font-weight:800;
+    color:#fff;
+    background:linear-gradient(135deg, var(--brand), var(--accent));
+    box-shadow:var(--shadow-sm);
+  }
+
+  .ue-header-info{ min-width:0; }
+
+  .ue-header-name{
+    font-size:16px;
+    font-weight:800;
+    color:var(--text);
+  }
+
+  .ue-header-sub{
+    margin-top:2px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+
   .ue-form{
     display:grid;
     gap:14px;
@@ -80,9 +118,85 @@
   .switch-row{
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:12px;
     margin-top:4px;
+    padding:14px 16px;
+    background:rgba(148,163,184,.08);
+    border-radius:14px;
   }
+
+  .switch-row-label{
+    font-size:.86rem;
+    font-weight:700;
+    color:var(--text);
+    margin-right:auto;
+  }
+
+  /* Toggle deslizante -- reemplaza el checkbox plano de antes para
+     que el estado tenga la misma fuerza visual que la pastilla
+     Activo/Inactivo de la lista de usuarios. */
+  .ue-switch{
+    position:relative;
+    display:inline-block;
+    width:42px;
+    height:24px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+
+  .ue-switch input{
+    position:absolute;
+    opacity:0;
+    width:100%;
+    height:100%;
+    margin:0;
+    cursor:pointer;
+  }
+
+  .ue-switch-track{
+    position:absolute;
+    inset:0;
+    background:rgba(148,163,184,.4);
+    border-radius:999px;
+    transition:background .18s ease;
+    pointer-events:none;
+  }
+
+  .ue-switch-thumb{
+    position:absolute;
+    top:3px; left:3px;
+    width:18px; height:18px;
+    background:#fff;
+    border-radius:50%;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+    transition:transform .18s ease;
+  }
+
+  .ue-switch input:checked ~ .ue-switch-track{
+    background:var(--success);
+  }
+
+  .ue-switch input:checked ~ .ue-switch-track .ue-switch-thumb{
+    transform:translateX(18px);
+  }
+
+  .ue-switch input:focus-visible ~ .ue-switch-track{
+    box-shadow:0 0 0 3px var(--brand-soft);
+  }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:800;
+    white-space:nowrap;
+  }
+
+  .pill.ok{ background:rgba(34,197,94,.12); color:#16a34a; }
+  .pill.off{ background:rgba(239,68,68,.12); color:#dc2626; }
 
   .ue-actions{
     display:flex;
@@ -103,6 +217,14 @@
 {% block content %}
 <div class="ue-wrap">
   <div class="ue-card">
+    <div class="ue-header">
+      <div class="ue-avatar" aria-hidden="true">{{ usuario.full_name[0] if usuario.full_name else "V" }}</div>
+      <div class="ue-header-info">
+        <div class="ue-header-name">{{ usuario.full_name }}</div>
+        <div class="ue-header-sub">@{{ usuario.username }}</div>
+      </div>
+    </div>
+
     <form method="POST" class="ue-form" id="editarUsuarioForm">
       <div class="ue-grid">
         <div class="field">
@@ -135,14 +257,23 @@
       </div>
 
       <div class="switch-row">
-        <input
-          id="is_active"
-          name="is_active"
-          type="checkbox"
-          value="1"
-          {% if usuario.is_active %}checked{% endif %}
-        >
-        <label for="is_active" style="margin:0;">Usuario activo</label>
+        <span class="switch-row-label">Usuario activo</span>
+
+        <label class="ue-switch">
+          <input
+            id="is_active"
+            name="is_active"
+            type="checkbox"
+            value="1"
+            {% if usuario.is_active %}checked{% endif %}
+          >
+          <span class="ue-switch-track"><span class="ue-switch-thumb"></span></span>
+        </label>
+
+        <span id="estadoPill" class="pill {{ 'ok' if usuario.is_active else 'off' }}">
+          <i class="fa-solid {{ 'fa-circle-check' if usuario.is_active else 'fa-circle-xmark' }}"></i>
+          {{ "Activo" if usuario.is_active else "Inactivo" }}
+        </span>
       </div>
 
       <div class="ue-actions">
@@ -166,6 +297,20 @@
   document.addEventListener("DOMContentLoaded", function () {
     const editarUsuarioForm = document.getElementById("editarUsuarioForm");
     const usernameInput = document.getElementById("username");
+    const isActiveInput = document.getElementById("is_active");
+    const estadoPill = document.getElementById("estadoPill");
+
+    if (isActiveInput && estadoPill) {
+      isActiveInput.addEventListener("change", function () {
+        if (this.checked) {
+          estadoPill.className = "pill ok";
+          estadoPill.innerHTML = '<i class="fa-solid fa-circle-check"></i> Activo';
+        } else {
+          estadoPill.className = "pill off";
+          estadoPill.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Inactivo';
+        }
+      });
+    }
 
     if (editarUsuarioForm) {
       editarUsuarioForm.addEventListener("submit", function (e) {

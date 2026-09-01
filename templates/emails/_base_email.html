@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block titulo %}Vitacore{% endblock %}</title>
+</head>
+<body style="margin:0; padding:0; background:#eef2f4; font-family:'Segoe UI', system-ui, -apple-system, Arial, sans-serif;">
+  <div style="max-width:480px; margin:0 auto; padding:24px 16px;">
+    <div style="background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(15,23,42,0.08);">
+      <div style="background:#0d5c63; color:#ffffff; padding:18px 22px; font-weight:800; font-size:17px;">
+        💙 Vitacore
+      </div>
+      <div style="padding:26px 24px 30px;">
+        {% block cuerpo %}{% endblock %}
+      </div>
+    </div>
+    <div style="text-align:center; font-size:11px; color:#94a3b8; margin-top:16px;">
+      Vitacore · Sistema de Historia Clínica
+    </div>
+  </div>
+</body>
+</html>

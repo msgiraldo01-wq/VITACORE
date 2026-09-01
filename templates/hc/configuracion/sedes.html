@@ -10,10 +10,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/sedes/nueva">
   <i class="fa-solid fa-plus"></i>
   Nueva sede
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -147,17 +149,21 @@
           </td>
           <td>
             <div class="actions">
-              <a class="btn-mini edit" href="/hc/configuracion/sedes/editar/{{ item.id }}">
+              {% if puede('configuracion', 'edit') %}
+<a class="btn-mini edit" href="/hc/configuracion/sedes/editar/{{ item.id }}">
                 <i class="fa-solid fa-pen"></i>
                 Editar
               </a>
+{% endif %}
 
-              <form method="POST" action="/hc/configuracion/sedes/toggle/{{ item.id }}">
+              {% if puede('configuracion', 'delete') %}
+<form method="POST" action="/hc/configuracion/sedes/toggle/{{ item.id }}">
                 <button class="btn-mini toggle" type="submit">
                   <i class="fa-solid fa-power-off"></i>
                   {{ 'Inactivar' if item.estado == 'ACTIVA' else 'Activar' }}
                 </button>
               </form>
+{% endif %}
             </div>
           </td>
         </tr>
@@ -169,10 +175,12 @@
   <div class="empty-box">
     <h3 style="margin-top:0;">Aún no hay sedes registradas</h3>
     <p style="margin-bottom:16px;">Crea la primera sede para comenzar a parametrizar el sistema.</p>
-    <a class="btn-ax primary" href="/hc/configuracion/sedes/nueva">
+    {% if puede('configuracion', 'create') %}
+<a class="btn-ax primary" href="/hc/configuracion/sedes/nueva">
       <i class="fa-solid fa-plus"></i>
       Crear primera sede
     </a>
+{% endif %}
   </div>
 {% endif %}
 {% endblock %}

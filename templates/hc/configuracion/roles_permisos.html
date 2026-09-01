@@ -189,6 +189,25 @@
     color:var(--muted);
   }
 
+  .rp-skeleton{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .rp-skel-row{
+    height:56px;
+    border-radius:14px;
+    background:linear-gradient(90deg, rgba(148,163,184,.14) 25%, rgba(148,163,184,.24) 37%, rgba(148,163,184,.14) 63%);
+    background-size:400% 100%;
+    animation:rp-skel-shimmer 1.4s ease infinite;
+  }
+
+  @keyframes rp-skel-shimmer{
+    0%{ background-position:100% 50%; }
+    100%{ background-position:0 50%; }
+  }
+
   .role-create-form{
     margin-bottom:16px;
     padding:14px;
@@ -296,54 +315,17 @@
         </div>
       </div>
 
-      <form method="POST">
+      <form method="POST" id="formPermisos">
         <input type="hidden" name="role_id" value="{{ rol_activo.id }}">
 
-        {% for section, items in matriz.items() %}
-          <div class="rp-section">
-            <div class="rp-section-head">{{ section }}</div>
-
-            <div class="rp-table-wrap">
-              <table class="rp-table">
-                <thead>
-                  <tr>
-                    <th>Módulo</th>
-                    <th>Ver</th>
-                    <th>Crear</th>
-                    <th>Editar</th>
-                    <th>Eliminar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for item in items %}
-                    <tr>
-                      <td class="mod-cell">
-                        <input type="hidden" name="modulo_ids" value="{{ item.id }}">
-                        <div class="mod-name">
-                          <i class="fa-solid {{ item.icon }}"></i>
-                          {{ item.name }}
-                        </div>
-                        <div class="mod-endpoint">{{ item.endpoint }}</div>
-                      </td>
-                      <td>
-                        <input class="chk" type="checkbox" name="view_{{ item.id }}" value="1" {% if item.can_view %}checked{% endif %}>
-                      </td>
-                      <td>
-                        <input class="chk" type="checkbox" name="create_{{ item.id }}" value="1" {% if item.can_create %}checked{% endif %}>
-                      </td>
-                      <td>
-                        <input class="chk" type="checkbox" name="edit_{{ item.id }}" value="1" {% if item.can_edit %}checked{% endif %}>
-                      </td>
-                      <td>
-                        <input class="chk" type="checkbox" name="delete_{{ item.id }}" value="1" {% if item.can_delete %}checked{% endif %}>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+        <div id="matrizContainer">
+          <div class="rp-skeleton">
+            <div class="rp-skel-row"></div>
+            <div class="rp-skel-row"></div>
+            <div class="rp-skel-row"></div>
+            <div class="rp-skel-row"></div>
           </div>
-        {% endfor %}
+        </div>
 
         <div class="rp-actions">
           <button class="btn-ax primary" type="submit">
@@ -352,6 +334,27 @@
           </button>
         </div>
       </form>
+
+      <script>
+        (function () {
+          var contenedor = document.getElementById('matrizContainer');
+          var url = "{{ url_for('configuracion_roles.matriz_parcial', role_id=rol_activo.id) }}";
+
+          fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) {
+              if (!r.ok) throw new Error('http ' + r.status);
+              return r.text();
+            })
+            .then(function (html) {
+              contenedor.innerHTML = html;
+            })
+            .catch(function () {
+              contenedor.innerHTML =
+                '<div class="rp-empty">No se pudo cargar la matriz de permisos. ' +
+                '<a href="' + url + '" target="_self">Reintentar</a>.</div>';
+            });
+        })();
+      </script>
     {% else %}
       <div class="rp-empty">
         No hay roles disponibles.

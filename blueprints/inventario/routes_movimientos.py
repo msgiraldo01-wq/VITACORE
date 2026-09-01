@@ -7,10 +7,15 @@ from repositories import inventario_repository as repo
 from services import inventario_service as svc
 from services.inventario_service import InventarioError
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
+
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/movimientos/entrada", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def entrada(empresa_id, usuario_id):
     if request.method == "POST":
@@ -29,6 +34,8 @@ def entrada(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/movimientos/salida", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def salida(empresa_id, usuario_id):
     if request.method == "POST":
@@ -48,6 +55,7 @@ def salida(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/existencias")
+@login_required
 @contexto_empresa
 def existencias(empresa_id, usuario_id):
     bodega_id = request.args.get("bodega_id", "")
@@ -59,6 +67,7 @@ def existencias(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/kardex")
+@login_required
 @contexto_empresa
 def kardex(empresa_id, usuario_id):
     producto_id = request.args.get("producto_id", "")
@@ -72,6 +81,7 @@ def kardex(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/movimientos")
+@login_required
 @contexto_empresa
 def movimientos_lista(empresa_id, usuario_id):
     filtros = {

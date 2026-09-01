@@ -11,10 +11,12 @@
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/tipos-documento/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo tipo
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -187,12 +189,15 @@ color:var(--muted);
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/tipos-documento/editar/{{ item.id }}">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/tipos-documento/toggle/{{ item.id }}"
 class="formToggle">
@@ -205,6 +210,7 @@ class="formToggle">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -231,6 +237,7 @@ Aún no hay tipos de documento registrados
 Crea el primero para comenzar a parametrizar pacientes y profesionales.
 </p>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/tipos-documento/nuevo">
 
@@ -238,6 +245,7 @@ href="/hc/configuracion/tipos-documento/nuevo">
 Crear primer tipo
 
 </a>
+{% endif %}
 
 </div>
 

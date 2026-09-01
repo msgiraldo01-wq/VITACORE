@@ -10,10 +10,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('contratos', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/manuales-tarifarios/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo manual
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -403,10 +405,13 @@
          href="/hc/configuracion/manuales-tarifarios/ver/{{ m.id }}">
         <i class="fa-solid fa-eye"></i> Ver
       </a>
+      {% if puede('contratos', 'edit') %}
       <a class="btn-mini edit"
          href="/hc/configuracion/manuales-tarifarios/editar/{{ m.id }}">
         <i class="fa-solid fa-pen"></i> Editar
       </a>
+      {% endif %}
+      {% if puede('contratos', 'delete') %}
       <form method="POST"
             action="/hc/configuracion/manuales-tarifarios/toggle/{{ m.id }}"
             class="toggleForm" style="margin:0;">
@@ -416,6 +421,7 @@
           {{ 'Inactivar' if m.estado == 'ACTIVO' else 'Activar' }}
         </button>
       </form>
+      {% endif %}
     </div>
 
   </div>
@@ -427,9 +433,11 @@
 <div class="empty-box">
   <h3>No hay manuales tarifarios</h3>
   <p>Crea el primer manual para comenzar.</p>
+  {% if puede('contratos', 'create') %}
   <a class="btn-ax primary" href="/hc/configuracion/manuales-tarifarios/nuevo">
     <i class="fa-solid fa-plus"></i> Crear manual
   </a>
+  {% endif %}
 </div>
 
 {% endif %}

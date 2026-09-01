@@ -10,10 +10,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/medicos-remitentes/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo médico remitente
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -108,11 +110,14 @@ th{
         </td>
         <td>
           <div class="actions">
-            <a class="btn-mini edit"
+            {% if puede('configuracion', 'edit') %}
+<a class="btn-mini edit"
                href="/hc/configuracion/medicos-remitentes/editar/{{ item.id }}">
               <i class="fa-solid fa-pen"></i> Editar
             </a>
-            <form method="POST"
+{% endif %}
+            {% if puede('configuracion', 'delete') %}
+<form method="POST"
                   action="/hc/configuracion/medicos-remitentes/toggle/{{ item.id }}"
                   class="toggleForm">
               <button class="btn-mini toggle" type="button">
@@ -120,6 +125,7 @@ th{
                 {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
               </button>
             </form>
+{% endif %}
           </div>
         </td>
       </tr>
@@ -132,10 +138,12 @@ th{
 <div class="empty-box">
   <h3>Aún no hay médicos remitentes registrados</h3>
   <p>Crea el primero para que esté disponible en el formulario de nueva cita.</p>
-  <a class="btn-ax primary" href="/hc/configuracion/medicos-remitentes/nuevo">
+  {% if puede('configuracion', 'create') %}
+<a class="btn-ax primary" href="/hc/configuracion/medicos-remitentes/nuevo">
     <i class="fa-solid fa-plus"></i>
     Crear primer médico remitente
   </a>
+{% endif %}
 </div>
 {% endif %}
 

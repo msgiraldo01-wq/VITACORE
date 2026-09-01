@@ -148,10 +148,12 @@
     <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
     Exportar Excel
 </a>
+{% if puede('cartera', 'create') %}
 <button class="btn-ax primary">
     <i class="fa-solid fa-hand-holding-dollar"></i>
     Registrar recaudo
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}

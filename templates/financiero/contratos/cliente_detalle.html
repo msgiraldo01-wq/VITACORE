@@ -10,10 +10,12 @@
   <i class="fa-solid fa-arrow-left"></i>
   Volver
 </a>
+{% if puede('contratos', 'edit') %}
 <a class="btn-ax primary" href="/hc/configuracion/clientes/editar/{{ cliente.id }}">
   <i class="fa-solid fa-pen"></i>
   Editar cliente
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -332,6 +334,7 @@
                 {{ 'PACIENTE (pago particular)' if cliente.usa_paciente_como_adquiriente else 'CLIENTE (razón social de este registro)' }}
               </strong>
             </span>
+            {% if puede('contratos', 'edit') %}
             <form method="POST"
                   action="/hc/configuracion/clientes/toggle-adquiriente/{{ cliente.id }}"
                   class="toggleAdquirienteForm">
@@ -341,6 +344,7 @@
                 Facturar a nombre del {{ 'cliente' if cliente.usa_paciente_como_adquiriente else 'paciente' }}
               </button>
             </form>
+            {% endif %}
           </div>
         </div>
 
@@ -454,6 +458,7 @@
       </div>
     </div>
 
+    {% if puede('contratos', 'create') %}
     <div style="margin-top:20px;">
       <a class="btn-ax primary" style="width:100%;justify-content:center;"
          href="/hc/configuracion/contratos/nuevo?cliente_id={{ cliente.id }}">
@@ -461,6 +466,7 @@
         Nuevo contrato
       </a>
     </div>
+    {% endif %}
 
   </div>
 
@@ -472,9 +478,11 @@
     <i class="fa-solid fa-file-contract" style="color:#7c3aed;margin-right:8px;"></i>
     Contratos del cliente
   </h3>
+  {% if puede('contratos', 'edit') %}
   <a class="btn-ax ghost" href="/hc/configuracion/clientes/editar/{{ cliente.id }}">
     <i class="fa-solid fa-pen"></i> Ir a editar cliente
   </a>
+  {% endif %}
 </div>
 
 <div class="contratos-grid" id="contratosGrid">
@@ -490,6 +498,8 @@
 <script>
 
 const CLIENTE_ID = {{ cliente.id | tojson }}
+const PUEDE_CREAR_CONTRATO = {{ 'true' if puede('contratos', 'create') else 'false' }}
+const PUEDE_EDITAR_CONTRATO = {{ 'true' if puede('contratos', 'edit') else 'false' }}
 
 /* ── Toggle: facturar a nombre del paciente vs. del cliente ── */
 document.querySelectorAll(".toggleAdquirienteForm").forEach(form => {
@@ -535,10 +545,11 @@ async function cargarContratos() {
           <i class="fa-solid fa-file-contract"
              style="font-size:2rem;opacity:.2;"></i>
           <p>Este cliente no tiene contratos registrados.</p>
+          ${PUEDE_CREAR_CONTRATO ? `
           <a class="btn-ax primary"
              href="/hc/configuracion/contratos/nuevo?cliente_id=${CLIENTE_ID}">
             <i class="fa-solid fa-plus"></i> Crear primer contrato
-          </a>
+          </a>` : ''}
         </div>`
       return
     }
@@ -588,10 +599,11 @@ async function cargarContratos() {
         </div>
 
         <div class="cc-actions">
+          ${PUEDE_EDITAR_CONTRATO ? `
           <a class="btn-mini edit"
              href="/hc/configuracion/contratos/editar/${c.id}">
             <i class="fa-solid fa-pen"></i> Editar contrato
-          </a>
+          </a>` : ''}
         </div>
       </div>`).join("")
 

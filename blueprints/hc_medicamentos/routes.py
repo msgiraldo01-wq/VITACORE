@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import hc_medicamentos_repo as repo
 
 
@@ -15,6 +17,7 @@ bp_hc_medicamentos = Blueprint(
 # =========================
 
 @bp_hc_medicamentos.route("/")
+@login_required
 def index():
 
     items = repo.listar()
@@ -30,6 +33,8 @@ def index():
 # =========================
 
 @bp_hc_medicamentos.route("/nuevo", methods=["GET","POST"])
+@login_required
+@requiere_permiso("medicamentos", "create")
 def nuevo():
 
     if request.method == "POST":
@@ -58,6 +63,7 @@ def nuevo():
     )
 
 @bp_hc_medicamentos.route("/buscar")
+@login_required
 def buscar():
 
     q = request.args.get("q", "")
@@ -74,6 +80,8 @@ def buscar():
 # =========================
 
 @bp_hc_medicamentos.route("/<int:id>/editar", methods=["GET","POST"])
+@login_required
+@requiere_permiso("medicamentos", "edit")
 def editar(id):
 
     item = repo.obtener(id)
@@ -111,6 +119,8 @@ def editar(id):
 # =========================
 
 @bp_hc_medicamentos.route("/toggle/<int:id>", methods=["POST"])
+@login_required
+@requiere_permiso("medicamentos", "delete")
 def toggle(id):
 
     item = repo.obtener(id)

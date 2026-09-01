@@ -112,10 +112,12 @@
         <td class="mono">{{ (e.composition_id or '')[:16] }}</td>
         <td>
           {% if e.estado != 'aceptado' %}
+          {% if puede('rda', 'edit') %}
           <button class="rda-btn" style="padding:5px 10px;font-size:.78rem"
                   onclick="reintentar({{ e.id }}, this)">
             <i class="fa-solid fa-rotate-right"></i> Reintentar
           </button>
+          {% endif %}
           {% else %}
           <a href="/rda/detalle/{{ e.id }}" class="rda-btn ghost" style="padding:5px 10px;font-size:.78rem;text-decoration:none">Ver</a>
           {% endif %}

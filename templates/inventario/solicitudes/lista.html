@@ -7,10 +7,12 @@
 {% block header_title %}Solicitudes de compra{% endblock %}
 {% block header_subtitle %}Requisiciones internas con aprobación antes de generar la orden de compra.{% endblock %}
 {% block header_actions %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.solicitudes_nueva') }}">
     <i class="fa-solid fa-plus"></i> Nueva solicitud</a>
   <a class="btn-ax ghost" href="{{ url_for('inventario.solicitudes_nueva', sugerido=1) }}">
     <i class="fa-solid fa-wand-magic-sparkles"></i> Sugerida por stock mínimo</a>
+  {% endif %}
 {% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
@@ -20,9 +22,12 @@
     {{ bajo_minimo|length }} producto(s) bajo stock mínimo</h3>
   <p class="inv-ayuda" style="margin:0">
     {% for b in bajo_minimo[:5] %}{{ b.nombre }} ({{ b.stock_actual }}/{{ b.stock_minimo }}){{ ', ' if not loop.last }}{% endfor %}
-    {% if bajo_minimo|length > 5 %} y más…{% endif %} —
+    {% if bajo_minimo|length > 5 %} y más…{% endif %}
+    {% if puede('farmacia', 'create') %} —
     <a href="{{ url_for('inventario.solicitudes_nueva', sugerido=1) }}" style="color:var(--brand)">
-      generar solicitud sugerida</a></p>
+      generar solicitud sugerida</a>
+    {% endif %}
+  </p>
 </div>
 {% endif %}
 {% if solicitudes %}
@@ -48,6 +53,9 @@
 </div>
 {% else %}
 <div class="inv-vacio">Sin solicitudes aún.
-  <a href="{{ url_for('inventario.solicitudes_nueva') }}">Crea la primera</a>.</div>
+  {% if puede('farmacia', 'create') %}
+  <a href="{{ url_for('inventario.solicitudes_nueva') }}">Crea la primera</a>.
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}

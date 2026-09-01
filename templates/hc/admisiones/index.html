@@ -1,0 +1,649 @@
+{% extends "hc/base.html" %}
+{% block title %}Vitacore · Admisiones{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-door-open"></i>{% endblock %}
+{% block header_title %}Admisiones{% endblock %}
+{% block header_subtitle %}Registra la llegada de los pacientes citados hoy{% endblock %}
+
+{% block extra_css %}
+<style>
+  .adm-toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    gap:12px;
+    margin-bottom:16px;
+  }
+
+  .adm-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:0;
+  }
+
+  .adm-field label{
+    font-size:.78rem;
+    font-weight:700;
+    color:var(--text-soft);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+
+  .adm-field input,
+  .adm-field select{
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    border-radius:var(--radius-sm);
+    padding:9px 11px;
+    font-size:.9rem;
+    outline:none;
+    min-width:160px;
+  }
+
+  .adm-field input:focus,
+  .adm-field select:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px var(--brand-soft);
+  }
+
+  .adm-field.search input{ min-width:220px; }
+
+  .adm-toolbar-spacer{ flex:1 1 auto; }
+
+  .adm-refresh{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:38px;
+    align-self:flex-end;
+  }
+
+  .adm-card{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+  }
+
+  .adm-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px 18px;
+    border-bottom:1px solid var(--border);
+  }
+
+  .adm-card-head-text{ min-width:0; }
+
+  .adm-card-head h3{
+    margin:0;
+    font-size:.98rem;
+    font-weight:800;
+    color:var(--text);
+  }
+
+  .adm-card-head-sub{
+    margin-top:2px;
+    font-size:.78rem;
+    color:var(--text-faint);
+  }
+
+  .adm-count{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border-radius:var(--radius-pill);
+    background:var(--brand-soft);
+    color:var(--brand-strong);
+    font-size:.78rem;
+    font-weight:800;
+  }
+
+  body.dark-mode .adm-count{
+    color:#5eead4;
+  }
+
+  .adm-table-wrap{
+    overflow-x:auto;
+  }
+
+  .adm-table{
+    width:100%;
+    min-width:960px;
+    border-collapse:collapse;
+  }
+
+  .adm-table thead th{
+    text-align:left;
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--text-faint);
+    font-weight:800;
+    padding:10px 14px;
+    background:var(--surface-3);
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+
+  .adm-table tbody td{
+    padding:12px 14px;
+    border-bottom:1px solid var(--border);
+    font-size:.88rem;
+    color:var(--text);
+    vertical-align:middle;
+  }
+
+  .adm-table tbody tr:last-child td{ border-bottom:none; }
+  .adm-table tbody tr:hover td{ background:rgba(13,92,99,.05); }
+  body.dark-mode .adm-table tbody tr:hover td{ background:rgba(13,92,99,.14); }
+
+  .adm-hora{
+    font-variant-numeric:tabular-nums;
+    font-weight:700;
+    white-space:nowrap;
+  }
+
+  .adm-paciente-doc{
+    font-size:.78rem;
+    color:var(--text-faint);
+  }
+
+  .adm-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 10px;
+    border-radius:var(--radius-pill);
+    font-size:.76rem;
+    font-weight:800;
+    white-space:nowrap;
+  }
+
+  .adm-pill.pendiente{ background:rgba(245,158,11,.15); color:#b45309; }
+  .adm-pill.confirmada{ background:rgba(59,130,246,.15); color:#2563eb; }
+
+  body.dark-mode .adm-pill.pendiente{ background:rgba(245,158,11,.22); color:#fbbf24; }
+  body.dark-mode .adm-pill.confirmada{ background:rgba(59,130,246,.22); color:#60a5fa; }
+
+  .adm-pill.espera-ok{ background:rgba(16,185,129,.15); color:#059669; }
+  .adm-pill.espera-warn{ background:rgba(245,158,11,.15); color:#b45309; }
+  .adm-pill.espera-crit{ background:rgba(239,68,68,.15); color:#dc2626; }
+
+  body.dark-mode .adm-pill.espera-ok{ background:rgba(16,185,129,.22); color:#34d399; }
+  body.dark-mode .adm-pill.espera-warn{ background:rgba(245,158,11,.22); color:#fbbf24; }
+  body.dark-mode .adm-pill.espera-crit{ background:rgba(239,68,68,.22); color:#f87171; }
+
+  .adm-espera-info{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:.82rem;
+    color:var(--text-faint);
+    font-weight:700;
+  }
+
+  .adm-btn-llegada{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 12px;
+    border-radius:var(--radius-sm);
+    border:1px solid rgba(16,185,129,.35);
+    background:rgba(16,185,129,.12);
+    color:#059669;
+    font-size:.82rem;
+    font-weight:800;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+
+  .adm-btn-llegada:hover{ background:rgba(16,185,129,.22); }
+  .adm-btn-llegada:active{ transform:translateY(1px); }
+  .adm-btn-llegada:disabled{ opacity:.55; cursor:default; }
+
+  body.dark-mode .adm-btn-llegada{ color:#34d399; }
+
+  .adm-acciones-grupo{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+  }
+
+  .adm-btn-inasistencia{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--text-faint);
+    font-size:.78rem;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+
+  .adm-btn-inasistencia:hover{
+    background:rgba(239,68,68,.1);
+    color:#dc2626;
+    border-color:rgba(239,68,68,.35);
+  }
+
+  .adm-btn-inasistencia:disabled{ opacity:.55; cursor:default; }
+
+  body.dark-mode .adm-btn-inasistencia:hover{ color:#f87171; }
+
+  .adm-empty{
+    padding:48px 20px;
+    text-align:center;
+    color:var(--text-faint);
+  }
+
+  .adm-empty i{
+    font-size:28px;
+    display:block;
+    margin-bottom:10px;
+    color:var(--text-faint);
+  }
+
+  @media (max-width: 720px){
+    .adm-toolbar{ flex-direction:column; align-items:stretch; }
+    .adm-field input, .adm-field select{ min-width:0; width:100%; }
+    .adm-refresh{ align-self:stretch; justify-content:center; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="adm-toolbar">
+  <div class="adm-field">
+    <label for="admFiltroFecha">Fecha</label>
+    <input type="date" id="admFiltroFecha">
+  </div>
+
+  <div class="adm-field">
+    <label for="admFiltroSede">Sede</label>
+    <select id="admFiltroSede">
+      <option value="">Todas las sedes</option>
+      {% for sede in sedes %}
+        <option value="{{ sede.id }}">{{ sede.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="adm-field">
+    <label for="admFiltroProfesional">Profesional</label>
+    <select id="admFiltroProfesional">
+      <option value="">Todos los profesionales</option>
+      {% for prof in profesionales %}
+        <option value="{{ prof.id }}">{{ prof.nombre_completo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="adm-field search">
+    <label for="admFiltroBusqueda">Buscar paciente</label>
+    <input type="text" id="admFiltroBusqueda" placeholder="Nombre o documento...">
+  </div>
+
+  <div class="adm-toolbar-spacer"></div>
+
+  <button type="button" class="btn-ax ghost adm-refresh" onclick="cargarAdmisiones()">
+    <i class="fa-solid fa-rotate"></i>
+    Actualizar
+  </button>
+</div>
+
+<div class="adm-card">
+  <div class="adm-card-head">
+    <div class="adm-card-head-text">
+      <h3>Pacientes citados hoy</h3>
+      <div class="adm-card-head-sub">Al registrar la llegada, el paciente queda en sala de espera con cronómetro. Sale de esta lista cuando el profesional inicia la atención desde su agenda</div>
+    </div>
+    <span class="adm-count" id="admContador">0 citas</span>
+  </div>
+
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Paciente</th>
+          <th>Profesional</th>
+          <th>Sede</th>
+          <th>Estado</th>
+          <th>Sala de espera</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="admTbody">
+        <!-- Filas insertadas por JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="adm-empty" id="admVacio" style="display:none;">
+    <i class="fa-solid fa-calendar-check"></i>
+    No hay citas pendientes de admisión con estos filtros.
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let ADM_CITAS = [];
+
+  function hoyISO(){
+    const d = new Date();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mes}-${dia}`;
+  }
+
+  function escaparHtml(texto){
+    const div = document.createElement("div");
+    div.textContent = texto == null ? "" : String(texto);
+    return div.innerHTML;
+  }
+
+  function formatearHora(horaTexto){
+    if (!horaTexto) return "—";
+    // hora_inicio suele venir como "HH:MM:SS"
+    return String(horaTexto).slice(0, 5);
+  }
+
+  function pillEstado(estado){
+    if (estado === "PENDIENTE"){
+      return '<span class="adm-pill pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+    }
+    if (estado === "CONFIRMADA"){
+      return '<span class="adm-pill confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>';
+    }
+    return `<span class="adm-pill">${escaparHtml(estado)}</span>`;
+  }
+
+  // Umbrales de tiempo de espera (minutos) para colorear el cronómetro
+  // de sala de espera -- verde mientras es razonable, ámbar cuando ya
+  // empieza a ser largo, rojo cuando ya es un caso a revisar.
+  const ESPERA_WARN_MIN = 15;
+  const ESPERA_CRIT_MIN = 30;
+
+  function segundosEspera(cita){
+    if (!cita.hora_llegada || !cita.fecha) return null;
+    // fecha + hora_llegada vienen del servidor en hora local de Colombia
+    // (mismo criterio que el resto de la app), así que se arman e
+    // interpretan como hora local del navegador -- sin sufijo "Z".
+    const llegada = new Date(`${cita.fecha}T${cita.hora_llegada}`);
+    if (isNaN(llegada.getTime())) return null;
+    const segundos = Math.floor((Date.now() - llegada.getTime()) / 1000);
+    return segundos > 0 ? segundos : 0;
+  }
+
+  function formatearEspera(segundos){
+    const minutos = Math.floor(segundos / 60);
+    if (minutos < 1) return "Recién llegó";
+    if (minutos < 60) return `${minutos} min esperando`;
+    const horas = Math.floor(minutos / 60);
+    const minRestantes = minutos % 60;
+    return `${horas} h ${String(minRestantes).padStart(2, "0")} min esperando`;
+  }
+
+  function renderEspera(cita){
+    const segundos = segundosEspera(cita);
+    if (segundos === null){
+      return '<span class="adm-paciente-doc">Aún no llega</span>';
+    }
+    const minutos = Math.floor(segundos / 60);
+    let clase = "espera-ok";
+    if (minutos >= ESPERA_CRIT_MIN) clase = "espera-crit";
+    else if (minutos >= ESPERA_WARN_MIN) clase = "espera-warn";
+    return `<span class="adm-pill ${clase}"><i class="fa-solid fa-hourglass-half"></i> ${formatearEspera(segundos)}</span>`;
+  }
+
+  function renderAccion(cita){
+    if (cita.hora_llegada){
+      return '<span class="adm-espera-info"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Llegada registrada</span>';
+    }
+    return `
+      <div class="adm-acciones-grupo">
+        <button type="button" class="adm-btn-llegada" onclick="registrarLlegada(${cita.id}, this)">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          Registrar llegada
+        </button>
+        <button type="button" class="adm-btn-inasistencia" onclick="marcarInasistencia(${cita.id}, this)">
+          <i class="fa-solid fa-user-xmark"></i>
+          No se presentó
+        </button>
+      </div>`;
+  }
+
+  function actualizarCronometros(){
+    document.querySelectorAll(".adm-espera-cell").forEach((td) => {
+      const citaId = Number(td.dataset.citaId);
+      const cita = ADM_CITAS.find((c) => c.id === citaId);
+      if (cita) td.innerHTML = renderEspera(cita);
+    });
+  }
+
+  function renderTabla(){
+    const tbody = document.getElementById("admTbody");
+    const vacio = document.getElementById("admVacio");
+    const contador = document.getElementById("admContador");
+
+    const textoBusqueda = (document.getElementById("admFiltroBusqueda").value || "")
+      .trim().toLowerCase();
+
+    const filas = ADM_CITAS.filter((c) => {
+      if (!textoBusqueda) return true;
+      const nombre = (c.paciente_nombre || "").toLowerCase();
+      const doc = (c.paciente_documento || "").toString().toLowerCase();
+      return nombre.includes(textoBusqueda) || doc.includes(textoBusqueda);
+    });
+
+    contador.textContent = `${filas.length} cita${filas.length === 1 ? "" : "s"}`;
+
+    if (filas.length === 0){
+      tbody.innerHTML = "";
+      vacio.style.display = "block";
+      return;
+    }
+
+    vacio.style.display = "none";
+
+    tbody.innerHTML = filas.map((c) => `
+      <tr>
+        <td class="adm-hora">${formatearHora(c.hora_inicio)}</td>
+        <td>
+          ${escaparHtml(c.paciente_nombre)}
+          <div class="adm-paciente-doc">${escaparHtml(c.paciente_documento || "Sin documento")}</div>
+        </td>
+        <td>${escaparHtml(c.medico_nombre)}</td>
+        <td>${escaparHtml(c.sede_nombre || "—")}</td>
+        <td>${pillEstado(c.estado)}</td>
+        <td class="adm-espera-cell" data-cita-id="${c.id}">${renderEspera(c)}</td>
+        <td>${renderAccion(c)}</td>
+      </tr>
+    `).join("");
+  }
+
+  async function cargarAdmisiones(){
+    const fecha = document.getElementById("admFiltroFecha").value || hoyISO();
+    const sedeId = document.getElementById("admFiltroSede").value;
+    const medicoId = document.getElementById("admFiltroProfesional").value;
+
+    const params = new URLSearchParams({ fecha });
+    if (sedeId) params.set("sede_id", sedeId);
+    if (medicoId) params.set("medico_id", medicoId);
+
+    try {
+      const resp = await fetch(`/hc/admisiones/api/hoy?${params.toString()}`);
+      const json = await resp.json();
+
+      if (!json.ok){
+        if (typeof Toast !== "undefined") {
+          Toast.show(json.error || "No se pudo cargar la lista de admisiones.", "error");
+        }
+        return;
+      }
+
+      ADM_CITAS = json.data || [];
+      renderTabla();
+
+    } catch (err) {
+      if (typeof Toast !== "undefined") {
+        Toast.show("Error de conexión al cargar admisiones.", "error");
+      }
+    }
+  }
+
+  function registrarLlegada(citaId, boton){
+    // Nombre del paciente para que el mensaje de éxito diga a quién se
+    // le registró la llegada, en vez de un genérico "listo" -- así se
+    // nota claramente que SÍ pasó algo, aunque la fila desaparezca de
+    // esta lista justo después (ver nota abajo).
+    const citaInfo = ADM_CITAS.find((c) => c.id === citaId);
+    const nombrePaciente = citaInfo ? citaInfo.paciente_nombre : "el paciente";
+
+    const confirmar = () => {
+      boton.disabled = true;
+      const textoOriginal = boton.innerHTML;
+      boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
+
+      fetch("/hc/admisiones/api/registrar-llegada", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cita_id: citaId }),
+      })
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.ok){
+            // Mismo componente de aviso que usa el resto de Vitacore
+            // (esquina superior derecha). El paciente queda en sala de
+            // espera con cronómetro -- la fila NO desaparece todavía;
+            // solo sale de la lista cuando el profesional inicia la
+            // atención desde su propia agenda.
+            if (typeof Toast !== "undefined") {
+              Toast.show(`Llegada de ${nombrePaciente} registrada. Ahora está en sala de espera.`, "success", 5000);
+            }
+            cargarAdmisiones();
+          } else {
+            if (typeof Toast !== "undefined") {
+              Toast.show(json.error || "No se pudo registrar la llegada.", "error");
+            }
+            boton.disabled = false;
+            boton.innerHTML = textoOriginal;
+          }
+        })
+        .catch(() => {
+          if (typeof Toast !== "undefined") {
+            Toast.show("Error de conexión al registrar la llegada.", "error");
+          }
+          boton.disabled = false;
+          boton.innerHTML = textoOriginal;
+        });
+    };
+
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        title: "¿Registrar llegada?",
+        text: "El paciente quedará en sala de espera hasta que el profesional inicie la atención.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, registrar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#059669",
+        cancelButtonColor: "#64748b",
+        reverseButtons: true,
+      }).then((result) => {
+        if (result.isConfirmed) confirmar();
+      });
+    } else {
+      confirmar();
+    }
+  }
+
+  function marcarInasistencia(citaId, boton){
+    const citaInfo = ADM_CITAS.find((c) => c.id === citaId);
+    const nombrePaciente = citaInfo ? citaInfo.paciente_nombre : "el paciente";
+    const horaCita = citaInfo ? formatearHora(citaInfo.hora_inicio) : "";
+
+    const confirmar = () => {
+      boton.disabled = true;
+      const textoOriginal = boton.innerHTML;
+      boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Marcando...';
+
+      fetch("/hc/admisiones/api/marcar-inasistencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cita_id: citaId }),
+      })
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.ok){
+            if (typeof Toast !== "undefined") {
+              Toast.show(`Se registró la inasistencia de ${nombrePaciente}.`, "success", 5000);
+            }
+            cargarAdmisiones();
+          } else {
+            if (typeof Toast !== "undefined") {
+              Toast.show(json.error || "No se pudo registrar la inasistencia.", "error");
+            }
+            boton.disabled = false;
+            boton.innerHTML = textoOriginal;
+          }
+        })
+        .catch(() => {
+          if (typeof Toast !== "undefined") {
+            Toast.show("Error de conexión al registrar la inasistencia.", "error");
+          }
+          boton.disabled = false;
+          boton.innerHTML = textoOriginal;
+        });
+    };
+
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        title: "¿Marcar inasistencia?",
+        text: `${nombrePaciente} quedará registrado como que no se presentó a su cita de las ${horaCita}. Esto libera el espacio y cuenta para el reporte de ausentismo.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, no se presentó",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#dc2626",
+        cancelButtonColor: "#64748b",
+        reverseButtons: true,
+      }).then((result) => {
+        if (result.isConfirmed) confirmar();
+      });
+    } else {
+      confirmar();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    document.getElementById("admFiltroFecha").value = hoyISO();
+
+    document.getElementById("admFiltroSede").addEventListener("change", cargarAdmisiones);
+    document.getElementById("admFiltroProfesional").addEventListener("change", cargarAdmisiones);
+    document.getElementById("admFiltroFecha").addEventListener("change", cargarAdmisiones);
+    document.getElementById("admFiltroBusqueda").addEventListener("input", renderTabla);
+
+    cargarAdmisiones();
+
+    // Cronómetros de sala de espera: se actualizan solos cada 15s sin
+    // golpear el servidor (usan los datos ya cargados en ADM_CITAS).
+    setInterval(actualizarCronometros, 15000);
+
+    // Refresco automático cada 45s para reflejar cambios hechos desde
+    // otro puesto de admisión o cuando el profesional inicia la
+    // atención desde su agenda (la cita sale sola de esta lista).
+    setInterval(cargarAdmisiones, 45000);
+  });
+</script>
+{% endblock %}

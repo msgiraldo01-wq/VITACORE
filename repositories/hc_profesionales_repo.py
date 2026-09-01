@@ -63,6 +63,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
         "telefono": row.get("telefono") or "",
 
         "estado": row.get("estado") or "ACTIVO",
+        "trabaja_festivos": bool(row.get("trabaja_festivos")),
 
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
@@ -180,6 +181,7 @@ def _build_payload(data: dict[str, Any]) -> dict[str, Any]:
         "telefono": (data.get("telefono") or "").strip(),
 
         "estado": ((data.get("estado") or "ACTIVO").strip().upper()),
+        "trabaja_festivos": bool(data.get("trabaja_festivos")),
     }
 
 

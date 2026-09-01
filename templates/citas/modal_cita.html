@@ -164,7 +164,7 @@
               value="20"
               min="5"
               step="5"
-              onchange="actualizarHoraFin()"
+              onchange="onDuracionManualChange()"
               style="font-weight: 600; color: var(--color-confirmada);"
             >
           </div>
@@ -379,6 +379,18 @@
             </select>
           </div>
 
+          <div>
+            <label>Tipo de consulta</label>
+            <select id="tipo_consulta" class="select">
+              <option value="">Seleccionar...</option>
+              <option value="PRIMERA_VEZ">Primera vez</option>
+              <option value="CONTROL">Control o seguimiento</option>
+            </select>
+            <small style="display:block; color:var(--text-muted); font-size:11px; margin-top:4px;">
+              Para el indicador de oportunidad de citas (Resolución 256).
+            </small>
+          </div>
+
           <!-- ── NUEVOS CAMPOS RIPS ── -->
 
           <div>
@@ -421,6 +433,15 @@
           <div>
             <label>Nro. Autorización</label>
             <input type="text" id="numero_autorizacion" class="input" placeholder="Número de autorización EPS">
+          </div>
+
+          <div>
+            <label>Fecha de solicitud</label>
+            <input type="date" id="fecha_solicitud" class="input">
+            <small style="display:block; color:var(--text-muted); font-size:11px; margin-top:4px;">
+              Solo si el paciente pidió la cita antes de hoy (ej. se pasó una lista de solicitudes).
+              Déjalo vacío si se está agendando en el mismo momento de la solicitud.
+            </small>
           </div>
 
           <!-- ── FIN NUEVOS CAMPOS ── -->

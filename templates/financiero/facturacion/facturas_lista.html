@@ -6,15 +6,21 @@
 {% block header_subtitle %}Consulta, filtra y revisa el detalle de las facturas generadas.{% endblock %}
 
 {% block header_actions %}
+{% if puede_ver('facturacion') %}
 <a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
   <i class="fa-solid fa-arrow-left"></i> Facturar
 </a>
+{% endif %}
+{% if puede_ver('facturacion_config') %}
 <a class="btn-ax ghost" href="/facturacion/configuracion" style="gap:8px;">
   <i class="fa-solid fa-gear"></i> Configuración
 </a>
+{% endif %}
+{% if puede_ver('facturacion_diagnostico') %}
 <a class="btn-ax ghost" href="/facturacion/factus/eventos" style="gap:8px;">
   <i class="fa-solid fa-bug"></i> Diagnóstico Factus
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -149,6 +155,11 @@
 </div>
 
 <script>
+// ===== PERMISOS =====
+const PUEDE_ANULAR_FACTURA = {{ 'true' if puede('facturacion', 'delete') else 'false' }};
+const PUEDE_NOTA_CREDITO = {{ 'true' if puede('facturacion', 'create') else 'false' }};
+const PUEDE_REENVIAR_EMAIL = {{ 'true' if puede('facturacion', 'edit') else 'false' }};
+
 // ===== ESTADO =====
 let facturasData = [];
 let facturaActualId = null;
@@ -353,7 +364,17 @@ function renderDetalle(f, detalle, notas) {
       <div class="fl-det-section"><i class="fa-solid fa-shield-halved"></i> Validación DIAN</div>
       <div class="fl-det-item" style="margin-bottom:10px;">
         <span class="fl-det-label">CUFE</span>
-        <span class="fl-det-value" style="word-break:break-all; font-size:12px; font-weight:500;">${f.cufe}</span>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="fl-det-value" style="word-break:break-all; font-size:12px; font-weight:500;">${f.cufe}</span>
+          <button type="button" onclick="copiarCufe('${f.cufe}')" title="Copiar CUFE"
+                  style="flex-shrink:0; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
+                         border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text-soft);
+                         cursor:pointer; transition:all .15s;"
+                  onmouseover="this.style.borderColor='var(--brand)'; this.style.color='var(--brand)';"
+                  onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-soft)';">
+            <i class="fa-solid fa-copy" style="font-size:11px;"></i>
+          </button>
+        </div>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         ${linkDian ? `<a href="${linkDian}" target="_blank" rel="noopener" class="fl-btn" style="text-decoration:none;"><i class="fa-solid fa-magnifying-glass"></i> Consultar en la DIAN</a>` : ''}
@@ -416,11 +437,11 @@ function renderDetalle(f, detalle, notas) {
   // sigue existiendo ante la DIAN. En ese caso se oculta y se muestra en
   // su lugar el botón que crea la nota crédito electrónica correspondiente.
   const validadaDian = f.factus_estado === 'VALIDADA';
-  document.getElementById('btnAnular').style.display = validadaDian ? 'none' : 'flex';
-  document.getElementById('btnNotaCredito').style.display = validadaDian ? 'flex' : 'none';
+  document.getElementById('btnAnular').style.display = (PUEDE_ANULAR_FACTURA && !validadaDian) ? 'flex' : 'none';
+  document.getElementById('btnNotaCredito').style.display = (PUEDE_NOTA_CREDITO && validadaDian) ? 'flex' : 'none';
   // "Reenviar por correo" solo tiene sentido si Factus ya la validó -- antes
   // de eso no existe ningún documento oficial que reenviar.
-  document.getElementById('btnReenviarEmail').style.display = validadaDian ? 'flex' : 'none';
+  document.getElementById('btnReenviarEmail').style.display = (PUEDE_REENVIAR_EMAIL && validadaDian) ? 'flex' : 'none';
 }
 
 function cerrarDetalle() {
@@ -588,6 +609,14 @@ async function reenviarEmailFactura() {
 // ===== UTILIDADES =====
 function fm(v) {
   return (parseFloat(v) || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function copiarCufe(cufe) {
+  navigator.clipboard.writeText(cufe).then(() => {
+    Toast.show('CUFE copiado al portapapeles', 'success');
+  }).catch(() => {
+    Toast.show('No se pudo copiar el CUFE', 'error');
+  });
 }
 </script>
 {% endblock %}

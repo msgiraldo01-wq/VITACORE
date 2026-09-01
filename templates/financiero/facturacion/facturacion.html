@@ -6,18 +6,24 @@
 {% block header_subtitle %}Genera prefacturas desde citas atendidas o de forma libre. Factura individual o consolida según el contrato.{% endblock %}
 
 {% block header_actions %}
+{% if puede_ver('facturacion') %}
 <a class="btn-ax ghost" href="/facturacion/prefacturas" style="gap:8px;">
   <i class="fa-solid fa-file-lines"></i> Prefacturas pendientes
 </a>
 <a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
   <i class="fa-solid fa-list"></i> Ver facturas
 </a>
+{% endif %}
+{% if puede_ver('facturacion_config') %}
 <a class="btn-ax ghost" href="/facturacion/configuracion" style="gap:8px;">
   <i class="fa-solid fa-gear"></i> Configuración
 </a>
+{% endif %}
+{% if puede_ver('facturacion_diagnostico') %}
 <a class="btn-ax ghost" href="/facturacion/factus/eventos" style="gap:8px;">
   <i class="fa-solid fa-bug"></i> Diagnóstico Factus
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -122,6 +128,7 @@
 .fac-dian-error-box { margin-top:10px; padding:10px 14px; background:#fdecea; border:1px solid #f3b4ab; border-radius:6px; font-size:12px; color:#7a2e24; text-align:left; }
 </style>
 
+{% if puede('facturacion', 'create') %}
 <div class="fac-container">
 
   <!-- ══════ BLOQUEO: SIN CAJA ABIERTA ══════ -->
@@ -309,8 +316,18 @@
     </div>
   </div>
 </div>
+{% else %}
+<div class="fac-container">
+  <div class="fac-empty" style="display:flex; padding:60px 20px;">
+    <i class="fa-solid fa-lock" style="font-size:2.5rem; opacity:.3;"></i>
+    <p style="margin-top:14px;">No tienes permiso para crear facturas o prefacturas.</p>
+  </div>
+</div>
+{% endif %}
 
 <script>
+const PUEDE_CREAR_FACTURACION = {{ 'true' if puede('facturacion', 'create') else 'false' }};
+
 // ===== ESTADO =====
 let pacienteActual = null;
 let citasFacturables = [];
@@ -322,6 +339,7 @@ let timeoutCups = null;
 
 // ===== VERIFICAR CAJA AL CARGAR =====
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!PUEDE_CREAR_FACTURACION) return;
   try {
     const res = await fetch('/caja/api/estado');
     const data = await res.json();

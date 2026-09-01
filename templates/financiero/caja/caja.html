@@ -492,7 +492,7 @@
   <i class="fa-solid fa-cash-register"></i>
   <p>No tiene caja abierta</p>
   <p style="font-size:13px; font-weight:400; color:var(--text-faint);">Abra una caja para comenzar a registrar movimientos</p>
-  <button class="cj-btn green" onclick="mostrarModalAbrir()" style="margin-top:8px;"><i class="fa-solid fa-lock-open"></i> Abrir caja</button>
+  <button class="cj-btn green" id="btnAbrirEmpty" onclick="mostrarModalAbrir()" style="margin-top:8px;"><i class="fa-solid fa-lock-open"></i> Abrir caja</button>
 </div>
 
 <!-- MIS CUADRES ANTERIORES -->
@@ -638,6 +638,10 @@
 </div>
 
 <script>
+// ===== PERMISOS =====
+const PUEDE_ABRIR_CAJA = {{ 'true' if puede('caja', 'create') else 'false' }};
+const PUEDE_EDITAR_CAJA = {{ 'true' if puede('caja', 'edit') else 'false' }};
+
 // ===== ESTADO =====
 let cajaActual = null;
 let movimientosData = [];
@@ -686,7 +690,8 @@ function mostrarSinCaja() {
   cajaActual = null;
   document.getElementById('emptyState').style.display = 'flex';
   document.getElementById('cajaContent').style.display = 'none';
-  document.getElementById('btnAbrir').style.display = 'flex';
+  document.getElementById('btnAbrir').style.display = PUEDE_ABRIR_CAJA ? 'flex' : 'none';
+  document.getElementById('btnAbrirEmpty').style.display = PUEDE_ABRIR_CAJA ? 'flex' : 'none';
   document.getElementById('btnGuardar').style.display = 'none';
   document.getElementById('btnCerrar').style.display = 'none';
 
@@ -706,8 +711,8 @@ function mostrarCajaAbierta() {
   document.getElementById('misCuadresPanel').style.display = 'none';
   document.getElementById('cajaContent').style.display = 'flex';
   document.getElementById('btnAbrir').style.display = 'none';
-  document.getElementById('btnGuardar').style.display = 'flex';
-  document.getElementById('btnCerrar').style.display = 'flex';
+  document.getElementById('btnGuardar').style.display = PUEDE_EDITAR_CAJA ? 'flex' : 'none';
+  document.getElementById('btnCerrar').style.display = PUEDE_EDITAR_CAJA ? 'flex' : 'none';
 
   document.getElementById('stSede').textContent = cajaActual.sede_nombre || '—';
   document.getElementById('stUsuario').textContent = cajaActual.usuario_nombre || '—';

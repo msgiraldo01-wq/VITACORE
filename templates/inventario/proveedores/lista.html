@@ -12,6 +12,7 @@
 {% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
+{% if puede('farmacia', 'create') or puede('farmacia', 'edit') %}
 <div class="content-block inv-seccion">
   <form method="post" class="inv-form" id="form-prov">
     <input type="hidden" name="proveedor_id" id="p-id">
@@ -46,6 +47,7 @@
     </div>
   </form>
 </div>
+{% endif %}
 {% if proveedores %}
 <div class="content-block">
   <table class="inv-tabla">
@@ -60,11 +62,15 @@
         <td>{{ p.ciudad or '—' }}</td>
         <td><span class="inv-insignia gris">{{ p.condiciones_pago.replace('_',' ') }}</span></td>
         <td><span class="inv-insignia {{ 'verde' if p.estado=='ACTIVO' else 'gris' }}">{{ p.estado }}</span></td>
-        <td><a href="#form-prov" onclick='editarProv({{ {
+        <td>
+          {% if puede('farmacia', 'edit') %}
+          <a href="#form-prov" onclick='editarProv({{ {
               "id": p.id, "nit": p.numero_documento, "razon": p.razon_social,
               "contacto": p.contacto or "", "tel": p.telefono or "", "email": p.email or "",
               "ciudad": p.ciudad or "", "pago": p.condiciones_pago, "estado": p.estado } | tojson }})'>
-            <i class="fa-solid fa-pen"></i> Editar</a></td>
+            <i class="fa-solid fa-pen"></i> Editar</a>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

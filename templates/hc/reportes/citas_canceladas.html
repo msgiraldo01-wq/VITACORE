@@ -1,0 +1,229 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Reportes · Citas canceladas{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-ban"></i>{% endblock %}
+{% block header_title %}Citas canceladas{% endblock %}
+{% block header_subtitle %}Conteo y porcentaje de citas canceladas por motivo y por especialidad.{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/reportes">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+<a class="btn-ax" href="{{ url_for('hc_reportes.citas_canceladas_csv', desde=desde, hasta=hasta) }}">
+  <i class="fa-solid fa-file-csv"></i>
+  Exportar CSV
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .op-hint {
+    font-size: .85rem;
+    color: var(--text-soft);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .op-filtros {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 22px;
+  }
+
+  .op-filtros .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .op-filtros .field label {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .op-filtros input[type="date"] {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: .9rem;
+  }
+
+  .op-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .op-kpi {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+
+  .op-kpi .op-kpi-label {
+    font-size: .75rem;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+
+  .op-kpi .op-kpi-valor {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .op-tablas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .op-table-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .op-table-titulo {
+    padding: 12px 16px;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-soft);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .op-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+  }
+
+  .op-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface-3, var(--surface));
+    color: var(--text-soft);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .op-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .op-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .op-vacio {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-soft);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="op-hint">
+  El período filtra por la fecha de la cita (no por la fecha en que se canceló). La tasa de cancelación
+  compara el total de canceladas contra el total de citas agendadas en el mismo período, de cualquier estado.
+</p>
+
+<form class="op-filtros" method="get">
+  <div class="field">
+    <label for="desde">Desde</label>
+    <input type="date" id="desde" name="desde" value="{{ desde }}">
+  </div>
+  <div class="field">
+    <label for="hasta">Hasta</label>
+    <input type="date" id="hasta" name="hasta" value="{{ hasta }}">
+  </div>
+  <button type="submit" class="btn-ax">
+    <i class="fa-solid fa-filter"></i> Aplicar
+  </button>
+</form>
+
+<div class="op-kpis">
+  <div class="op-kpi">
+    <div class="op-kpi-label">Citas canceladas</div>
+    <div class="op-kpi-valor">{{ data.total_canceladas }}</div>
+  </div>
+  <div class="op-kpi">
+    <div class="op-kpi-label">Citas del período</div>
+    <div class="op-kpi-valor">{{ data.total_periodo }}</div>
+  </div>
+  <div class="op-kpi">
+    <div class="op-kpi-label">Tasa de cancelación</div>
+    <div class="op-kpi-valor">{{ data.tasa_cancelacion }}%</div>
+  </div>
+</div>
+
+<div class="op-tablas">
+
+  <div class="op-table-wrap">
+    <div class="op-table-titulo">Por motivo</div>
+    {% if data.por_motivo %}
+    <table class="op-table">
+      <thead>
+        <tr><th>Motivo</th><th>Citas</th><th>%</th></tr>
+      </thead>
+      <tbody>
+        {% for f in data.por_motivo %}
+        <tr>
+          <td>{{ f.nombre }}</td>
+          <td>{{ f.citas }}</td>
+          <td>{{ f.porcentaje }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="op-vacio">No hay citas canceladas en este período.</div>
+    {% endif %}
+  </div>
+
+  <div class="op-table-wrap">
+    <div class="op-table-titulo">Por especialidad</div>
+    {% if data.por_especialidad %}
+    <table class="op-table">
+      <thead>
+        <tr><th>Especialidad</th><th>Citas</th><th>%</th></tr>
+      </thead>
+      <tbody>
+        {% for f in data.por_especialidad %}
+        <tr>
+          <td>{{ f.nombre }}</td>
+          <td>{{ f.citas }}</td>
+          <td>{{ f.porcentaje }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="op-vacio">No hay citas canceladas en este período.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}

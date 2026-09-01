@@ -1,9 +1,12 @@
 from flask import flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/solicitudes")
+@login_required
 @contexto_empresa
 def solicitudes_lista(empresa_id, usuario_id):
     return render_template("inventario/solicitudes/lista.html",
@@ -12,6 +15,8 @@ def solicitudes_lista(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/solicitudes/nueva", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def solicitudes_nueva(empresa_id, usuario_id):
     if request.method == "POST":
@@ -39,6 +44,7 @@ def solicitudes_nueva(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/solicitudes/<solicitud_id>", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def solicitudes_detalle(empresa_id, usuario_id, solicitud_id):
     s, items = repo.obtener_solicitud(empresa_id, solicitud_id)
@@ -46,6 +52,9 @@ def solicitudes_detalle(empresa_id, usuario_id, solicitud_id):
         flash("Solicitud no encontrada.", "error")
         return redirect(url_for("inventario.solicitudes_lista"))
     if request.method == "POST":
+        _deny = denegado("farmacia", "edit")
+        if _deny:
+            return _deny
         accion = request.form.get("accion")
         base = {"resuelto_por": usuario_id, "fecha_resolucion": "now()"}
         if accion == "aprobar" and s["estado"] == "PENDIENTE":

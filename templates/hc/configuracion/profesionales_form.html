@@ -301,28 +301,161 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(239,68,68,.06);
-  border: 1px solid rgba(239,68,68,.2);
-  border-radius: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
   margin-bottom: 8px;
+}
+
+.bloqueo-card.bloqueo-total {
+  border-left-color: var(--danger);
 }
 
 .bloqueo-card .bloqueo-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .bloqueo-card .bloqueo-fechas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-weight: 700;
   font-size: .88rem;
-  color: #7f1d1d;
+  color: var(--text);
+}
+
+.bloqueo-card .bloqueo-fechas i {
+  color: var(--text-soft);
 }
 
 .bloqueo-card .bloqueo-motivo {
   font-size: .82rem;
   color: var(--muted);
+}
+
+.bloqueo-acciones {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-icon-sm {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: .82rem;
+  transition: background .15s, color .15s;
+}
+
+.btn-icon-sm.edit { background: var(--info-soft); color: var(--info); }
+.btn-icon-sm.edit:hover { background: var(--info); color: #fff; }
+.btn-icon-sm.del { background: var(--danger-soft); color: var(--danger); }
+.btn-icon-sm.del:hover { background: var(--danger); color: #fff; }
+
+/* ── Toggle "¿Atiende en días festivos?" ── */
+.festivos-toggle-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-top: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.festivos-toggle-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+
+.festivos-toggle-card.on .festivos-toggle-icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.festivos-toggle-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.festivos-toggle-title {
+  font-weight: 700;
+  font-size: .92rem;
+  color: var(--text);
+}
+
+.festivos-toggle-sub {
+  font-size: .82rem;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 999px;
+  transition: background .2s;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform .2s;
+}
+
+.switch input:checked ~ .switch-track {
+  background: var(--brand);
+}
+
+.switch input:checked ~ .switch-track .switch-thumb {
+  transform: translateX(20px);
 }
 
 @media (max-width:1100px) {
@@ -334,6 +467,109 @@
 }
 @media (max-width:500px) {
   .prog-grid { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════════════════
+   SWEETALERT2 — tema Vitacore
+   Alcance: solo esta página por ahora (bloque agregado
+   dentro de extra_css de profesionales_form.html, no en
+   hc/base.html), para probar el look antes de aplicarlo
+   en el resto de la aplicación.
+══════════════════════════════════════════════════ */
+.swal2-popup {
+  font-family: var(--font);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 28px 24px 22px;
+}
+
+.swal2-title {
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 0 0 4px;
+}
+
+.swal2-html-container {
+  color: var(--text-soft);
+  font-size: .9rem;
+  margin: 8px 0 4px;
+}
+
+.swal2-actions {
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.swal2-styled {
+  border-radius: var(--radius-sm) !important;
+  padding: 10px 22px !important;
+  font-size: .88rem !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  transition: filter .15s, transform .05s !important;
+}
+
+.swal2-styled:hover { filter: brightness(1.08); }
+.swal2-styled:active { transform: scale(.98); }
+
+.swal2-confirm:focus-visible,
+.swal2-cancel:focus-visible {
+  box-shadow: 0 0 0 3px rgba(13,92,99,.25) !important;
+}
+
+.swal2-cancel {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+.swal2-cancel:hover {
+  background: var(--surface-2) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  font-family: var(--font);
+  font-size: .88rem;
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus,
+.swal2-select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(13,92,99,.15);
+}
+
+.swal2-validation-message {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: .82rem;
+}
+
+.swal2-icon {
+  border-width: 2.5px;
+}
+
+.swal2-close {
+  color: var(--text-soft);
+}
+.swal2-close:hover {
+  color: var(--text);
+}
+
+.swal2-timer-progress-bar {
+  background: var(--brand);
 }
 
 </style>
@@ -468,6 +704,24 @@
 
     </div>
 
+    <div class="festivos-toggle-card {{ 'on' if item.trabaja_festivos else '' }}" id="festivosToggleCard">
+      <div class="festivos-toggle-icon">
+        <i class="fa-solid fa-calendar-day"></i>
+      </div>
+      <div class="festivos-toggle-text">
+        <div class="festivos-toggle-title">¿Atiende en días festivos?</div>
+        <div class="festivos-toggle-sub" id="festivosToggleSub">
+          {{ 'Sí — se le ofrecerán citas también en fechas festivas.' if item.trabaja_festivos else 'No — no se le ofrecerán citas en fechas festivas.' }}
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="trabaja_festivos" name="trabaja_festivos"
+               {{ 'checked' if item.trabaja_festivos else '' }}
+               onchange="actualizarTextoFestivos(this)">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+
     <div class="form-actions">
       <button class="btn-ax primary" type="submit">
         <i class="fa-solid fa-floppy-disk"></i>
@@ -503,12 +757,14 @@
   </p>
 
   <!-- Buscador CUPS -->
+  {% if puede('configuracion', 'create') %}
   <div class="cups-search-wrap">
     <i class="fa-solid fa-magnifying-glass ico-search"></i>
     <input type="text" id="cupsSearch"
            placeholder="Buscar procedimiento por código o nombre...">
     <div class="cups-dropdown" id="cupsDropdown"></div>
   </div>
+  {% endif %}
 
   <!-- Tabla de procedimientos asignados -->
   <div class="proc-table-wrap">
@@ -575,6 +831,7 @@
     (vacaciones, incapacidad, reuniones, etc).
   </p>
 
+  {% if puede('configuracion', 'create') %}
   <div class="bloqueo-form-row" style="flex-wrap:wrap;">
     <div class="field">
       <label>Fecha inicio</label>
@@ -592,7 +849,7 @@
       </label>
     </div>
   </div>
- 
+
   <div id="bloqueoHorasRow" class="bloqueo-form-row" style="display:none; margin-top:-8px;">
     <div class="field">
       <label>Hora inicio</label>
@@ -603,7 +860,7 @@
       <input type="time" id="bloqueoHoraFin" value="12:00">
     </div>
   </div>
- 
+
   <div class="bloqueo-form-row" style="margin-top:4px;">
     <div class="field" style="flex:2;">
       <label>Motivo</label>
@@ -618,6 +875,7 @@
       </button>
     </div>
   </div>
+  {% endif %}
 
   <div id="bloqueosLista">
     <!-- Se llena con JS -->
@@ -640,8 +898,45 @@ const BASE_PROC = `/hc/configuracion/profesionales/${PROF_ID}/procedimientos`
 const BASE_PROG = `/hc/configuracion/profesionales/${PROF_ID}/programacion`
 const BASE_BLOQ = `/hc/configuracion/profesionales/${PROF_ID}/bloqueos`
 const BASE_CUPS = `/hc/configuracion/cups/buscar`
+const PUEDE_CREAR_PROF   = {{ 'true' if puede('configuracion', 'create') else 'false' }}
+const PUEDE_EDITAR_PROF  = {{ 'true' if puede('configuracion', 'edit') else 'false' }}
+const PUEDE_ELIMINAR_PROF = {{ 'true' if puede('configuracion', 'delete') else 'false' }}
 
 const DIAS_SEMANA = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+
+/* ── feedback animado para guardar/editar/eliminar ──
+   En vez de que el mensaje solo "aparezca", se muestra
+   un spinner mientras la petición está en curso y, al
+   terminar, un ícono de éxito con la animación nativa
+   de SweetAlert2 (el check se dibuja) que se cierra solo. */
+function actualizarTextoFestivos(input) {
+  const sub  = document.getElementById('festivosToggleSub')
+  const card = document.getElementById('festivosToggleCard')
+  sub.textContent = input.checked
+    ? 'Sí — se le ofrecerán citas también en fechas festivas.'
+    : 'No — no se le ofrecerán citas en fechas festivas.'
+  card.classList.toggle('on', input.checked)
+}
+
+function swalCargando(texto) {
+  Swal.fire({
+    title: texto,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
+  })
+}
+
+function swalExito(texto) {
+  return Swal.fire({
+    icon: 'success',
+    title: texto,
+    timer: 1200,
+    timerProgressBar: true,
+    showConfirmButton: false
+  })
+}
 
 /* ── tabs ────────────────────────────────────────── */
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -667,7 +962,12 @@ form?.addEventListener("submit", function(e) {
     confirmButtonText: "Sí, guardar",
     cancelButtonText:  "Cancelar",
     confirmButtonColor:"#0ea5ff"
-  }).then(r => { if (r.isConfirmed) form.submit() })
+  }).then(r => {
+    if (r.isConfirmed) {
+      swalCargando(MODO === "crear" ? "Creando profesional…" : "Guardando cambios…")
+      form.submit()
+    }
+  })
 })
 
 
@@ -704,14 +1004,15 @@ function renderProcs(data) {
       <td><strong>${p.hc_cups?.codigo || "—"}</strong></td>
       <td>${p.hc_cups?.descripcion || "—"}</td>
       <td>
-        <input class="dur-input" type="number" min="1" max="480"
+        <input class="dur-input" type="number" min="1" max="480" ${PUEDE_EDITAR_PROF ? '' : 'disabled'}
                value="${p.duracion_min}"
                onchange="guardarDuracion(${p.id}, this.value)">
       </td>
       <td>
+        ${PUEDE_ELIMINAR_PROF ? `
         <button class="btn-del-proc" onclick="eliminarProc(${p.id})">
           <i class="fa-solid fa-trash"></i>
-        </button>
+        </button>` : ''}
       </td>
     </tr>`).join("")
 }
@@ -809,9 +1110,10 @@ async function cargarProgramacion() {
     `<div class="prog-dia" id="progDia${i}">
        <div class="prog-dia-header">${DIAS_SEMANA[i]}</div>
        <div class="prog-dia-bloques" id="progBloques${i}"></div>
+       ${PUEDE_CREAR_PROF ? `
        <button class="prog-add-btn" onclick="mostrarFormBloque(${i})">
          <i class="fa-solid fa-plus"></i> Agregar
-       </button>
+       </button>` : ''}
      </div>`
   ).join("")
 
@@ -832,9 +1134,10 @@ async function cargarProgramacion() {
         container.innerHTML = bloques.map(b => `
           <div class="prog-bloque">
             <span>${(b.hora_inicio || '').slice(0,5)} - ${(b.hora_fin || '').slice(0,5)}</span>
+            ${PUEDE_ELIMINAR_PROF ? `
             <button class="btn-del-bloque" onclick="eliminarBloque(${b.id})" title="Eliminar">
               <i class="fa-solid fa-xmark"></i>
-            </button>
+            </button>` : ''}
           </div>
         `).join("")
       }
@@ -881,6 +1184,8 @@ async function mostrarFormBloque(dia) {
 
   if (!formValues) return
 
+  swalCargando('Agregando bloque…')
+
   try {
     const res = await fetch(BASE_PROG + "/agregar", {
       method: "POST",
@@ -894,6 +1199,7 @@ async function mostrarFormBloque(dia) {
     const data = await res.json()
 
     if (data.ok) {
+      await swalExito('Bloque agregado')
       cargarProgramacion()
     } else {
       Swal.fire({
@@ -919,7 +1225,15 @@ async function eliminarBloque(id) {
     confirmButtonColor: "#ef4444"
   })
   if (!conf.isConfirmed) return
-  await fetch(`/hc/configuracion/profesionales/programacion/${id}/eliminar`, { method: "POST" })
+
+  swalCargando('Eliminando…')
+
+  try {
+    await fetch(`/hc/configuracion/profesionales/programacion/${id}/eliminar`, { method: "POST" })
+    await swalExito('Bloque eliminado')
+  } catch (e) {
+    Swal.fire({ title: "Error", text: "Error de conexión", icon: "error" })
+  }
   cargarProgramacion()
 }
 
@@ -928,14 +1242,17 @@ async function eliminarBloque(id) {
    BLOQUEOS
 ══════════════════════════════════════════════════ */
 
+let bloqueosCache = [];
+
 async function cargarBloqueos() {
   const lista = document.getElementById("bloqueosLista");
   if (!lista) return;
- 
+
   try {
     const res  = await fetch(BASE_BLOQ);
     const data = await res.json();
- 
+    bloqueosCache = data;
+
     if (!data.length) {
       lista.innerHTML = `<div style="text-align:center; padding:20px; color:var(--muted); font-size:.88rem;">
         <i class="fa-solid fa-calendar-check" style="font-size:1.4rem; margin-bottom:8px; display:block;"></i>
@@ -943,26 +1260,27 @@ async function cargarBloqueos() {
       </div>`;
       return;
     }
- 
+
     lista.innerHTML = data.map(b => {
       const fi = b.fecha_inicio || '—';
       const ff = b.fecha_fin    || '—';
- 
+
       // Determinar si es parcial o día completo
       const esParcial = b.hora_inicio != null && b.hora_fin != null;
       const horasTexto = esParcial
         ? `${(b.hora_inicio || '').slice(0,5)} → ${(b.hora_fin || '').slice(0,5)}`
         : 'Día completo';
- 
-      const badgeColor = esParcial ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.1)';
-      const badgeText  = esParcial ? '#92400e' : '#991b1b';
+
+      const badgeColor = esParcial ? 'var(--warn-soft)' : 'var(--danger-soft)';
+      const badgeText  = esParcial ? 'var(--warn)' : 'var(--danger)';
       const iconClass  = esParcial ? 'fa-clock' : 'fa-calendar-xmark';
- 
+      const cardClass  = esParcial ? '' : 'bloqueo-total';
+
       return `
-        <div class="bloqueo-card">
+        <div class="bloqueo-card ${cardClass}">
           <div class="bloqueo-info">
             <span class="bloqueo-fechas">
-              <i class="fa-solid ${iconClass}" style="margin-right:6px;"></i>
+              <i class="fa-solid ${iconClass}"></i>
               ${fi === ff ? fi : `${fi} → ${ff}`}
               <span style="
                 display:inline-block;
@@ -972,19 +1290,128 @@ async function cargarBloqueos() {
                 font-weight:700;
                 padding:2px 8px;
                 border-radius:6px;
-                margin-left:8px;
               ">${horasTexto}</span>
             </span>
             <span class="bloqueo-motivo">${b.motivo || 'Sin motivo especificado'}</span>
           </div>
-          <button class="btn-del-proc" onclick="eliminarBloqueoProg(${b.id})">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <div class="bloqueo-acciones">
+            ${PUEDE_EDITAR_PROF ? `
+            <button class="btn-icon-sm edit" onclick="editarBloqueoProg(${b.id})" title="Editar bloqueo">
+              <i class="fa-solid fa-pen"></i>
+            </button>` : ''}
+            ${PUEDE_ELIMINAR_PROF ? `
+            <button class="btn-icon-sm del" onclick="eliminarBloqueoProg(${b.id})" title="Eliminar bloqueo">
+              <i class="fa-solid fa-trash"></i>
+            </button>` : ''}
+          </div>
         </div>
       `;
     }).join("");
   } catch (e) {
     console.error("Error cargando bloqueos:", e);
+  }
+}
+
+async function editarBloqueoProg(id) {
+  const b = bloqueosCache.find(x => x.id === id);
+  if (!b) return;
+
+  const esParcial = b.hora_inicio != null && b.hora_fin != null;
+  const motivoEscapado = (b.motivo || '').replace(/"/g, '&quot;');
+
+  const { value: formValues } = await Swal.fire({
+    title: 'Editar bloqueo',
+    html: `
+      <div style="display:flex; flex-direction:column; gap:10px; text-align:left;">
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:4px;">Fecha inicio</label>
+            <input id="swalFechaInicio" type="date" class="swal2-input" style="margin:0; width:100%;" value="${b.fecha_inicio || ''}">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:4px;">Fecha fin</label>
+            <input id="swalFechaFin" type="date" class="swal2-input" style="margin:0; width:100%;" value="${b.fecha_fin || ''}">
+          </div>
+        </div>
+        <label style="font-size:.82rem; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="swalParcial" ${esParcial ? 'checked' : ''}
+                 onchange="document.getElementById('swalHorasRow').style.display = this.checked ? 'flex' : 'none'"
+                 style="width:16px; height:16px; cursor:pointer;">
+          Bloqueo por horas
+        </label>
+        <div id="swalHorasRow" style="display:${esParcial ? 'flex' : 'none'}; gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:4px;">Hora inicio</label>
+            <input id="swalHoraInicio" type="time" class="swal2-input" style="margin:0; width:100%;" value="${esParcial ? (b.hora_inicio || '').slice(0,5) : '08:00'}">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:4px;">Hora fin</label>
+            <input id="swalHoraFin" type="time" class="swal2-input" style="margin:0; width:100%;" value="${esParcial ? (b.hora_fin || '').slice(0,5) : '12:00'}">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:4px;">Motivo</label>
+          <input id="swalMotivo" type="text" class="swal2-input" style="margin:0; width:100%;" maxlength="200" value="${motivoEscapado}">
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar cambios',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#0ea5ff',
+    preConfirm: () => {
+      const fi      = document.getElementById('swalFechaInicio').value;
+      const ff      = document.getElementById('swalFechaFin').value;
+      const parcial = document.getElementById('swalParcial').checked;
+      const motivo  = document.getElementById('swalMotivo').value.trim();
+      let horaInicio = null;
+      let horaFin    = null;
+
+      if (!fi || !ff) {
+        Swal.showValidationMessage('Selecciona fecha inicio y fin.');
+        return false;
+      }
+      if (ff < fi) {
+        Swal.showValidationMessage('La fecha fin no puede ser anterior a la fecha inicio.');
+        return false;
+      }
+      if (parcial) {
+        horaInicio = document.getElementById('swalHoraInicio').value;
+        horaFin    = document.getElementById('swalHoraFin').value;
+        if (!horaInicio || !horaFin) {
+          Swal.showValidationMessage('Si es bloqueo por horas, selecciona hora inicio y fin.');
+          return false;
+        }
+        if (horaFin <= horaInicio) {
+          Swal.showValidationMessage('La hora fin debe ser mayor que la hora inicio.');
+          return false;
+        }
+      }
+      return { fecha_inicio: fi, fecha_fin: ff, motivo: motivo || null, hora_inicio: horaInicio, hora_fin: horaFin };
+    }
+  });
+
+  if (!formValues) return;
+
+  swalCargando('Guardando cambios…');
+
+  try {
+    const res = await fetch(`/hc/configuracion/profesionales/bloqueos/${id}/actualizar`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formValues)
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      await swalExito('Bloqueo actualizado');
+      cargarBloqueos();
+    } else {
+      Swal.fire({ title: 'Error', text: data.msg || 'No se pudo actualizar.', icon: 'error' });
+    }
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
   }
 }
 
@@ -1020,6 +1447,8 @@ async function agregarBloqueo() {
     }
   }
  
+  swalCargando('Agregando bloqueo…');
+
   try {
     const res = await fetch(BASE_BLOQ + "/agregar", {
       method: "POST",
@@ -1033,13 +1462,14 @@ async function agregarBloqueo() {
       })
     });
     const data = await res.json();
- 
+
     if (data.ok) {
       document.getElementById("bloqueoFechaInicio").value = "";
       document.getElementById("bloqueoFechaFin").value    = "";
       document.getElementById("bloqueoMotivo").value      = "";
       document.getElementById("bloqueoParcial").checked    = false;
       document.getElementById("bloqueoHorasRow").style.display = "none";
+      await swalExito('Bloqueo agregado');
       cargarBloqueos();
     } else {
       Swal.fire({ title: "Error", text: data.msg || "No se pudo agregar.", icon: "error" });
@@ -1060,7 +1490,15 @@ async function eliminarBloqueoProg(id) {
     confirmButtonColor: "#ef4444"
   })
   if (!conf.isConfirmed) return
-  await fetch(`/hc/configuracion/profesionales/bloqueos/${id}/eliminar`, { method: "POST" })
+
+  swalCargando('Eliminando…');
+
+  try {
+    await fetch(`/hc/configuracion/profesionales/bloqueos/${id}/eliminar`, { method: "POST" })
+    await swalExito('Bloqueo eliminado');
+  } catch (e) {
+    Swal.fire({ title: "Error", text: "Error de conexión", icon: "error" });
+  }
   cargarBloqueos()
 }
 

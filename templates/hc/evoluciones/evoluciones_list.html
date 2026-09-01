@@ -7,9 +7,11 @@
 {% block header_subtitle %}Historia clínica del paciente{% endblock %}
 
 {% block header_actions %}
+{% if puede('historia_clinica', 'create') %}
 <a class="btn-ax primary" href="{{ url_for('hc_evoluciones.evolucion_nuevo', paciente_id=paciente_id) }}">
   <i class="fa-solid fa-plus"></i> Nueva evolución
 </a>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}

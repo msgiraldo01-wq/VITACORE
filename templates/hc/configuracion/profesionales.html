@@ -12,10 +12,12 @@
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/profesionales/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo profesional
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -168,12 +170,15 @@ text-align:center;
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/profesionales/editar/{{ item.id }}">
 <i class="fa-solid fa-pen"></i>
 Editar
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/profesionales/toggle/{{ item.id }}"
 class="toggleForm">
@@ -186,6 +191,7 @@ class="toggleForm">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -212,6 +218,7 @@ Crea el primero para comenzar a construir agendas,
 citas e historia clínica.
 </p>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/profesionales/nuevo">
 
@@ -219,6 +226,7 @@ href="/hc/configuracion/profesionales/nuevo">
 Crear primer profesional
 
 </a>
+{% endif %}
 
 </div>
 

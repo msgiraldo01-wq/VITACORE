@@ -6,15 +6,21 @@
 {% block header_subtitle %}Revisa y factura las prefacturas generadas pendientes de facturación.{% endblock %}
 
 {% block header_actions %}
+{% if puede('facturacion', 'create') %}
 <a class="btn-ax ghost" href="/facturacion/" style="gap:8px;">
   <i class="fa-solid fa-plus"></i> Nueva prefactura
 </a>
+{% endif %}
+{% if puede_ver('facturacion') %}
 <a class="btn-ax ghost" href="/facturacion/facturas" style="gap:8px;">
   <i class="fa-solid fa-list"></i> Ver facturas
 </a>
+{% endif %}
+{% if puede_ver('facturacion_diagnostico') %}
 <a class="btn-ax ghost" href="/facturacion/factus/eventos" style="gap:8px;">
   <i class="fa-solid fa-bug"></i> Diagnóstico Factus
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -212,6 +218,8 @@
 </div>
 
 <script>
+const PUEDE_FACTURAR_PREFACTURA = {{ 'true' if puede('facturacion', 'create') else 'false' }};
+
 let prefacturasData = [];
 let prefacturaActualId = null;
 let prefacturaActualTipo = 'INDIVIDUAL';
@@ -419,9 +427,9 @@ function renderDetalle(pf, items, tipo) {
       <button class="pf-btn" onclick="cerrarDetalle()">
         <i class="fa-solid fa-xmark"></i> Cerrar
       </button>
-      <button class="pf-btn primary" onclick="facturarPrefactura()">
+      ${PUEDE_FACTURAR_PREFACTURA ? `<button class="pf-btn primary" onclick="facturarPrefactura()">
         <i class="fa-solid fa-file-invoice-dollar"></i> Facturar ahora
-      </button>`;
+      </button>` : ''}`;
   } else {
     footer.innerHTML = `
       <button class="pf-btn" onclick="cerrarDetalle()">

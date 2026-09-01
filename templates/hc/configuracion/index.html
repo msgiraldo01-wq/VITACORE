@@ -255,7 +255,7 @@
 <div class="cfg-section">
   <div class="cfg-section-head">
     <h3 class="cfg-section-title">Maestros clínicos</h3>
-    <span class="cfg-section-count">16 módulos</span>
+    <span class="cfg-section-count">19 módulos</span>
   </div>
   <p class="cfg-section-sub">Catálogos base del funcionamiento clínico y asistencial.</p>
   <div class="cfg-divider"></div>
@@ -288,6 +288,27 @@
       <div class="cfg-icon green"><i class="fa-solid fa-user-doctor"></i></div>
       <div class="cfg-title">Profesionales</div>
       <div class="cfg-text">Registro básico del personal clínico y asistencial.</div>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/festivos">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-arrow"></i>
+      <div class="cfg-icon teal"><i class="fa-solid fa-calendar-day"></i></div>
+      <div class="cfg-title">Festivos</div>
+      <div class="cfg-text">Días festivos para la agenda de citas y la disponibilidad de profesionales.</div>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/motivos-cancelacion">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-arrow"></i>
+      <div class="cfg-icon teal"><i class="fa-solid fa-ban"></i></div>
+      <div class="cfg-title">Motivos de cancelación</div>
+      <div class="cfg-text">Catálogo de motivos que se piden al cancelar una cita.</div>
+    </a>
+
+    <a class="cfg-card" href="/hc/configuracion/motivos-reprogramacion">
+      <i class="fa-solid fa-arrow-up-right-from-square cfg-arrow"></i>
+      <div class="cfg-icon green"><i class="fa-solid fa-calendar-days"></i></div>
+      <div class="cfg-title">Motivos de reprogramación</div>
+      <div class="cfg-text">Catálogo de motivos que se piden al reprogramar una cita.</div>
     </a>
 
     <a class="cfg-card" href="/hc/configuracion/servicios">
@@ -325,12 +346,14 @@
       <div class="cfg-text">Catálogo de diagnósticos clínicos.</div>
     </a>
 
+    {% if puede_ver('medicamentos') %}
     <a class="cfg-card" href="/hc/medicamentos">
       <i class="fa-solid fa-arrow-up-right-from-square cfg-arrow"></i>
       <div class="cfg-icon green"><i class="fa-solid fa-pills"></i></div>
       <div class="cfg-title">Medicamentos</div>
       <div class="cfg-text">Catálogo de medicamentos disponibles para la atención.</div>
     </a>
+    {% endif %}
 
     <a class="cfg-card" href="/hc/configuracion/cups">
       <i class="fa-solid fa-arrow-up-right-from-square cfg-arrow"></i>
@@ -388,7 +411,7 @@
 <div class="cfg-section">
   <div class="cfg-section-head">
     <h3 class="cfg-section-title">Seguridad y acceso</h3>
-    <span class="cfg-section-count">3 módulos</span>
+    <span class="cfg-section-count">{{ "3 módulos" if session.get('rol') == 'SUPER_ADMIN' else "2 módulos" }}</span>
   </div>
   <p class="cfg-section-sub">Administración de usuarios, perfiles de acceso y matriz de permisos.</p>
   <div class="cfg-divider"></div>
@@ -404,11 +427,13 @@
       <div class="cfg-sec-title">Roles y permisos</div>
       <div class="cfg-sec-text">Define permisos por rol sobre módulos y acciones del sistema.</div>
     </a>
-    <a class="cfg-sec-card" href="/hc/configuracion/permisos-rutas">
+    {% if session.get('rol') == 'SUPER_ADMIN' %}
+    <a class="cfg-sec-card" href="/hc/configuracion/auditoria-accesos">
       <div class="cfg-sec-icon"><i class="fa-solid fa-shield-halved"></i></div>
-      <div class="cfg-sec-title">Permisos por ruta</div>
-      <div class="cfg-sec-text">Controla qué endpoints y vistas puede usar cada rol.</div>
+      <div class="cfg-sec-title">Auditoría de accesos</div>
+      <div class="cfg-sec-text">Traza completa de inicios de sesión: quién, cuándo, desde dónde y con qué resultado.</div>
     </a>
+    {% endif %}
   </div>
 </div>
 

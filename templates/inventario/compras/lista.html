@@ -7,8 +7,10 @@
 {% block header_title %}Órdenes de compra{% endblock %}
 {% block header_subtitle %}Compras a proveedores con recepción técnica y entrada automática al kardex.{% endblock %}
 {% block header_actions %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.compras_nueva') }}">
     <i class="fa-solid fa-plus"></i> Nueva orden</a>
+  {% endif %}
   <a class="btn-ax ghost" href="{{ url_for('inventario.proveedores') }}">
     <i class="fa-solid fa-handshake"></i> Proveedores</a>
 {% endblock %}
@@ -38,6 +40,9 @@
 </div>
 {% else %}
 <div class="inv-vacio">Sin órdenes de compra.
-  <a href="{{ url_for('inventario.compras_nueva') }}">Crea la primera</a>.</div>
+  {% if puede('farmacia', 'create') %}
+  <a href="{{ url_for('inventario.compras_nueva') }}">Crea la primera</a>.
+  {% endif %}
+</div>
 {% endif %}
 {% endblock %}

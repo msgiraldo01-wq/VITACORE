@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
 
+from blueprints.auth.decorators import login_required
 from repositories import hc_historia_repo as repo
 from repositories import hc_pacientes_repo as repo_pac
 
@@ -12,6 +13,7 @@ bp_hc_historia = Blueprint(
 
 
 @bp_hc_historia.route("/paciente/<int:paciente_id>")
+@login_required
 def historia_paciente(paciente_id):
 
     paciente = repo_pac.obtener(paciente_id)

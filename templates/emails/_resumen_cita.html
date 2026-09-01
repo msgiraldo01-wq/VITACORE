@@ -1,0 +1,20 @@
+{# Bloque reutilizable con los datos de la cita, para los correos de creación,
+   confirmación y cancelación. Espera `cita` con al menos: fecha, hora_inicio,
+   hora_fin, medico_nombre, medico_especialidad, sede_nombre. #}
+<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin:16px 0;">
+  <div style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">Fecha</div>
+  <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:10px;">{{ cita.fecha_larga or cita.fecha }}</div>
+
+  <div style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">Hora</div>
+  <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:10px;">{{ cita.hora_rango or (cita.hora_inicio or '')[:5] }}</div>
+
+  <div style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">Profesional</div>
+  <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:{{ '10px' if cita.sede_nombre else '0' }};">
+    {{ cita.medico_nombre }}{% if cita.medico_especialidad %} · {{ cita.medico_especialidad }}{% endif %}
+  </div>
+
+  {% if cita.sede_nombre %}
+  <div style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">Lugar</div>
+  <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ cita.sede_nombre }}</div>
+  {% endif %}
+</div>

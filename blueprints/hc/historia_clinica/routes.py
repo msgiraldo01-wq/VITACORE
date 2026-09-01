@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, jsonify, session
 
+from blueprints.auth.decorators import login_required
 from repositories import hc_pacientes_repo as repo_pacientes
 from repositories import hc_evoluciones_repo as repo_evoluciones
 
@@ -11,6 +12,7 @@ bp_hc_home = Blueprint(
 
 
 @bp_hc_home.route("/historia-clinica")
+@login_required
 def historia_clinica():
     """Pantalla principal de Historia Clínica: buscador de pacientes +
     evoluciones recientes de la IPS."""
@@ -28,6 +30,7 @@ def historia_clinica():
 
 
 @bp_hc_home.route("/historia-clinica/buscar")
+@login_required
 def historia_clinica_buscar():
     """API de búsqueda de pacientes para el buscador de esta pantalla."""
     if not session.get("empresa_id"):

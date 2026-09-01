@@ -1,0 +1,22 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Reportes{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-chart-pie"></i>{% endblock %}
+{% block header_title %}Reportes{% endblock %}
+{% block header_subtitle %}Reportes regulatorios y gerenciales de historia clínica y citas.{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+  {% for clave, r in reportes.items() %}
+  <a href="{{ url_for('hc_reportes.' + clave) }}"
+     style="display:block;padding:16px;background:var(--surface-2);border:1px solid var(--border);
+            border-radius:var(--radius-md);color:var(--text);transition:border-color .15s"
+     onmouseover="this.style.borderColor='var(--brand)'"
+     onmouseout="this.style.borderColor='var(--border)'">
+    <div style="font-weight:700;margin-bottom:6px">
+      <i class="fa-solid {{ r.icono }}" style="color:var(--brand)"></i> {{ r.titulo }}</div>
+    <div style="font-size:12.5px;color:var(--text-soft)">{{ r.ayuda }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

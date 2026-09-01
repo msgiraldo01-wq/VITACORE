@@ -215,10 +215,12 @@
     <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i>
     Exportar
 </button>
+{% if puede('radicacion', 'create') %}
 <button class="btn-ax primary" onclick="abrirModalRadicacion()">
     <i class="fa-solid fa-paper-plane"></i>
     Nueva radicación
 </button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -367,11 +369,13 @@
                                         class="btn-ax-table">
                                     <i class="fa-solid fa-eye"></i> Ver
                                 </button>
+                                {% if puede('radicacion', 'edit') %}
                                 <button onclick="cambiarEstado('{{ r.id }}', '{{ r.estado }}')"
                                         class="btn-ax-table"
                                         style="background:var(--surface-2); color:var(--text-soft);">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}
@@ -439,6 +443,7 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if puede('radicacion', 'create') %}
                                 <button
                                     onclick="abrirModalRadicacion(
                                         '{{ f.numero_factura }}',
@@ -451,6 +456,7 @@
                                     <i class="fa-solid fa-paper-plane"></i>
                                     Radicar
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}
@@ -716,6 +722,15 @@
 
 {% block extra_js %}
 <script>
+// Fecha de "hoy" en hora local (Colombia), no UTC -- toISOString()
+// da la fecha en UTC, y entre las 7 p.m. y la medianoche hora local
+// Colombia ya cambió de día en UTC, así que los campos de fecha se
+// llenaban con el día de MAÑANA en vez de hoy en esa ventana horaria.
+function hoyLocalISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 // ── DATOS ────────────────────────────────────
 const RADICACIONES_DATA = {{ radicaciones | tojson }};
 let   RADICACION_ACTUAL = null;
@@ -766,7 +781,7 @@ let _nr_factura_id  = "";
 let _nr_nit_eps     = "";
 
 function abrirModalRadicacion(factura="", eps="", nit="", valor=0, facturaId=""){
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = hoyLocalISO();
     document.getElementById("nr_fecha").value    = hoy;
     document.getElementById("nr_factura").value  = factura;
     document.getElementById("nr_eps").value      = eps;

@@ -14,6 +14,18 @@ def listar_roles_activos():
     return res.data or []
 
 
+def listar_roles_asignables():
+    """
+    Igual que listar_roles_activos(), pero excluye SUPER_ADMIN: ese rol
+    es exclusivo del dueño de la plataforma (maneja el selector de
+    empresas) y nunca debe poder asignarse desde esta pantalla, ni
+    aunque en el futuro alguien llegue a crear una fila SUPER_ADMIN
+    dentro de la tabla `roles`.
+    """
+    roles = listar_roles_activos()
+    return [r for r in roles if (r.get("code") or "").strip().upper() != "SUPER_ADMIN"]
+
+
 def listar_usuarios():
     supabase = get_supabase_admin()
     res = (

@@ -2,6 +2,7 @@
 
 from flask import current_app, session
 from datetime import datetime
+import secrets
 
 
 def _table():
@@ -36,6 +37,7 @@ def _normalize(row):
         "tipo_atencion": row.get("tipo_atencion"),
         "modalidad": row.get("modalidad"),
         "finalidad_consulta": row.get("finalidad_consulta"),
+        "tipo_consulta": row.get("tipo_consulta"),
         "eps_id": row.get("eps_id"),
         "regimen": row.get("regimen"),
         "tipo_usuario": row.get("tipo_usuario"),
@@ -48,7 +50,11 @@ def _normalize(row):
         "hora_fin_real": row.get("hora_fin_real"),
         "evolucion_id": row.get("evolucion_id"),
         "usuario_creacion": row.get("usuario_creacion"),
+        "usuario_creacion_id": row.get("usuario_creacion_id"),
         "fecha_creacion": row.get("fecha_creacion"),
+        "fecha_solicitud": row.get("fecha_solicitud"),
+        "ip_privada": row.get("ip_privada"),
+        "ip_publica": row.get("ip_publica"),
         "cliente_id": row.get("cliente_id"),
         "contrato_id": row.get("contrato_id"),
         "valor_tarifa": row.get("valor_tarifa"),
@@ -57,6 +63,15 @@ def _normalize(row):
         "ambito_atencion": row.get("ambito_atencion"),
         "numero_autorizacion": row.get("numero_autorizacion"),
         "es_adicional": row.get("es_adicional"),
+        "motivo_cancelacion_id": row.get("motivo_cancelacion_id"),
+        "motivo_reprogramacion_id": row.get("motivo_reprogramacion_id"),
+        "fecha_anterior": row.get("fecha_anterior"),
+        "hora_inicio_anterior": row.get("hora_inicio_anterior"),
+        "hora_fin_anterior": row.get("hora_fin_anterior"),
+        "usuario_reprogramacion": row.get("usuario_reprogramacion"),
+        "fecha_reprogramacion": row.get("fecha_reprogramacion"),
+        "veces_reprogramada": row.get("veces_reprogramada"),
+        "token_confirmacion": row.get("token_confirmacion"),
     }
 
 
@@ -116,10 +131,34 @@ def crear(data):
         **data,
         "empresa_id": int(empresa),
         "fecha_creacion": datetime.now().isoformat(),
+        # Token público para el enlace de "confirmar/cancelar por correo"
+        # que puede abrir el paciente sin iniciar sesión (ver
+        # obtener_por_token e /citas/publico/<token> en las rutas).
+        "token_confirmacion": secrets.token_urlsafe(24),
     }
 
     res = sb.table(_table()).insert(payload).execute()
 
+    return _normalize(res.data[0]) if res.data else None
+
+
+def obtener_por_token(token: str):
+    """
+    Busca una cita por su token de confirmación público -- el que va en
+    el enlace del correo que abre el paciente, sin sesión iniciada (por
+    eso no filtra por empresa_id de sesión como el resto del repo).
+    """
+    if not token:
+        return None
+
+    sb = _supabase()
+    res = (
+        sb.table(_table())
+        .select("*")
+        .eq("token_confirmacion", token)
+        .limit(1)
+        .execute()
+    )
     return _normalize(res.data[0]) if res.data else None
 
 
@@ -146,13 +185,37 @@ def actualizar(cita_id, data):
     return res.data
 
 
-def cambiar_estado(cita_id, nuevo_estado):
+def _obtener_raw_por_id(cita_id):
+    """
+    Como obtener(), pero SIN filtrar por empresa_id de sesión. Uso interno
+    para flujos sin sesión (autogestión pública del paciente vía token,
+    ver /citas/publico/<token>), donde _empresa_id() no tiene nada que
+    devolver -- si obtener() se usara ahí, su .eq("empresa_id", None)
+    termina mandando el texto "None" a una columna bigint y Postgrest
+    revienta con 22P02 (invalid input syntax for type bigint).
+    """
+    sb = _supabase()
+    res = (
+        sb.table(_table())
+        .select("*")
+        .eq("id", cita_id)
+        .limit(1)
+        .execute()
+    )
+    return _normalize(res.data[0]) if res.data else None
+
+
+def cambiar_estado(cita_id, nuevo_estado, extra: dict = None):
     sb = _supabase()
     empresa = _empresa_id()
 
     if not empresa:
-        # Para cambio de estado sin sesión, obtener la cita primero
-        cita = obtener(cita_id)
+        # Sin sesión (autogestión pública): buscamos la cita solo por su
+        # id -- sin el filtro de empresa que aplica obtener(), porque acá
+        # no hay ninguna empresa en sesión con la que filtrar -- para
+        # averiguar a qué empresa pertenece, y luego sí actualizamos
+        # filtrando por (id, empresa_id) como de costumbre.
+        cita = _obtener_raw_por_id(cita_id)
         if not cita:
             raise ValueError("Cita no encontrada")
         empresa = cita.get("empresa_id")
@@ -161,6 +224,9 @@ def cambiar_estado(cita_id, nuevo_estado):
         "estado": nuevo_estado,
         "fecha_modificacion": datetime.now().isoformat(),
     }
+
+    if extra:
+        payload.update(extra)
 
     if nuevo_estado == "EN_ATENCION":
         payload["hora_inicio_real"] = datetime.now().time().isoformat()
@@ -177,6 +243,91 @@ def cambiar_estado(cita_id, nuevo_estado):
     )
 
     return res.data
+
+
+def registrar_llegada(cita_id, hora_llegada=None):
+    """
+    Marca la hora de llegada del paciente SIN cambiar el estado de la
+    cita -- la cita se queda en PENDIENTE/CONFIRMADA (que es justo lo
+    que filtra Admisiones para seguir mostrándola en su lista) mientras
+    espera en sala a que el profesional la llame a consulta.
+
+    Ese llamado a consulta sigue siendo responsabilidad de "Iniciar
+    atención" en la agenda del médico (sin cambios: sigue pasando por
+    cambiar_estado(cita_id, "EN_ATENCION", ...), que ya registra
+    hora_inicio_real como siempre).
+
+    Separar estos dos momentos (llegada vs. inicio real de atención)
+    es lo que permite que Admisiones muestre un cronómetro real de
+    tiempo de espera en sala, en vez de que la cita desaparezca de la
+    lista apenas llega el paciente.
+    """
+    sb = _supabase()
+    empresa = _empresa_id()
+
+    if not empresa:
+        cita = _obtener_raw_por_id(cita_id)
+        if not cita:
+            raise ValueError("Cita no encontrada")
+        empresa = cita.get("empresa_id")
+
+    payload = {
+        "hora_llegada": hora_llegada or datetime.now().time().isoformat(),
+        "fecha_modificacion": datetime.now().isoformat(),
+    }
+
+    res = (
+        sb.table(_table())
+        .update(payload)
+        .eq("id", cita_id)
+        .eq("empresa_id", empresa)
+        .execute()
+    )
+
+    return res.data
+
+
+def reprogramar(cita_id, nueva_fecha, nueva_hora_inicio, nueva_hora_fin,
+                 motivo_reprogramacion_id, usuario_reprogramacion):
+    """
+    Cambia la fecha/hora de una cita existente (mismo registro, mismo ID),
+    guardando la fecha/hora anterior, el motivo, quién y cuándo se
+    reprogramó, y un contador de cuántas veces se ha reprogramado.
+    El estado de la cita (PENDIENTE/CONFIRMADA) no se toca aquí — la
+    validación de que solo esos dos estados se pueden reprogramar vive en
+    el endpoint, antes de llamar a esta función.
+    """
+    sb = _supabase()
+
+    cita_actual = obtener(cita_id)
+    if not cita_actual:
+        raise ValueError("Cita no encontrada")
+
+    empresa = cita_actual.get("empresa_id")
+
+    payload = {
+        "fecha_anterior": cita_actual.get("fecha"),
+        "hora_inicio_anterior": cita_actual.get("hora_inicio"),
+        "hora_fin_anterior": cita_actual.get("hora_fin"),
+        "fecha": nueva_fecha,
+        "hora_inicio": nueva_hora_inicio,
+        "hora_fin": nueva_hora_fin,
+        "motivo_reprogramacion_id": motivo_reprogramacion_id,
+        "usuario_reprogramacion": usuario_reprogramacion,
+        "fecha_reprogramacion": datetime.now().isoformat(),
+        "veces_reprogramada": (cita_actual.get("veces_reprogramada") or 0) + 1,
+        "fecha_modificacion": datetime.now().isoformat(),
+    }
+
+    res = (
+        sb.table(_table())
+        .update(payload)
+        .eq("id", cita_id)
+        .eq("empresa_id", empresa)
+        .execute()
+    )
+
+    return _normalize(res.data[0]) if res.data else None
 
 
 # --------------------------------------------------
@@ -212,6 +363,10 @@ def listar_por_fecha(fecha, medico_id=None, sede_id=None, empresa_id=None):
             medico:hc_profesionales(
                 id,
                 nombre_completo
+            ),
+            sede:hc_sedes(
+                id,
+                nombre
             )
         """)
         .eq("empresa_id", empresa)
@@ -235,6 +390,7 @@ def _normalize_agenda(row):
 
     paciente = row.get("paciente") or {}
     medico = row.get("medico") or {}
+    sede = row.get("sede") or {}
 
     nombre_paciente = " ".join(filter(None, [
         paciente.get("primer_nombre"),
@@ -247,6 +403,7 @@ def _normalize_agenda(row):
         "paciente_nombre": nombre_paciente or "Sin nombre",
         "paciente_documento": paciente.get("numero_documento"),
         "medico_nombre": medico.get("nombre_completo") or "Sin médico",
+        "sede_nombre": sede.get("nombre"),
     })
 
     return base
@@ -284,6 +441,14 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
             sede:hc_sedes(
                 id,
                 nombre
+            ),
+            motivo_cancelacion:hc_motivos_cancelacion(
+                id,
+                nombre
+            ),
+            motivo_reprogramacion:hc_motivos_reprogramacion(
+                id,
+                nombre
             )
         """)
         .eq("id", cita_id)
@@ -300,6 +465,8 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
     pac    = row.get("paciente") or {}
     medico = row.get("medico")   or {}
     sede   = row.get("sede")     or {}
+    motivo_cancelacion = row.get("motivo_cancelacion") or {}
+    motivo_reprogramacion = row.get("motivo_reprogramacion") or {}
 
     nombre_paciente = " ".join(filter(None, [
         pac.get("primer_nombre"),
@@ -361,6 +528,7 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
         "tipo_atencion":      row.get("tipo_atencion"),
         "modalidad":          row.get("modalidad"),
         "finalidad_consulta": row.get("finalidad_consulta"),
+        "tipo_consulta":      row.get("tipo_consulta"),
         "motivo_consulta":    row.get("motivo_consulta"),
         "prioridad":          row.get("prioridad"),
         # Paciente
@@ -390,8 +558,28 @@ def obtener_detalle(cita_id: int, empresa_id: int = None):
         "numero_autorizacion": row.get("numero_autorizacion"),
         # Adicional
         "es_adicional":       row.get("es_adicional"),
+        # Cancelación
+        "motivo_cancelacion_id":     motivo_cancelacion.get("id"),
+        "motivo_cancelacion_nombre": motivo_cancelacion.get("nombre"),
+        # Reprogramación
+        "motivo_reprogramacion_id":     motivo_reprogramacion.get("id"),
+        "motivo_reprogramacion_nombre": motivo_reprogramacion.get("nombre"),
+        "fecha_anterior":            row.get("fecha_anterior"),
+        "hora_inicio_anterior":      row.get("hora_inicio_anterior"),
+        "hora_fin_anterior":         row.get("hora_fin_anterior"),
+        "usuario_reprogramacion":    row.get("usuario_reprogramacion"),
+        "fecha_reprogramacion":      row.get("fecha_reprogramacion"),
+        "veces_reprogramada":        row.get("veces_reprogramada"),
+        # Trazabilidad
+        "usuario_creacion":    row.get("usuario_creacion"),
+        "fecha_creacion":      row.get("fecha_creacion"),
+        "fecha_solicitud":     row.get("fecha_solicitud"),
+        "ip_privada":          row.get("ip_privada"),
+        "ip_publica":          row.get("ip_publica"),
         # Procedimientos
         "procedimientos":     procedimientos,
+        # Enlace público de confirmar/cancelar por correo
+        "token_confirmacion": row.get("token_confirmacion"),
     }
 
 

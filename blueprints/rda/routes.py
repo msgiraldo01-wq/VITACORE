@@ -2,6 +2,8 @@ from flask import (
     Blueprint, render_template, request, redirect, session, jsonify, Response
 )
 
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from . import rda_service
 from . import visor_service
 from .fhir import client as ihce
@@ -33,6 +35,7 @@ def es_ajax():
 # =========================
 
 @bp_rda.route("/")
+@login_required
 def panel():
     """Tablero de control de envíos RDA."""
     if not _empresa_id():
@@ -55,6 +58,7 @@ def panel():
 # =========================
 
 @bp_rda.route("/api/datos")
+@login_required
 def api_datos():
     estado = request.args.get("estado", "")
     return jsonify({
@@ -68,6 +72,8 @@ def api_datos():
 # =========================
 
 @bp_rda.route("/transmitir/<int:evolucion_id>", methods=["POST"])
+@login_required
+@requiere_permiso("rda", "create")
 def transmitir(evolucion_id):
     """Genera y transmite el RDA de una evolución. Registra el resultado."""
     empresa_id = _empresa_id()
@@ -94,6 +100,8 @@ def transmitir(evolucion_id):
 # =========================
 
 @bp_rda.route("/reintentar/<int:envio_id>", methods=["POST"])
+@login_required
+@requiere_permiso("rda", "edit")
 def reintentar(envio_id):
     empresa_id = _empresa_id()
     if not empresa_id:
@@ -117,6 +125,7 @@ def reintentar(envio_id):
 # =========================
 
 @bp_rda.route("/consultar", methods=["POST"])
+@login_required
 def consultar():
     """Lee de vuelta los RDA de un paciente desde el Ministerio."""
     if not _empresa_id():
@@ -161,6 +170,7 @@ def consultar():
 # =========================
 
 @bp_rda.route("/detalle/<int:envio_id>")
+@login_required
 def detalle(envio_id):
     if not _empresa_id():
         return redirect("/")
@@ -175,6 +185,7 @@ def detalle(envio_id):
 # =========================
 
 @bp_rda.route("/visor")
+@login_required
 def visor():
     """Pantalla del visor: consulta los RDA de un paciente en el Ministerio."""
     if not _empresa_id():
@@ -183,6 +194,7 @@ def visor():
 
 
 @bp_rda.route("/visor/atenciones", methods=["POST"])
+@login_required
 def visor_atenciones():
     """Fase 1: lista rápida de atenciones (sin bajar recursos)."""
     if not _empresa_id():
@@ -206,6 +218,7 @@ def visor_atenciones():
 
 
 @bp_rda.route("/visor/detalle", methods=["POST"])
+@login_required
 def visor_detalle():
     """Fase 2: detalle de las atenciones visibles (baja sus recursos)."""
     if not _empresa_id():
@@ -232,6 +245,7 @@ def visor_detalle():
 
 
 @bp_rda.route("/visor/epicrisis/<doc_id>")
+@login_required
 def visor_epicrisis(doc_id):
     """Descarga el PDF de epicrisis de un DocumentReference del Ministerio."""
     if not _empresa_id():
@@ -268,6 +282,7 @@ CATALOGOS_ADMIN = [
 
 
 @bp_rda.route("/catalogos")
+@login_required
 def catalogos():
     """Pantalla para activar/desactivar las opciones de cada catálogo del RDA."""
     if not _empresa_id():
@@ -289,6 +304,8 @@ def catalogos():
 
 
 @bp_rda.route("/catalogos/estado/<int:catalogo_id>", methods=["POST"])
+@login_required
+@requiere_permiso("rda", "edit")
 def catalogos_estado(catalogo_id):
     """Activa o desactiva una opción del catálogo (toggle)."""
     if not _empresa_id():

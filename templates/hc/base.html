@@ -210,6 +210,7 @@
     }
     .sidebar-brand-logo img {
       width: 20px; height: 20px; object-fit: contain; display: block;
+      border-radius: 50%;
     }
     .sidebar-brand-logo .brand-letter {
       color: #fff; font-size: 16px; font-weight: 800;
@@ -556,27 +557,42 @@
             <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
             <span class="nav-label">Inicio</span>
           </a>
+          {% if puede_ver('dashboard_clinico') %}
           <a href="/hc/" class="nav-item" data-tip="Dashboard clínico">
             <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
             <span class="nav-label">Dashboard clínico</span>
           </a>
+          {% endif %}
+          {% if puede_ver('pacientes') %}
           <a href="/hc/pacientes" class="nav-item" data-tip="Pacientes">
             <span class="nav-icon"><i class="fa-solid fa-user-injured"></i></span>
             <span class="nav-label">Pacientes</span>
           </a>
+          {% endif %}
+          {% if puede_ver('admisiones') %}
           <a href="/hc/admisiones" class="nav-item" data-tip="Admisiones">
             <span class="nav-icon"><i class="fa-solid fa-door-open"></i></span>
             <span class="nav-label">Admisiones</span>
           </a>
+          {% endif %}
+          {% if puede_ver('citas') %}
           <a href="/citas" class="nav-item" data-tip="Citas">
             <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
             <span class="nav-label">Citas</span>
             {% if kpi_citas and kpi_citas > 0 %}<span class="nav-badge">{{ kpi_citas }}</span>{% endif %}
           </a>
+          {% endif %}
+          {% if puede_ver('historia_clinica') %}
           <a href="/hc/historia-clinica" class="nav-item" data-tip="Historia clínica">
             <span class="nav-icon"><i class="fa-solid fa-notes-medical"></i></span>
             <span class="nav-label">Historia clínica</span>
           </a>
+          <a href="/hc/agenda-clinica" class="nav-item" data-tip="Agenda clínica">
+            <span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span>
+            <span class="nav-label">Agenda clínica</span>
+          </a>
+          {% endif %}
+          {% if puede_ver('rda') %}
           <!-- Nueva sección integrada para Envíos RDA -->
           <a href="/rda" class="nav-item" data-tip="Envíos RDA">
             <span class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
@@ -586,34 +602,48 @@
             <span class="nav-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
             <span class="nav-label">Visor RDA</span>
           </a>
+          {% endif %}
+          {% if puede_ver('farmacia') %}
           <a href="/inventario/dashboard" class="nav-item" data-tip="Farmacia">
             <span class="nav-icon"><i class="fa-solid fa-pills"></i></span>
             <span class="nav-label">Farmacia</span>
           </a>
+          {% endif %}
         </nav>
 
         <p class="nav-section-title">Financiero</p>
         <nav class="sidebar-nav">
+          {% if puede_ver('dashboard_financiero') %}
           <a href="/financiero/dashboard" class="nav-item" data-tip="Dashboard financiero">
             <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
             <span class="nav-label">Dashboard financiero</span>
           </a>
+          {% endif %}
+          {% if puede_ver('contratos') %}
           <a href="/financiero/contratos/" class="nav-item" data-tip="Contratos">
             <span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span>
             <span class="nav-label">Contratos</span>
           </a>
+          {% endif %}
+          {% if puede_ver('facturacion') %}
           <a href="/facturacion/" class="nav-item" data-tip="Facturación">
             <span class="nav-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
             <span class="nav-label">Facturación</span>
           </a>
+          {% endif %}
+          {% if puede_ver('radicacion') %}
           <a href="/financiero/radicacion/" class="nav-item" data-tip="Radicación">
             <span class="nav-icon"><i class="fa-solid fa-folder-open"></i></span>
             <span class="nav-label">Radicación</span>
           </a>
+          {% endif %}
+          {% if puede_ver('glosas') %}
           <a href="/financiero/glosas/" class="nav-item" data-tip="Glosas">
             <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
             <span class="nav-label">Glosas</span>
           </a>
+          {% endif %}
+          {% if puede_ver('cartera') %}
           <a href="/financiero/cartera/" class="nav-item" data-tip="Cartera">
             <span class="nav-icon"><i class="fa-solid fa-wallet"></i></span>
             <span class="nav-label">Cartera</span>
@@ -626,30 +656,41 @@
             <span class="nav-icon"><i class="fa-solid fa-money-check-dollar"></i></span>
             <span class="nav-label">Conciliaciones</span>
           </a>
+          {% endif %}
+          {% if puede_ver('tesoreria') %}
           <a href="/financiero/tesoreria/" class="nav-item" data-tip="Tesorería">
             <span class="nav-icon"><i class="fa-solid fa-building-columns"></i></span>
             <span class="nav-label">Tesorería</span>
           </a>
+          {% endif %}
+          {% if puede_ver('config_financiera') %}
           <a href="/financiero/configuracion/" class="nav-item" data-tip="Config. financiera">
             <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>
             <span class="nav-label">Configuración financiera</span>
           </a>
+          {% endif %}
         </nav>
 
         <p class="nav-section-title">Administrativo</p>
         <nav class="sidebar-nav">
+          {% if puede_ver('caja') %}
           <a href="/caja" class="nav-item" data-tip="Caja / auditoría">
             <span class="nav-icon"><i class="fa-solid fa-cash-register"></i></span>
             <span class="nav-label">Caja / auditoría</span>
           </a>
+          {% endif %}
+          {% if puede_ver('reportes') %}
           <a href="/hc/reportes" class="nav-item" data-tip="Reportes">
             <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
             <span class="nav-label">Reportes</span>
           </a>
+          {% endif %}
+          {% if puede_ver('configuracion') %}
           <a href="/hc/configuracion" class="nav-item" data-tip="Configuración">
             <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
             <span class="nav-label">Configuración</span>
           </a>
+          {% endif %}
         </nav>
       </div>
 

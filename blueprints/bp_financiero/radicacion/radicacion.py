@@ -4,6 +4,8 @@
 # =============================================
 
 from flask import Blueprint, render_template, request, jsonify, session
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories.fin_radicacion_repo import (
     obtener_todas_radicaciones,
     obtener_radicacion_por_id,
@@ -24,6 +26,7 @@ bp_financiero_radicacion = Blueprint(
 # LISTA DE RADICACIONES
 # --------------------------------------------------
 @bp_financiero_radicacion.route("/")
+@login_required
 def radicacion():
     kpis          = obtener_kpis_radicacion()
     radicaciones  = obtener_todas_radicaciones()
@@ -40,6 +43,8 @@ def radicacion():
 # API — REGISTRAR RADICACIÓN
 # --------------------------------------------------
 @bp_financiero_radicacion.route("/registrar", methods=["POST"])
+@login_required
+@requiere_permiso("radicacion", "create")
 def api_registrar():
     numero_factura  = request.form.get("numero_factura")
     eps             = request.form.get("eps")
@@ -84,6 +89,8 @@ def api_registrar():
 # API — ACTUALIZAR ESTADO
 # --------------------------------------------------
 @bp_financiero_radicacion.route("/actualizar-estado", methods=["POST"])
+@login_required
+@requiere_permiso("radicacion", "edit")
 def api_actualizar_estado():
     body          = request.get_json(silent=True) or {}
     radicacion_id = body.get("radicacion_id")
@@ -106,6 +113,7 @@ def api_actualizar_estado():
 # API — FACTURAS DISPONIBLES PARA RADICAR
 # --------------------------------------------------
 @bp_financiero_radicacion.route("/api/facturas-pendientes", methods=["GET"])
+@login_required
 def api_facturas_pendientes():
     try:
         facturas = obtener_facturas_para_radicar()

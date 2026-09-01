@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template
+from blueprints.auth.decorators import login_required
 
 bp_financiero_contratos = Blueprint(
     "bp_financiero_contratos",
@@ -10,6 +11,7 @@ bp_financiero_contratos = Blueprint(
 # DASHBOARD CONTRATOS
 # =========================
 @bp_financiero_contratos.route("/")
+@login_required
 def dashboard():
 
     return render_template(

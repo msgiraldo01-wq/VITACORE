@@ -39,14 +39,20 @@
 </div>
 <div style="display:flex;gap:10px;flex-wrap:wrap">
   {% if oc.estado == 'BORRADOR' %}
+  {% if puede('farmacia', 'edit') %}
   <form method="post"><input type="hidden" name="accion" value="aprobar">
     <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Aprobar orden</button></form>
+  {% endif %}
+  {% if puede('farmacia', 'delete') %}
   <form method="post" onsubmit="return confirm('¿Anular esta orden?')">
     <input type="hidden" name="accion" value="anular">
     <button class="btn-ax ghost"><i class="fa-solid fa-ban"></i> Anular</button></form>
+  {% endif %}
   {% elif oc.estado in ('APROBADA', 'RECIBIDA_PARCIAL') %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.compras_recepcion', orden_id=oc.id) }}">
     <i class="fa-solid fa-clipboard-check"></i> Registrar recepción</a>
+  {% endif %}
   {% endif %}
 </div>
 {% if recepciones %}

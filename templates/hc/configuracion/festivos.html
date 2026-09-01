@@ -1,0 +1,258 @@
+{% extends "hc/base.html" %}
+
+{% block title %}HC · Configuración · Festivos{% endblock %}
+{% block header_icon %}<i class="fa-solid fa-calendar-day"></i>{% endblock %}
+{% block header_title %}Configuración · Festivos{% endblock %}
+{% block header_subtitle %}Días festivos usados por la agenda de citas y la disponibilidad de profesionales{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i>
+  Volver
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .fest-hint {
+    font-size: .85rem;
+    color: var(--text-soft);
+    margin: 0 0 16px;
+  }
+
+  .fest-form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 22px;
+  }
+
+  .fest-form-row .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fest-form-row .field label {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-soft);
+  }
+
+  .fest-form-row input[type="date"],
+  .fest-form-row input[type="text"] {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: .88rem;
+  }
+
+  .fest-form-row .field.fecha { width: 170px; }
+  .fest-form-row .field.nombre { flex: 1; min-width: 220px; }
+
+  .fest-tabla-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  table.fest-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+  }
+
+  .fest-tabla th, .fest-tabla td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: .9rem;
+  }
+
+  .fest-tabla th {
+    background: rgba(13,92,99,.06);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-soft);
+  }
+
+  .fest-tabla tr:last-child td { border-bottom: none; }
+
+  .fest-fecha {
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .fest-anio-badge {
+    display: inline-block;
+    background: var(--info-soft);
+    color: var(--info);
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+  }
+
+  .fest-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-soft);
+    font-size: .9rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if puede('configuracion', 'create') %}
+<form id="formFestivo" class="fest-form-row" onsubmit="return false;">
+  <div class="field fecha">
+    <label>Fecha</label>
+    <input type="date" id="festFecha">
+  </div>
+  <div class="field nombre">
+    <label>Nombre del festivo</label>
+    <input type="text" id="festNombre" placeholder="Ej: Día de la Independencia" maxlength="120">
+  </div>
+  <button class="btn-ax primary" type="button" onclick="agregarFestivo()">
+    <i class="fa-solid fa-plus"></i> Agregar
+  </button>
+</form>
+{% endif %}
+
+<div class="fest-tabla-wrap">
+  <table class="fest-tabla">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Festivo</th>
+        {% if puede('configuracion', 'delete') %}<th style="width:70px;"></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="festivosBody">
+      {% if items %}
+        {% for f in items %}
+        <tr data-id="{{ f.id }}">
+          <td class="fest-fecha">
+            {{ f.fecha }}
+            <span class="fest-anio-badge">{{ f.fecha[:4] }}</span>
+          </td>
+          <td>{{ f.nombre }}</td>
+          {% if puede('configuracion', 'delete') %}
+          <td>
+            <button class="btn-icon-sm del" onclick="eliminarFestivo({{ f.id }})" title="Eliminar festivo">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="3" class="fest-empty">
+          <i class="fa-solid fa-calendar-check" style="font-size:1.4rem; margin-bottom:8px; display:block;"></i>
+          No hay festivos registrados todavía.
+        </td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  .btn-icon-sm {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; border-radius: 8px; cursor: pointer;
+    font-size: .82rem; transition: background .15s, color .15s;
+  }
+  .btn-icon-sm.del { background: var(--danger-soft); color: var(--danger); }
+  .btn-icon-sm.del:hover { background: var(--danger); color: #fff; }
+</style>
+<script>
+function swalCargando(texto) {
+  Swal.fire({
+    title: texto,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
+  })
+}
+
+function swalExito(texto) {
+  return Swal.fire({
+    icon: 'success',
+    title: texto,
+    timer: 1200,
+    timerProgressBar: true,
+    showConfirmButton: false
+  })
+}
+
+async function agregarFestivo() {
+  const fecha  = document.getElementById('festFecha').value;
+  const nombre = document.getElementById('festNombre').value.trim();
+
+  if (!fecha) {
+    Swal.fire({ title: 'Fecha requerida', text: 'Selecciona la fecha del festivo.', icon: 'warning', confirmButtonColor: '#0ea5ff' });
+    return;
+  }
+  if (!nombre) {
+    Swal.fire({ title: 'Nombre requerido', text: 'Escribe el nombre del festivo.', icon: 'warning', confirmButtonColor: '#0ea5ff' });
+    return;
+  }
+
+  swalCargando('Agregando festivo…');
+
+  try {
+    const res = await fetch('/hc/configuracion/festivos/agregar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha, nombre })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      await swalExito('Festivo agregado');
+      window.location.reload();
+    } else {
+      Swal.fire({ title: 'No se pudo agregar', text: data.msg || 'Error al guardar el festivo.', icon: 'error' });
+    }
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+
+async function eliminarFestivo(id) {
+  const conf = await Swal.fire({
+    title: '¿Eliminar festivo?',
+    text: 'Los profesionales que no atienden festivos volverán a tener disponibilidad normal ese día.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#ef4444'
+  });
+  if (!conf.isConfirmed) return;
+
+  swalCargando('Eliminando…');
+
+  try {
+    await fetch(`/hc/configuracion/festivos/${id}/eliminar`, { method: 'POST' });
+    await swalExito('Festivo eliminado');
+    window.location.reload();
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Error de conexión', icon: 'error' });
+  }
+}
+</script>
+{% endblock %}

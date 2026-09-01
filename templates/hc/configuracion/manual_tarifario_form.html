@@ -630,6 +630,7 @@
 
   {% else %}
 
+  {% if puede('contratos', 'create') %}
   <div class="tab-toolbar">
     <div class="tab-toolbar-left">
       <div class="inline-search-wrap">
@@ -646,6 +647,7 @@
       <input type="file" id="csvProcs" accept=".csv,.xlsx,.xls" style="display:none">
     </label>
   </div>
+  {% endif %}
 
   <div class="csv-hint">
     <i class="fa-solid fa-circle-info"></i>
@@ -715,6 +717,7 @@
 
   {% else %}
 
+  {% if puede('contratos', 'create') %}
   <div class="tab-toolbar">
     <div class="tab-toolbar-left">
       <div class="inline-search-wrap">
@@ -731,6 +734,7 @@
       <input type="file" id="csvItems" accept=".csv,.xlsx,.xls" style="display:none">
     </label>
   </div>
+  {% endif %}
 
   <div class="csv-hint">
     <i class="fa-solid fa-circle-info"></i>
@@ -881,6 +885,8 @@ const BASE_PROC = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/procedimie
 const BASE_ITEM = `/hc/configuracion/manuales-tarifarios/${MANUAL_ID}/items`
 const BASE_CUPS = `/hc/configuracion/cups/buscar`
 const BASE_MED  = `/hc/configuracion/medicamentos/buscar-ajax`
+const PUEDE_EDITAR_MANUAL   = {{ 'true' if puede('contratos', 'edit') else 'false' }}
+const PUEDE_ELIMINAR_MANUAL = {{ 'true' if puede('contratos', 'delete') else 'false' }}
 
 /* ── Tabs ── */
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -975,44 +981,48 @@ function renderProcsPage(reset) {
     return opts.map(o => `<option value="${o}" ${o===val?'selected':''}>${o||'—'}</option>`).join("")
   }
 
+  const roDisabled = PUEDE_EDITAR_MANUAL ? '' : 'disabled'
+
   const html = slice.map(p => `
     <tr data-id="${p.id}">
       <td><strong>${p.cod_proc || '—'}</strong></td>
       <td style="max-width:200px;font-size:.82rem;">${p.nombre_procedimiento || p.cups_descripcion || '—'}</td>
-      <td><input class="val-input" type="number" min="0" step="0.01"
+      <td><input class="val-input" type="number" min="0" step="0.01" ${roDisabled}
                  value="${p.valor_paquete || 0}"
                  onchange="actualizarProc(${p.id}, 'valor_paquete', this.value)"></td>
-      <td><input class="val-input" type="number" min="0" step="0.01"
+      <td><input class="val-input" type="number" min="0" step="0.01" ${roDisabled}
                  value="${p.valor_procedimiento || 0}"
                  onchange="actualizarProc(${p.id}, 'valor_procedimiento', this.value)"></td>
-      <td><input class="val-input" type="number" min="0" step="0.01"
+      <td><input class="val-input" type="number" min="0" step="0.01" ${roDisabled}
                  value="${p.valor_suministro || 0}"
                  onchange="actualizarProc(${p.id}, 'valor_suministro', this.value)"></td>
       <td style="font-size:.82rem;">${p.cod_factura || '—'}</td>
       <td style="font-size:.82rem;font-weight:700;">${p.cod_cups || p.cups_codigo || '—'}</td>
-      <td><input class="val-input" type="text" style="width:90px;text-align:left;"
+      <td><input class="val-input" type="text" style="width:90px;text-align:left;" ${roDisabled}
                  value="${p.grupo || ''}"
                  placeholder="grupo"
                  onchange="actualizarProc(${p.id}, 'grupo', this.value)"></td>
-      <td><select class="sel-input"
+      <td><select class="sel-input" ${roDisabled}
                   onchange="actualizarProc(${p.id}, 'via_ingreso', this.value)">
             ${selOpts(viaOpts, p.via_ingreso)}
           </select></td>
-      <td><select class="sel-input"
+      <td><select class="sel-input" ${roDisabled}
                   onchange="actualizarProc(${p.id}, 'ambito_atencion', this.value)">
             ${selOpts(ambitoOpts, p.ambito_atencion)}
           </select></td>
-      <td><select class="sel-input"
+      <td><select class="sel-input" ${roDisabled}
                   onchange="actualizarProc(${p.id}, 'finalidad', this.value)">
             ${selOpts(finalOpts, p.finalidad)}
           </select></td>
       <td style="display:flex;gap:6px;">
+        ${PUEDE_EDITAR_MANUAL ? `
         <button class="btn-edit-proc" onclick="abrirModalProc(${p.id})">
           <i class="fa-solid fa-pen"></i>
-        </button>
+        </button>` : ''}
+        ${PUEDE_ELIMINAR_MANUAL ? `
         <button class="btn-del" onclick="eliminarProc(${p.id})">
           <i class="fa-solid fa-trash"></i>
-        </button>
+        </button>` : ''}
       </td>
     </tr>`).join("")
 
@@ -1181,13 +1191,14 @@ function renderItems(data) {
     <tr data-id="${i.id}">
       <td><strong>${i.cod_item || i.med_codigo || '—'}</strong></td>
       <td>${i.nombre || i.med_nombre || '—'}</td>
-      <td><input class="val-input" type="number" min="0" step="0.01"
+      <td><input class="val-input" type="number" min="0" step="0.01" ${PUEDE_EDITAR_MANUAL ? '' : 'disabled'}
                  value="${i.valor_unitario || 0}"
                  onchange="actualizarItem(${i.id}, this.value)"></td>
       <td>
+        ${PUEDE_ELIMINAR_MANUAL ? `
         <button class="btn-del" onclick="eliminarItem(${i.id})">
           <i class="fa-solid fa-trash"></i>
-        </button>
+        </button>` : ''}
       </td>
     </tr>`).join("")
 }

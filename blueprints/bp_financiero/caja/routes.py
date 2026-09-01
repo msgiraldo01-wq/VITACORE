@@ -4,6 +4,8 @@ Blueprint: bp_caja  →  /caja/...
 """
 
 from flask import Blueprint, render_template, request, jsonify, session
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories import fin_caja_repo as caja_repo
 
 bp_caja = Blueprint(
@@ -28,6 +30,7 @@ def _get_usuario():
 # =============================================================
 
 @bp_caja.route("/")
+@login_required
 def index():
     """Página principal del módulo de caja."""
     return render_template("financiero/caja/caja.html")
@@ -38,6 +41,7 @@ def index():
 # =============================================================
 
 @bp_caja.route("/api/estado", methods=["GET"])
+@login_required
 def api_estado_caja():
     """Consulta si el usuario tiene caja abierta."""
     try:
@@ -62,6 +66,8 @@ def api_estado_caja():
 # =============================================================
 
 @bp_caja.route("/api/abrir", methods=["POST"])
+@login_required
+@requiere_permiso("caja", "create")
 def api_abrir_caja():
     """Abre una caja para el usuario logueado."""
     try:
@@ -98,6 +104,8 @@ def api_abrir_caja():
 # =============================================================
 
 @bp_caja.route("/api/cerrar", methods=["POST"])
+@login_required
+@requiere_permiso("caja", "edit")
 def api_cerrar_caja():
     """Cierra la caja del usuario con los datos del conteo."""
     try:
@@ -136,6 +144,7 @@ def api_cerrar_caja():
 # =============================================================
 
 @bp_caja.route("/api/movimientos/<int:caja_id>", methods=["GET"])
+@login_required
 def api_movimientos(caja_id):
     """Lista los movimientos de una caja."""
     try:
@@ -151,6 +160,8 @@ def api_movimientos(caja_id):
 # =============================================================
 
 @bp_caja.route("/api/movimiento", methods=["POST"])
+@login_required
+@requiere_permiso("caja", "create")
 def api_registrar_movimiento():
     """Registra un movimiento manual en la caja."""
     try:
@@ -190,6 +201,7 @@ def api_registrar_movimiento():
 # =============================================================
 
 @bp_caja.route("/api/conteo/<int:caja_id>", methods=["GET"])
+@login_required
 def api_obtener_conteo(caja_id):
     """Obtiene el conteo actual de la caja."""
     try:
@@ -200,6 +212,8 @@ def api_obtener_conteo(caja_id):
 
 
 @bp_caja.route("/api/conteo/<int:caja_id>", methods=["POST"])
+@login_required
+@requiere_permiso("caja", "edit")
 def api_guardar_conteo(caja_id):
     """Guarda el conteo completo y registra cambios en historial."""
     try:
@@ -221,6 +235,7 @@ def api_guardar_conteo(caja_id):
 # =============================================================
 
 @bp_caja.route("/api/conteo/<int:caja_id>/historial", methods=["GET"])
+@login_required
 def api_conteo_historial(caja_id):
     """Lista el historial de cambios del conteo."""
     try:
@@ -235,6 +250,7 @@ def api_conteo_historial(caja_id):
 # =============================================================
 
 @bp_caja.route("/api/detalle/<int:caja_id>", methods=["GET"])
+@login_required
 def api_detalle_caja(caja_id):
     """Obtiene todos los datos de una caja para el reporte."""
     try:
@@ -264,6 +280,7 @@ def api_detalle_caja(caja_id):
 # =============================================================
 
 @bp_caja.route("/api/historial", methods=["GET"])
+@login_required
 def api_historial_cajas():
     """Lista las últimas cajas del usuario logueado."""
     try:
@@ -282,6 +299,7 @@ def api_historial_cajas():
 
 
 @bp_caja.route("/cuadre/<int:caja_id>/reporte")
+@login_required
 def reporte_cuadre(caja_id):
     """Vista HTML del reporte de cuadre de caja para imprimir/PDF."""
     return render_template("financiero/caja/caja_reporte.html", caja_id=caja_id)

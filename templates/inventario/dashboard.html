@@ -7,8 +7,10 @@
 {% block header_title %}Farmacia e inventarios{% endblock %}
 {% block header_subtitle %}Resumen del servicio farmacéutico: existencias, vencimientos y últimos movimientos.{% endblock %}
 {% block header_actions %}
+  {% if puede('farmacia', 'create') %}
   <a class="btn-ax primary" href="{{ url_for('inventario.entrada') }}">
     <i class="fa-solid fa-plus"></i> Registrar entrada</a>
+  {% endif %}
   <a class="btn-ax ghost" href="{{ url_for('inventario.productos_lista') }}">
     <i class="fa-solid fa-book-medical"></i> Catálogo</a>
   <a class="btn-ax ghost" href="{{ url_for('inventario.existencias') }}">
@@ -34,8 +36,10 @@
   <a href="{{ url_for('inventario.productos_lista') }}"><i class="fa-solid fa-book-medical"></i> Catálogo</a>
   <a href="{{ url_for('inventario.principios') }}"><i class="fa-solid fa-flask"></i> Principios activos</a>
   <a href="{{ url_for('inventario.bodegas') }}"><i class="fa-solid fa-warehouse"></i> Bodegas</a>
+  {% if puede('farmacia', 'create') %}
   <a href="{{ url_for('inventario.entrada') }}"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entradas</a>
   <a href="{{ url_for('inventario.salida') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i> Salidas</a>
+  {% endif %}
   <a href="{{ url_for('inventario.existencias') }}"><i class="fa-solid fa-boxes-stacked"></i> Existencias</a>
   <a href="{{ url_for('inventario.kardex') }}"><i class="fa-solid fa-clock-rotate-left"></i> Kardex</a>
   <a href="{{ url_for('inventario.movimientos_lista') }}"><i class="fa-solid fa-list-check"></i> Movimientos</a>
@@ -98,7 +102,10 @@
   </table>
   {% else %}
   <div class="inv-vacio">Aún no hay movimientos.
-    <a href="{{ url_for('inventario.entrada') }}">Registra la primera entrada</a> para comenzar.</div>
+    {% if puede('farmacia', 'create') %}
+    <a href="{{ url_for('inventario.entrada') }}">Registra la primera entrada</a> para comenzar.
+    {% endif %}
+  </div>
   {% endif %}
 </div>
 {% endblock %}

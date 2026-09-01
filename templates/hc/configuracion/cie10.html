@@ -12,10 +12,12 @@
 Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/cie10/nuevo">
 <i class="fa-solid fa-plus"></i>
 Nuevo diagnóstico
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -202,6 +204,7 @@ font-size:.95rem;
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/cie10/{{ item.id }}/editar">
 
@@ -209,7 +212,9 @@ href="/hc/configuracion/cie10/{{ item.id }}/editar">
 Editar
 
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/cie10/toggle/{{ item.id }}"
 class="formToggle">
@@ -223,6 +228,7 @@ class="formToggle">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 
@@ -249,6 +255,7 @@ Aún no hay diagnósticos CIE10 registrados
 Agrega el primer diagnóstico para comenzar a parametrizar la historia clínica.
 </p>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary"
 href="/hc/configuracion/cie10/nuevo">
 
@@ -256,6 +263,7 @@ href="/hc/configuracion/cie10/nuevo">
 Crear diagnóstico
 
 </a>
+{% endif %}
 
 </div>
 
@@ -341,6 +349,7 @@ tableBody.innerHTML += `
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <a class="btn-mini edit"
 href="/hc/configuracion/cie10/${item.id}/editar">
 
@@ -348,7 +357,9 @@ href="/hc/configuracion/cie10/${item.id}/editar">
 Editar
 
 </a>
+{% endif %}
 
+{% if puede('configuracion', 'delete') %}
 <form method="POST"
 action="/hc/configuracion/cie10/toggle/${item.id}"
 class="formToggle">
@@ -361,6 +372,7 @@ ${estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
 </button>
 
 </form>
+{% endif %}
 
 </div>
 

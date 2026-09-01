@@ -15,10 +15,12 @@ Catálogo de servicios médicos
 {% endblock %}
 
 {% block header_actions %}
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/servicios/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo servicio
 </a>
+{% endif %}
 {% endblock %}
 
 
@@ -121,6 +123,7 @@ Catálogo de servicios médicos
 
 <div class="actions">
 
+{% if puede('configuracion', 'edit') %}
 <!-- EDITAR -->
 <a class="btn-ax warning"
 href="/hc/configuracion/servicios/{{ s.id }}/editar"
@@ -129,8 +132,10 @@ title="Editar">
 <i class="fa-solid fa-pen"></i>
 
 </a>
+{% endif %}
 
 
+{% if puede('configuracion', 'delete') %}
 <!-- CAMBIAR ESTADO -->
 <form method="POST"
 action="{{ url_for('hc_configuracion.servicio_toggle', item_id=s.id) }}"
@@ -149,6 +154,7 @@ title="Cambiar estado">
 </button>
 
 </form>
+{% endif %}
 
 </div>
 

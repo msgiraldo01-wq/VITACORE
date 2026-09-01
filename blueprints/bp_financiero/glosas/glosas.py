@@ -4,6 +4,8 @@
 # =============================================
 
 from flask import Blueprint, render_template, request, jsonify, session, Response
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories.fin_glosas_repo import (
     obtener_todas_glosas,
     obtener_glosa_por_numero,
@@ -32,6 +34,7 @@ bp_financiero_glosas = Blueprint(
 # LISTA DE GLOSAS
 # --------------------------------------------------
 @bp_financiero_glosas.route("/")
+@login_required
 def glosas():
     actualizar_dias_mora_glosas()
     kpis        = obtener_kpis_glosas()
@@ -47,6 +50,7 @@ def glosas():
 # DETALLE DE GLOSA
 # --------------------------------------------------
 @bp_financiero_glosas.route("/detalle/<numero_glosa>")
+@login_required
 def detalle(numero_glosa):
     glosa      = obtener_glosa_por_numero(numero_glosa)
     respuestas = obtener_respuestas_por_glosa(numero_glosa)
@@ -65,6 +69,8 @@ def detalle(numero_glosa):
 # REGISTRAR RESPUESTA (API)
 # --------------------------------------------------
 @bp_financiero_glosas.route("/registrar-respuesta", methods=["POST"])
+@login_required
+@requiere_permiso("glosas", "create")
 def api_registrar_respuesta():
     glosa_id     = request.form.get("glosa_id")
     numero_glosa = request.form.get("numero_glosa")
@@ -98,6 +104,8 @@ def api_registrar_respuesta():
 # NUEVA GLOSA (API)
 # --------------------------------------------------
 @bp_financiero_glosas.route("/nueva", methods=["POST"])
+@login_required
+@requiere_permiso("glosas", "create")
 def api_nueva_glosa():
     numero_factura = request.form.get("numero_factura")
     eps            = request.form.get("eps")
@@ -130,6 +138,7 @@ def api_nueva_glosa():
 # ANÁLISIS IA
 # --------------------------------------------------
 @bp_financiero_glosas.route("/analizar-ia", methods=["POST"])
+@login_required
 def api_analizar_ia():
     import json
     from groq import Groq
@@ -202,6 +211,7 @@ Responde con este JSON exacto:
 # EXPORTAR EXCEL
 # --------------------------------------------------
 @bp_financiero_glosas.route("/exportar-excel")
+@login_required
 def exportar_excel():
     glosas = obtener_glosas_para_excel()
 

@@ -1,9 +1,12 @@
 from flask import flash, redirect, render_template, request, url_for
 from repositories import inventario_repository as repo
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso, denegado
 from . import contexto_empresa, inventario_bp
 
 
 @inventario_bp.route("/traslados")
+@login_required
 @contexto_empresa
 def traslados_lista(empresa_id, usuario_id):
     return render_template("inventario/traslados/lista.html",
@@ -11,6 +14,8 @@ def traslados_lista(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/traslados/nuevo", methods=["GET", "POST"])
+@login_required
+@requiere_permiso("farmacia", "create")
 @contexto_empresa
 def traslados_nuevo(empresa_id, usuario_id):
     if request.method == "POST":
@@ -38,9 +43,13 @@ def traslados_nuevo(empresa_id, usuario_id):
 
 
 @inventario_bp.route("/traslados/<traslado_id>", methods=["GET", "POST"])
+@login_required
 @contexto_empresa
 def traslados_detalle(empresa_id, usuario_id, traslado_id):
     if request.method == "POST":
+        _deny = denegado("farmacia", "edit")
+        if _deny:
+            return _deny
         accion = request.form.get("accion")
         try:
             if accion == "despachar":

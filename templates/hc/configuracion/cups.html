@@ -12,10 +12,12 @@
   Volver
 </a>
 
+{% if puede('configuracion', 'create') %}
 <a class="btn-ax primary" href="/hc/configuracion/cups/nuevo">
   <i class="fa-solid fa-plus"></i>
   Nuevo procedimiento
 </a>
+{% endif %}
 
 {% endblock %}
 
@@ -261,10 +263,12 @@ th {
 
   <div class="toolbar-right">
 
+    {% if puede('configuracion', 'create') %}
     <button class="btn-tool blue" id="btnAbrirImport">
       <i class="fa-solid fa-file-arrow-up"></i>
       Importar CSV / Excel
     </button>
+    {% endif %}
 
     <button class="btn-tool" id="btnExportPdf">
       <i class="fa-solid fa-file-pdf"></i>
@@ -310,10 +314,13 @@ th {
         <td>
           <div class="actions">
 
+            {% if puede('configuracion', 'edit') %}
             <a class="btn-mini edit" href="/hc/configuracion/cups/{{ item.id }}/editar">
               <i class="fa-solid fa-pen"></i> Editar
             </a>
+            {% endif %}
 
+            {% if puede('configuracion', 'delete') %}
             <form method="POST"
                   action="/hc/configuracion/cups/toggle/{{ item.id }}"
                   class="formToggle">
@@ -322,6 +329,7 @@ th {
                 {{ 'Inactivar' if item.estado == 'ACTIVO' else 'Activar' }}
               </button>
             </form>
+            {% endif %}
 
           </div>
         </td>
@@ -337,6 +345,7 @@ th {
 
 {% else %}
 
+{% if puede('configuracion', 'create') %}
 <div class="toolbar" style="justify-content:flex-end;">
   <div class="toolbar-right">
     <button class="btn-tool blue" id="btnAbrirImport">
@@ -345,6 +354,7 @@ th {
     </button>
   </div>
 </div>
+{% endif %}
 
 <div class="empty-box">
 
@@ -354,10 +364,12 @@ th {
     Agrega el primer procedimiento o importa desde un archivo CSV / Excel.
   </p>
 
+  {% if puede('configuracion', 'create') %}
   <a class="btn-ax primary" href="/hc/configuracion/cups/nuevo">
     <i class="fa-solid fa-plus"></i>
     Crear procedimiento
   </a>
+  {% endif %}
 
 </div>
 
@@ -409,6 +421,8 @@ th {
 const input     = document.getElementById("searchInput")
 const tableBody = document.getElementById("tableBody")
 let timeout     = null
+const PUEDE_EDITAR_CUPS   = {{ 'true' if puede('configuracion', 'edit') else 'false' }}
+const PUEDE_ELIMINAR_CUPS = {{ 'true' if puede('configuracion', 'delete') else 'false' }}
 
 input?.addEventListener("keyup", function () {
 
@@ -460,15 +474,17 @@ input?.addEventListener("keyup", function () {
           <td>${badge}</td>
           <td>
             <div class="actions">
+              ${PUEDE_EDITAR_CUPS ? `
               <a class="btn-mini edit" href="/hc/configuracion/cups/${item.id}/editar">
                 <i class="fa-solid fa-pen"></i> Editar
-              </a>
+              </a>` : ''}
+              ${PUEDE_ELIMINAR_CUPS ? `
               <form method="POST" action="/hc/configuracion/cups/toggle/${item.id}" class="formToggle">
                 <button class="btn-mini toggle" type="button">
                   <i class="fa-solid fa-power-off"></i>
                   ${estado === 'ACTIVO' ? 'Inactivar' : 'Activar'}
                 </button>
-              </form>
+              </form>` : ''}
             </div>
           </td>
         </tr>`

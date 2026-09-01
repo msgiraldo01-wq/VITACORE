@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu cita · Vitacore</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      background: #eef2f4;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+      line-height: 1.5;
+    }
+
+    .sheet {
+      width: 100%;
+      max-width: 460px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06);
+      overflow: hidden;
+    }
+
+    .brand {
+      background: #0d5c63;
+      color: #fff;
+      padding: 20px 24px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+    }
+
+    .contenido {
+      padding: 28px 24px 32px;
+    }
+
+    .icono-estado {
+      font-size: 2.4rem;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .titulo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0d5c63;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitulo {
+      font-size: .92rem;
+      color: #475569;
+      text-align: center;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .cita-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+
+    .cita-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: .88rem;
+    }
+
+    .cita-row + .cita-row {
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .cita-row .label {
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .cita-row .valor {
+      color: #0f172a;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .badge-estado {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .badge-CANCELADA   { background: rgba(220,38,38,.12);  color: #dc2626; }
+    .badge-CONFIRMADA  { background: rgba(59,130,246,.12); color: #2563eb; }
+    .badge-PENDIENTE   { background: rgba(217,119,6,.12);  color: #b45309; }
+    .badge-FINALIZADA  { background: rgba(75,85,99,.12);   color: #4b5563; }
+    .badge-EN_ATENCION { background: rgba(5,150,105,.12);  color: #059669; }
+    .badge-FACTURADA   { background: rgba(75,85,99,.12);   color: #4b5563; }
+
+    .acciones {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-confirmar {
+      background: #0d5c63;
+      color: #fff;
+    }
+    .btn-confirmar:hover { background: #0a474c; }
+
+    .btn-cancelar {
+      background: #fff;
+      color: #dc2626;
+      border: 1.5px solid #fecaca;
+    }
+    .btn-cancelar:hover { background: #fef2f2; }
+
+    .aviso {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .85rem;
+      margin-bottom: 18px;
+    }
+
+    .pie {
+      text-align: center;
+      font-size: .75rem;
+      color: #94a3b8;
+      margin-top: 22px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sheet">
+    <div class="brand">💙 Vitacore</div>
+
+    <div class="contenido">
+
+      {% if error %}
+      <div class="aviso">{{ error }}</div>
+      {% endif %}
+
+      {% if not valido %}
+
+        {% if motivo_invalido == 'no_encontrado' %}
+          <div class="icono-estado">🔗</div>
+          <div class="titulo">Enlace no válido</div>
+          <div class="subtitulo">
+            Este enlace no corresponde a ninguna cita registrada. Si crees que esto es un error,
+            comunícate directamente con la clínica.
+          </div>
+
+        {% elif motivo_invalido == 'estado_no_editable' %}
+          <div class="icono-estado">ℹ️</div>
+          <div class="titulo">Esta cita ya no se puede modificar aquí</div>
+          <div class="subtitulo">
+            {% if cita and cita.estado == 'CANCELADA' %}
+              Esta cita ya fue cancelada.
+            {% elif cita and cita.estado in ('FINALIZADA', 'FACTURADA') %}
+              Esta cita ya fue atendida.
+            {% elif cita and cita.estado == 'EN_ATENCION' %}
+              Esta cita ya está en curso.
+            {% else %}
+              Esta cita ya no admite cambios desde este enlace.
+            {% endif %}
+            Si necesitas hacer algo distinto, por favor comunícate con la clínica.
+          </div>
+
+        {% elif motivo_invalido == 'fuera_de_plazo' %}
+          <div class="icono-estado">⏰</div>
+          <div class="titulo">Este enlace ya no está disponible</div>
+          <div class="subtitulo">
+            Falta muy poco para tu cita (o ya pasó), así que este enlace dejó de funcionar.
+            Si necesitas confirmar, cancelar o reprogramar, por favor comunícate directamente con la clínica.
+          </div>
+
+        {% else %}
+          <div class="icono-estado">⚠️</div>
+          <div class="titulo">No se pudo procesar tu solicitud</div>
+          <div class="subtitulo">Por favor comunícate con la clínica.</div>
+        {% endif %}
+
+        {% if cita %}
+        <div class="cita-card">
+          <div class="cita-row">
+            <span class="label">Estado</span>
+            <span class="valor"><span class="badge-estado badge-{{ cita.estado }}">{{ cita.estado }}</span></span>
+          </div>
+          <div class="cita-row">
+            <span class="label">Paciente</span>
+            <span class="valor">{{ cita.paciente_nombre }}</span>
+          </div>
+          <div class="cita-row">
+            <span class="label">Fecha</span>
+            <span class="valor">{{ cita.fecha }}</span>
+          </div>
+          <div class="cita-row">
+            <span class="label">Hora</span>
+            <span class="valor">{{ (cita.hora_inicio or '')[:5] }}</span>
+          </div>
+          <div class="cita-row">
+            <span class="label">Profesional</span>
+            <span class="valor">{{ cita.medico_nombre }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+      {% elif accion_realizada == 'confirmada' %}
+        <div class="icono-estado">✅</div>
+        <div class="titulo">¡Listo! Tu cita quedó confirmada</div>
+        <div class="subtitulo">Te esperamos en la fecha y hora acordadas.</div>
+
+      {% elif accion_realizada == 'cancelada' %}
+        <div class="icono-estado">🗓️</div>
+        <div class="titulo">Tu cita fue cancelada</div>
+        <div class="subtitulo">
+          Si deseas agendar una nueva fecha, por favor comunícate con la clínica cuando quieras.
+        </div>
+
+      {% endif %}
+
+      {% if valido and cita %}
+      <div class="cita-card">
+        <div class="cita-row">
+          <span class="label">Paciente</span>
+          <span class="valor">{{ cita.paciente_nombre }}</span>
+        </div>
+        <div class="cita-row">
+          <span class="label">Fecha</span>
+          <span class="valor">{{ cita.fecha }}</span>
+        </div>
+        <div class="cita-row">
+          <span class="label">Hora</span>
+          <span class="valor">{{ (cita.hora_inicio or '')[:5] }}{% if cita.hora_fin %} – {{ cita.hora_fin[:5] }}{% endif %}</span>
+        </div>
+        <div class="cita-row">
+          <span class="label">Profesional</span>
+          <span class="valor">{{ cita.medico_nombre }}{% if cita.medico_especialidad %} · {{ cita.medico_especialidad }}{% endif %}</span>
+        </div>
+        {% if cita.sede_nombre %}
+        <div class="cita-row">
+          <span class="label">Lugar</span>
+          <span class="valor">{{ cita.sede_nombre }}</span>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if valido and not accion_realizada %}
+      <div class="acciones">
+        <form method="POST" action="/citas/publico/{{ token }}/confirmar">
+          <button type="submit" class="btn btn-confirmar">✅ Sí, confirmo mi asistencia</button>
+        </form>
+        <form method="POST" action="/citas/publico/{{ token }}/cancelar"
+              onsubmit="return confirm('¿Seguro que no podrás asistir a esta cita? Se cancelará.');">
+          <button type="submit" class="btn btn-cancelar">❌ No podré asistir</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <div class="pie">Vitacore · Sistema de Historia Clínica</div>
+    </div>
+  </div>
+
+</body>
+</html>
