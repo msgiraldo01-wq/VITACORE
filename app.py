@@ -114,5 +114,5 @@ def inyectar_helpers_permisos():
     return {"puede_ver": permisos_service.puede_ver, "puede": permisos_service.puede}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
 

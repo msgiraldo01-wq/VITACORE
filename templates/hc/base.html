@@ -970,12 +970,28 @@
     /* ── 2) Ping de respaldo (mide latencia real contra el propio servidor) ── */
     async function pingCheck(){
       if (!navigator.onLine) return; // ya se muestra el aviso de offline
+
+      // Si la pestaña está en segundo plano, el navegador limita/retrasa
+      // temporizadores y peticiones ahí -- cualquier medición saldría
+      // artificialmente lenta sin que la conexión real haya cambiado en
+      // nada. Por eso NO medimos mientras está oculta...
+      if (document.hidden) return;
+
       const start = performance.now();
       try {
         await fetch(window.location.origin + '/ping?_=' + Date.now(), {
           method: 'HEAD',
           cache: 'no-store'
         });
+
+        // ...y tampoco confiamos en la medición si la pestaña se ocultó
+        // justo DURANTE la petición (p.ej. el usuario cambió de pestaña
+        // mientras esperábamos la respuesta): ese tiempo también queda
+        // inflado por el mismo motivo, y era exactamente lo que causaba
+        // el falso aviso de "la velocidad de conexión se normalizó" cada
+        // vez que se volvía a esta pestaña.
+        if (document.hidden) return;
+
         const elapsed = performance.now() - start;
         notify(elapsed > THRESHOLDS.pingSlowMs ? 'slow' : 'ok');
       } catch (e) {
@@ -985,6 +1001,14 @@
 
     setInterval(pingCheck, THRESHOLDS.pingIntervalMs);
     pingCheck();
+
+    // Al volver a esta pestaña, hacemos una medición fresca de una vez
+    // (en vez de esperar hasta 30s al siguiente intervalo) -- como ya
+    // está protegida por los checks de arriba, esta si es una medición
+    // real, no un artefacto del cambio de pestaña.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) pingCheck();
+    });
     })();
   </script>
 
