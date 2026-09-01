@@ -1,0 +1,129 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Contabilidad · VitaCore{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-book"></i>{% endblock %}
+{% block topbar_title %}Contabilidad{% endblock %}
+{% block topbar_subtitle %}Núcleo contable{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-book"></i>{% endblock %}
+{% block header_title %}Contabilidad{% endblock %}
+{% block header_subtitle %}Núcleo contable del módulo financiero: comprobantes, libros y periodos.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax primary" href="{{ url_for('contabilidad.nuevo_comprobante') }}">
+    <i class="fa-solid fa-plus"></i> Nuevo comprobante
+  </a>
+{% endblock %}
+
+{% block content %}
+
+  {# Accesos rápidos #}
+  <div class="cbl-section">
+    <div class="cbl-quick">
+      <a class="cbl-quick-card" href="{{ url_for('contabilidad.puc') }}">
+        <span class="qc-ico"><i class="fa-solid fa-list-ol"></i></span>
+        <span class="qc-t">Plan de cuentas</span>
+      </a>
+      <a class="cbl-quick-card" href="{{ url_for('contabilidad.terceros') }}">
+        <span class="qc-ico"><i class="fa-solid fa-users"></i></span>
+        <span class="qc-t">Terceros</span>
+      </a>
+      <a class="cbl-quick-card" href="{{ url_for('contabilidad.libro_diario') }}">
+        <span class="qc-ico"><i class="fa-solid fa-book-open"></i></span>
+        <span class="qc-t">Libro diario</span>
+      </a>
+      <a class="cbl-quick-card" href="{{ url_for('contabilidad.libro_mayor') }}">
+        <span class="qc-ico"><i class="fa-solid fa-scale-balanced"></i></span>
+        <span class="qc-t">Libro mayor</span>
+      </a>
+    </div>
+  </div>
+
+  {# Periodos #}
+  <div class="cbl-section">
+    <div class="cbl-section-head">
+      <h2>Periodos contables</h2>
+    </div>
+    <table class="cbl-table">
+      <thead>
+        <tr><th>Periodo</th><th>Estado</th><th>Cerrado por</th><th class="ta-r">Acción</th></tr>
+      </thead>
+      <tbody>
+        {% for p in periodos %}
+        <tr>
+          <td class="mono">{{ p.periodo }}</td>
+          <td><span class="cbl-badge {{ 'open' if p.estado == 'ABIERTO' else 'closed' }}">{{ p.estado }}</span></td>
+          <td>{{ p.cerrado_por or '—' }}</td>
+          <td class="ta-r">
+            {% if p.estado == 'ABIERTO' %}
+              <button class="btn-ax ghost" style="min-height:32px;padding:0 12px;font-size:12px" onclick="cambiarPeriodo('{{ p.periodo }}','CERRADO')">Cerrar</button>
+            {% else %}
+              <button class="btn-ax ghost" style="min-height:32px;padding:0 12px;font-size:12px" onclick="cambiarPeriodo('{{ p.periodo }}','ABIERTO')">Reabrir</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="cbl-empty">Aún no hay periodos. Se crean automáticamente al registrar el primer comprobante.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Últimos comprobantes #}
+  <div class="cbl-section">
+    <div class="cbl-section-head">
+      <h2>Últimos comprobantes</h2>
+    </div>
+    <table class="cbl-table">
+      <thead>
+        <tr>
+          <th>Número</th><th>Fecha</th><th>Tipo</th><th>Descripción</th>
+          <th class="ta-r">Débito</th><th class="ta-r">Crédito</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in comprobantes %}
+        <tr class="row-link" onclick="window.location='{{ url_for('contabilidad.detalle', comprobante_id=c.id) }}'">
+          <td class="mono"><strong>{{ c.numero }}</strong></td>
+          <td>{{ c.fecha }}</td>
+          <td>{{ c.tipo_comprobante }}</td>
+          <td>{{ c.descripcion or '—' }}</td>
+          <td class="ta-r mono">${{ '{:,.2f}'.format(c.total_debito) }}</td>
+          <td class="ta-r mono">${{ '{:,.2f}'.format(c.total_credito) }}</td>
+          <td><span class="cbl-badge {{ 'closed' if c.estado == 'ANULADO' else 'open' }}">{{ c.estado }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="cbl-empty">No hay comprobantes todavía. Crea el primero con “Nuevo comprobante”.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
+
+{% block extra_js %}
+<script>
+async function cambiarPeriodo(periodo, estado) {
+  const txt = estado === 'CERRADO'
+    ? `¿Cerrar el periodo ${periodo}? No se podrán registrar más asientos en ese mes.`
+    : `¿Reabrir el periodo ${periodo}?`;
+  const r = await Swal.fire({
+    title: estado === 'CERRADO' ? 'Cerrar periodo' : 'Reabrir periodo',
+    text: txt, icon: 'question', showCancelButton: true,
+    confirmButtonText: estado === 'CERRADO' ? 'Cerrar' : 'Reabrir',
+    cancelButtonText: 'Cancelar', confirmButtonColor: '#0d5c63'
+  });
+  if (!r.isConfirmed) return;
+  const resp = await fetch("{{ url_for('contabilidad.api_cambiar_periodo') }}", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({periodo, estado})
+  });
+  const d = await resp.json();
+  if (d.ok) { Toast.show('Periodo actualizado', 'success'); setTimeout(()=>location.reload(), 600); }
+  else Toast.show(d.error || 'No se pudo cambiar el periodo', 'error');
+}
+</script>
+{% endblock %}

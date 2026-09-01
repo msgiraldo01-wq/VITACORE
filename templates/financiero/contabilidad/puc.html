@@ -1,0 +1,57 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Plan de cuentas · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-list-ol"></i>{% endblock %}
+{% block topbar_title %}Plan de cuentas{% endblock %}
+{% block topbar_subtitle %}PUC{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-list-ol"></i>{% endblock %}
+{% block header_title %}Plan de cuentas (PUC){% endblock %}
+{% block header_subtitle %}Catálogo contable · {{ cuentas|length }} cuentas. La columna espejo mapea al catálogo de la Supersalud.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver
+  </a>
+{% endblock %}
+
+{% block content %}
+  <input type="text" id="filtro" class="cbl-input cbl-search" placeholder="Filtrar por código o nombre..." oninput="filtrar()">
+  <div style="overflow-x:auto">
+    <table class="cbl-table" id="tabla-puc">
+      <thead>
+        <tr>
+          <th>Código</th><th>Nombre</th><th class="ta-c">Nivel</th><th>Naturaleza</th>
+          <th>Tipo</th><th>Espejo Supersalud</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cuentas %}
+        <tr class="{{ 'es-grupo' if c.tipo == 'AGRUPACION' else '' }}">
+          <td class="mono">{{ c.codigo }}</td>
+          <td style="padding-left: {{ 12 + c.nivel * 12 }}px">{{ c.nombre }}</td>
+          <td class="ta-c">{{ c.nivel }}</td>
+          <td><span class="cbl-tag {{ c.naturaleza|lower }}">{{ c.naturaleza }}</span></td>
+          <td class="muted">{{ c.tipo }}</td>
+          <td class="mono muted">{{ c.cuenta_espejo_supersalud or '—' }}</td>
+          <td><span class="cbl-badge {{ 'open' if c.estado == 'ACTIVA' else 'closed' }}">{{ c.estado }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrar() {
+  const q = document.getElementById('filtro').value.toLowerCase();
+  document.querySelectorAll('#tabla-puc tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

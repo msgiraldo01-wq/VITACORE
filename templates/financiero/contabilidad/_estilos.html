@@ -1,0 +1,109 @@
+{# ============================================================
+   Estilos del módulo Contabilidad.
+   TODO se deriva de los design tokens de base.html (var(--brand),
+   var(--surface), var(--border), etc.), así el modo oscuro funciona
+   automáticamente. Este archivo se incluye dentro de {% block extra_css %}.
+   ============================================================ #}
+<style>
+  /* Tablas contables */
+  .cbl-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  .cbl-table thead th {
+    background:var(--surface-3); color:var(--text-soft);
+    text-align:left; padding:10px 12px; font-weight:700;
+    font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+  }
+  .cbl-table thead th.ta-r { text-align:right; }
+  .cbl-table thead th.ta-c { text-align:center; }
+  .cbl-table tbody td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text); }
+  .cbl-table tbody tr:hover { background:var(--surface-2); }
+  .cbl-table tbody tr.row-link { cursor:pointer; }
+  .cbl-table tfoot td { padding:12px; background:var(--surface-2); border-top:2px solid var(--brand); color:var(--text); }
+  .ta-r { text-align:right; } .ta-c { text-align:center; }
+  .mono { font-variant-numeric:tabular-nums; font-feature-settings:"tnum"; }
+  .muted { color:var(--text-faint); }
+
+  /* Badges y tags con tokens */
+  .cbl-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; }
+  .cbl-badge.open   { background:var(--success-soft); color:var(--success); }
+  .cbl-badge.closed { background:var(--danger-soft);  color:var(--danger); }
+  .cbl-tag { display:inline-block; padding:2px 9px; border-radius:var(--radius-xs); background:var(--surface-3); color:var(--text-soft); font-size:11px; font-weight:600; margin:1px; }
+  .cbl-tag.debito  { background:var(--info-soft);  color:var(--info); }
+  .cbl-tag.credito { background:var(--warn-soft);  color:var(--warn); }
+
+  /* Accesos rápidos (tarjetas) */
+  .cbl-quick { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:4px; }
+  .cbl-quick-card {
+    display:flex; align-items:center; gap:12px; padding:16px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md);
+    color:var(--text); transition:border-color .15s, transform .15s, box-shadow .15s;
+  }
+  .cbl-quick-card:hover { border-color:var(--brand); transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .cbl-quick-card .qc-ico {
+    width:40px; height:40px; border-radius:var(--radius-sm); flex-shrink:0;
+    display:grid; place-items:center; background:var(--brand-soft); color:var(--brand); font-size:16px;
+  }
+  .cbl-quick-card .qc-t { font-weight:600; font-size:13.5px; }
+
+  /* Sub-secciones dentro de content-card */
+  .cbl-section { margin-top:22px; }
+  .cbl-section:first-child { margin-top:0; }
+  .cbl-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .cbl-section-head h2 { margin:0; font-size:15px; font-weight:700; color:var(--text); }
+
+  /* Formularios */
+  .cbl-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+  .cbl-fld { display:flex; flex-direction:column; gap:6px; }
+  .cbl-fld.wide { grid-column:1 / -1; }
+  .cbl-fld label { font-size:12px; font-weight:600; color:var(--text-soft); }
+  .cbl-input, .cbl-select {
+    padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    font-size:13.5px; background:var(--surface); color:var(--text); transition:border-color .15s;
+  }
+  .cbl-input:focus, .cbl-select:focus { outline:none; border-color:var(--brand); }
+  .cbl-search { width:100%; margin-bottom:14px; }
+
+  /* Grilla de movimientos */
+  .grid-mov thead th { position:sticky; top:0; }
+  .grid-mov .cbl-select, .grid-mov .cbl-input { width:100%; padding:6px 8px; font-size:13px; }
+  .grid-mov .req { border-color:var(--warn); background:var(--warn-soft); }
+  .btn-remove { background:none; border:none; color:var(--danger); cursor:pointer; font-size:15px; padding:4px; border-radius:var(--radius-xs); }
+  .btn-remove:hover { background:var(--danger-soft); }
+
+  /* Barra de totales / diferencia */
+  .cbl-balance { display:flex; align-items:center; justify-content:flex-end; gap:8px; font-weight:700; font-size:14px; }
+  .cbl-balance.ok  { color:var(--success); }
+  .cbl-balance.bad { color:var(--danger); }
+
+  /* Barra de filtros */
+  .cbl-filter-bar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .cbl-filter-bar label { font-size:12px; font-weight:600; color:var(--text-soft); }
+
+  /* Meta del detalle */
+  .cbl-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:18px; padding:14px 16px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md); }
+  .cbl-meta .k { display:block; font-size:11px; color:var(--text-faint); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .cbl-meta .v { display:block; font-size:14px; color:var(--text); }
+
+  /* Alertas */
+  .cbl-alert { padding:14px 16px; border-radius:var(--radius-md); margin-bottom:18px; font-size:13.5px; border:1px solid transparent; }
+  .cbl-alert.danger { background:var(--danger-soft); color:var(--danger); border-color:var(--danger); }
+
+  /* Encabezado del mayor */
+  .cbl-mayor-head { display:flex; align-items:center; gap:12px; margin:6px 0 14px; flex-wrap:wrap; }
+  .cbl-mayor-head h2 { margin:0; font-size:15px; }
+
+  /* Empty state */
+  .cbl-empty { text-align:center; padding:32px 16px; color:var(--text-faint); }
+
+  /* PUC: sangría por nivel y filas de agrupación */
+  .cbl-table tr.es-grupo td { font-weight:700; background:var(--surface-2); }
+
+  /* Modal reutiliza el look del sistema */
+  .cbl-modal-bg { position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; z-index:3200; }
+  .cbl-modal-bg.show { display:flex; }
+  .cbl-modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; width:min(640px,92vw); max-height:90vh; overflow:auto; box-shadow:var(--shadow-lg); }
+  .cbl-modal h2 { margin:0 0 16px; font-size:16px; color:var(--text); }
+  .cbl-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  .cbl-chks { display:flex; gap:16px; flex-wrap:wrap; }
+  .cbl-chks label { font-size:13px; font-weight:500; color:var(--text); display:flex; align-items:center; gap:6px; }
+</style>

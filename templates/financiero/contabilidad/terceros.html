@@ -1,0 +1,115 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Terceros · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-users"></i>{% endblock %}
+{% block topbar_title %}Terceros{% endblock %}
+{% block topbar_subtitle %}Maestro contable{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-users"></i>{% endblock %}
+{% block header_title %}Terceros{% endblock %}
+{% block header_subtitle %}Maestro contable único: clientes, proveedores, EPS y empleados. {{ terceros|length }} registros.{% endblock %}
+
+{% block header_actions %}
+  <button class="btn-ax primary" onclick="abrirModal()"><i class="fa-solid fa-plus"></i> Nuevo tercero</button>
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+
+{% block content %}
+  <input type="text" id="filtro" class="cbl-input cbl-search" placeholder="Filtrar..." oninput="filtrar()">
+  <div style="overflow-x:auto">
+    <table class="cbl-table" id="tabla">
+      <thead>
+        <tr><th>Documento</th><th>Razón social</th><th>Tipo</th><th>Roles</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for t in terceros %}
+        <tr>
+          <td class="mono">{{ t.tipo_documento }} {{ t.numero_documento }}{% if t.dv %}-{{ t.dv }}{% endif %}</td>
+          <td>{{ t.razon_social }}</td>
+          <td class="muted">{{ t.tipo_persona }}</td>
+          <td>
+            {% if t.es_cliente %}<span class="cbl-tag">Cliente</span>{% endif %}
+            {% if t.es_proveedor %}<span class="cbl-tag">Proveedor</span>{% endif %}
+            {% if t.es_empleado %}<span class="cbl-tag">Empleado</span>{% endif %}
+            {% if t.es_entidad_salud %}<span class="cbl-tag">EPS/Entidad</span>{% endif %}
+          </td>
+          <td><span class="cbl-badge {{ 'open' if t.estado == 'ACTIVO' else 'closed' }}">{{ t.estado }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="cbl-empty">No hay terceros. Crea el primero con “Nuevo tercero”.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Modal nuevo tercero #}
+  <div id="modal" class="cbl-modal-bg">
+    <div class="cbl-modal">
+      <h2>Nuevo tercero</h2>
+      <div class="cbl-form-grid">
+        <div class="cbl-fld">
+          <label>Tipo doc.</label>
+          <select id="m_tipo_doc" class="cbl-select"><option>NIT</option><option>CC</option><option>CE</option><option>PA</option></select>
+        </div>
+        <div class="cbl-fld"><label>Número</label><input id="m_num" type="text" class="cbl-input"></div>
+        <div class="cbl-fld"><label>DV</label><input id="m_dv" type="text" maxlength="2" class="cbl-input"></div>
+        <div class="cbl-fld wide"><label>Razón social / Nombre</label><input id="m_razon" type="text" class="cbl-input"></div>
+        <div class="cbl-fld">
+          <label>Tipo persona</label>
+          <select id="m_persona" class="cbl-select"><option value="JURIDICA">Jurídica</option><option value="NATURAL">Natural</option></select>
+        </div>
+        <div class="cbl-fld wide">
+          <label>Roles</label>
+          <div class="cbl-chks">
+            <label><input type="checkbox" id="m_cli"> Cliente</label>
+            <label><input type="checkbox" id="m_prov"> Proveedor</label>
+            <label><input type="checkbox" id="m_emp"> Empleado</label>
+            <label><input type="checkbox" id="m_eps"> EPS/Entidad</label>
+          </div>
+        </div>
+      </div>
+      <div class="cbl-modal-actions">
+        <button class="btn-ax ghost" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-ax primary" onclick="guardarTercero()">Guardar</button>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrar() {
+  const q = document.getElementById('filtro').value.toLowerCase();
+  document.querySelectorAll('#tabla tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function abrirModal(){ document.getElementById('modal').classList.add('show'); }
+function cerrarModal(){ document.getElementById('modal').classList.remove('show'); }
+async function guardarTercero() {
+  const body = {
+    tipo_documento: document.getElementById('m_tipo_doc').value,
+    numero_documento: document.getElementById('m_num').value.trim(),
+    dv: document.getElementById('m_dv').value.trim(),
+    razon_social: document.getElementById('m_razon').value.trim(),
+    tipo_persona: document.getElementById('m_persona').value,
+    es_cliente: document.getElementById('m_cli').checked,
+    es_proveedor: document.getElementById('m_prov').checked,
+    es_empleado: document.getElementById('m_emp').checked,
+    es_entidad_salud: document.getElementById('m_eps').checked
+  };
+  if (!body.numero_documento || !body.razon_social) {
+    Toast.show('Documento y razón social son obligatorios', 'warning'); return;
+  }
+  const r = await fetch("{{ url_for('contabilidad.api_crear_tercero') }}", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (d.ok) { Toast.show('Tercero creado', 'success'); setTimeout(()=>location.reload(), 600); }
+  else Toast.show(d.error || 'No se pudo crear el tercero', 'error');
+}
+</script>
+{% endblock %}

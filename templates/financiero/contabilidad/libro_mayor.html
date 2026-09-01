@@ -1,0 +1,74 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Libro mayor · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-scale-balanced"></i>{% endblock %}
+{% block topbar_title %}Libro mayor{% endblock %}
+{% block topbar_subtitle %}Saldo por cuenta{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-scale-balanced"></i>{% endblock %}
+{% block header_title %}Libro mayor{% endblock %}
+{% block header_subtitle %}Movimientos y saldo acumulado de una cuenta.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+
+{% block content %}
+  <form method="get" class="cbl-filter-bar">
+    <label>Cuenta:</label>
+    <select name="cuenta_id" class="cbl-select" style="min-width:280px">
+      <option value="">— seleccione —</option>
+      {% for c in cuentas %}
+        <option value="{{ c.id }}" {{ 'selected' if cuenta_id == c.id else '' }}>{{ c.codigo }} · {{ c.nombre }}</option>
+      {% endfor %}
+    </select>
+    <label>Periodo:</label>
+    <input type="text" name="periodo" value="{{ periodo or '' }}" placeholder="2026-01" class="cbl-input" style="width:130px">
+    <button class="btn-ax primary" style="min-height:38px">Consultar</button>
+  </form>
+
+  {% if cuenta %}
+  <div class="cbl-mayor-head">
+    <h2 class="mono">{{ cuenta.codigo }} · {{ cuenta.nombre }}</h2>
+    <span class="cbl-tag {{ cuenta.naturaleza|lower }}">Naturaleza {{ cuenta.naturaleza }}</span>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="cbl-table">
+      <thead>
+        <tr>
+          <th>Comprobante</th><th>Fecha</th><th>Descripción</th>
+          <th class="ta-r">Débito</th><th class="ta-r">Crédito</th><th class="ta-r">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos %}
+        <tr>
+          <td class="mono">{{ m.numero }}</td>
+          <td>{{ m.fecha }}</td>
+          <td>{{ m.descripcion or '—' }}</td>
+          <td class="ta-r mono">{% if m.debito %}${{ '{:,.2f}'.format(m.debito) }}{% endif %}</td>
+          <td class="ta-r mono">{% if m.credito %}${{ '{:,.2f}'.format(m.credito) }}{% endif %}</td>
+          <td class="ta-r mono">${{ '{:,.2f}'.format(m.saldo) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="cbl-empty">Esta cuenta no tiene movimientos en el periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="ta-r"><strong>Totales / Saldo final</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(totales.total_debito) }}</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(totales.total_credito) }}</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(totales.saldo_final) }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="cbl-empty">Seleccione una cuenta para ver su libro mayor.</div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}

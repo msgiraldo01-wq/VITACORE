@@ -1,0 +1,92 @@
+{% extends "hc/base.html" %}
+
+{% block title %}{{ comprobante.numero }} · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-file-lines"></i>{% endblock %}
+{% block topbar_title %}{{ comprobante.numero }}{% endblock %}
+{% block topbar_subtitle %}Detalle de comprobante{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-file-lines"></i>{% endblock %}
+{% block header_title %}Comprobante {{ comprobante.numero }}{% endblock %}
+{% block header_subtitle %}{{ comprobante.tipo_comprobante }} · {{ comprobante.fecha }} · Periodo {{ comprobante.periodo }}{% endblock %}
+
+{% block header_actions %}
+  {% if comprobante.estado != 'ANULADO' %}
+    <button class="btn-ax ghost" onclick="anular()"><i class="fa-solid fa-ban"></i> Anular</button>
+  {% endif %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+
+{% block content %}
+
+  {% if comprobante.estado == 'ANULADO' %}
+  <div class="cbl-alert danger">
+    <strong>Comprobante ANULADO</strong> por {{ comprobante.anulado_por }} · {{ comprobante.anulado_at }}<br>
+    Motivo: {{ comprobante.motivo_anulacion }}
+  </div>
+  {% endif %}
+
+  <div class="cbl-meta">
+    <div><span class="k">Descripción</span><span class="v">{{ comprobante.descripcion or '—' }}</span></div>
+    <div><span class="k">Origen</span><span class="v">{{ comprobante.origen }}</span></div>
+    <div><span class="k">Creado por</span><span class="v">{{ comprobante.created_by or '—' }}</span></div>
+    <div><span class="k">Estado</span><span class="v"><span class="cbl-badge {{ 'closed' if comprobante.estado == 'ANULADO' else 'open' }}">{{ comprobante.estado }}</span></span></div>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="cbl-table">
+      <thead>
+        <tr>
+          <th>Cuenta</th><th>Nombre</th><th>Tercero</th><th>Centro costo</th>
+          <th>Descripción</th><th class="ta-r">Débito</th><th class="ta-r">Crédito</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos %}
+        <tr>
+          <td class="mono">{{ m.cuenta_codigo }}</td>
+          <td>{{ m.cuenta_nombre }}</td>
+          <td>{{ m.tercero_nombre or '—' }}</td>
+          <td>{{ m.centro_costo or '—' }}</td>
+          <td>{{ m.descripcion or '—' }}</td>
+          <td class="ta-r mono">{% if m.debito %}${{ '{:,.2f}'.format(m.debito) }}{% endif %}</td>
+          <td class="ta-r mono">{% if m.credito %}${{ '{:,.2f}'.format(m.credito) }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="ta-r"><strong>Totales</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(comprobante.total_debito) }}</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(comprobante.total_credito) }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
+
+{% block extra_js %}
+<script>
+async function anular() {
+  const r = await Swal.fire({
+    title: 'Anular comprobante',
+    input: 'text', inputLabel: 'Motivo de la anulación',
+    inputPlaceholder: 'Escribe el motivo...',
+    showCancelButton: true, confirmButtonText: 'Anular',
+    cancelButtonText: 'Cancelar', confirmButtonColor: '#dc3545',
+    inputValidator: (v) => !v && 'El motivo es obligatorio'
+  });
+  if (!r.isConfirmed) return;
+  const resp = await fetch("{{ url_for('contabilidad.api_anular_comprobante') }}", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({comprobante_id: {{ comprobante.id }}, motivo: r.value})
+  });
+  const d = await resp.json();
+  if (d.ok) { Toast.show('Comprobante anulado', 'success'); setTimeout(()=>location.reload(), 600); }
+  else Toast.show(d.error || 'No se pudo anular', 'error');
+}
+</script>
+{% endblock %}

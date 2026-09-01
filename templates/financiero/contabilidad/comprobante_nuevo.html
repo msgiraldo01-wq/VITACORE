@@ -1,0 +1,233 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Nuevo comprobante · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-file-circle-plus"></i>{% endblock %}
+{% block topbar_title %}Nuevo comprobante{% endblock %}
+{% block topbar_subtitle %}Registro manual · partida doble{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-file-circle-plus"></i>{% endblock %}
+{% block header_title %}Nuevo comprobante contable{% endblock %}
+{% block header_subtitle %}Registra un asiento manual. El sistema valida la partida doble antes de contabilizar.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver
+  </a>
+{% endblock %}
+
+{% block content %}
+
+  {# Encabezado del comprobante #}
+  <div class="cbl-section">
+    <div class="cbl-form-grid">
+      <div class="cbl-fld">
+        <label>Tipo de comprobante</label>
+        <select id="tipo_comprobante" class="cbl-select">
+          {% for t in tipos_comprobante %}
+            <option value="{{ t.tipo_comprobante }}">{{ t.prefijo }} · {{ t.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cbl-fld">
+        <label>Fecha</label>
+        <input type="date" id="fecha" class="cbl-input">
+      </div>
+      <div class="cbl-fld wide">
+        <label>Descripción</label>
+        <input type="text" id="descripcion" class="cbl-input" placeholder="Concepto del comprobante">
+      </div>
+    </div>
+  </div>
+
+  {# Grilla de movimientos #}
+  <div class="cbl-section">
+    <div class="cbl-section-head">
+      <h2>Movimientos</h2>
+      <button class="btn-ax ghost" style="min-height:36px" onclick="agregarLinea()">
+        <i class="fa-solid fa-plus"></i> Agregar línea
+      </button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="cbl-table grid-mov">
+        <thead>
+          <tr>
+            <th style="min-width:220px">Cuenta</th>
+            <th style="min-width:170px">Tercero</th>
+            <th style="min-width:150px">Centro costo</th>
+            <th style="min-width:110px" class="ta-r">Débito</th>
+            <th style="min-width:110px" class="ta-r">Crédito</th>
+            <th style="min-width:100px" class="ta-r">Base</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="lineas"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="ta-r"><strong>Totales</strong></td>
+            <td class="ta-r mono"><strong id="tot_debito">$0.00</strong></td>
+            <td class="ta-r mono"><strong id="tot_credito">$0.00</strong></td>
+            <td colspan="2"></td>
+          </tr>
+          <tr>
+            <td colspan="7">
+              <div class="cbl-balance" id="balance"></div>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div style="margin-top:18px; text-align:right">
+      <button class="btn-ax primary" id="btn_guardar" onclick="guardar()" disabled>
+        <i class="fa-solid fa-check"></i> Contabilizar
+      </button>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
+
+{% block extra_js %}
+<script>
+const CUENTAS = {{ cuentas | tojson }};
+const TERCEROS = {{ terceros | tojson }};
+const CENTROS  = {{ centros_costo | tojson }};
+
+const CUENTA_BY_ID = {};
+CUENTAS.forEach(c => CUENTA_BY_ID[c.id] = c);
+
+function optCuentas() {
+  let h = '<option value="">— cuenta —</option>';
+  CUENTAS.forEach(c => { h += `<option value="${c.id}">${c.codigo} · ${c.nombre}</option>`; });
+  return h;
+}
+function optTerceros() {
+  let h = '<option value="">—</option>';
+  TERCEROS.forEach(t => { h += `<option value="${t.id}">${t.numero_documento} · ${t.razon_social}</option>`; });
+  return h;
+}
+function optCentros() {
+  let h = '<option value="">—</option>';
+  CENTROS.forEach(c => { h += `<option value="${c.id}">${c.codigo} · ${c.nombre}</option>`; });
+  return h;
+}
+
+function agregarLinea() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><select class="cbl-select c-cuenta" onchange="onCuenta(this)">${optCuentas()}</select></td>
+    <td><select class="cbl-select c-tercero">${optTerceros()}</select></td>
+    <td><select class="cbl-select c-centro">${optCentros()}</select></td>
+    <td><input type="number" class="cbl-input c-debito ta-r" min="0" step="0.01" value="0" oninput="onValor(this,'debito')"></td>
+    <td><input type="number" class="cbl-input c-credito ta-r" min="0" step="0.01" value="0" oninput="onValor(this,'credito')"></td>
+    <td><input type="number" class="cbl-input c-base ta-r" min="0" step="0.01" value="0"></td>
+    <td class="ta-c"><button class="btn-remove" onclick="quitarLinea(this)" title="Quitar"><i class="fa-solid fa-xmark"></i></button></td>
+  `;
+  document.getElementById('lineas').appendChild(tr);
+}
+
+function onValor(inp, tipo) {
+  const tr = inp.closest('tr');
+  if (parseFloat(inp.value) > 0) {
+    if (tipo === 'debito') tr.querySelector('.c-credito').value = 0;
+    else tr.querySelector('.c-debito').value = 0;
+  }
+  recalcular();
+}
+
+function onCuenta(sel) {
+  const tr = sel.closest('tr');
+  const c = CUENTA_BY_ID[sel.value];
+  const terc = tr.querySelector('.c-tercero');
+  const cc = tr.querySelector('.c-centro');
+  const base = tr.querySelector('.c-base');
+  [terc, cc, base].forEach(e => e.classList.remove('req'));
+  if (c) {
+    if (c.exige_tercero) terc.classList.add('req');
+    if (c.exige_centro_costo) cc.classList.add('req');
+    if (c.exige_base) base.classList.add('req');
+  }
+}
+
+function quitarLinea(btn) { btn.closest('tr').remove(); recalcular(); }
+
+function recalcular() {
+  let td = 0, tc = 0;
+  document.querySelectorAll('#lineas tr').forEach(tr => {
+    td += parseFloat(tr.querySelector('.c-debito').value || 0);
+    tc += parseFloat(tr.querySelector('.c-credito').value || 0);
+  });
+  document.getElementById('tot_debito').textContent = fmt(td);
+  document.getElementById('tot_credito').textContent = fmt(tc);
+  const dif = Math.round((td - tc) * 100) / 100;
+  const bal = document.getElementById('balance');
+  const btn = document.getElementById('btn_guardar');
+  if (dif === 0 && td > 0) {
+    bal.innerHTML = '<i class="fa-solid fa-circle-check"></i> Comprobante cuadrado';
+    bal.className = 'cbl-balance ok';
+    btn.disabled = false;
+  } else {
+    bal.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Diferencia: ${fmt(dif)}`;
+    bal.className = 'cbl-balance bad';
+    btn.disabled = true;
+  }
+}
+
+function fmt(n) {
+  return '$' + Number(n).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+async function guardar() {
+  const lineas = [];
+  const desc = document.getElementById('descripcion').value;
+  document.querySelectorAll('#lineas tr').forEach(tr => {
+    lineas.push({
+      cuenta_id: tr.querySelector('.c-cuenta').value,
+      tercero_id: tr.querySelector('.c-tercero').value || null,
+      centro_costo_id: tr.querySelector('.c-centro').value || null,
+      debito: parseFloat(tr.querySelector('.c-debito').value || 0),
+      credito: parseFloat(tr.querySelector('.c-credito').value || 0),
+      base_gravable: parseFloat(tr.querySelector('.c-base').value || 0),
+      descripcion: desc
+    });
+  });
+
+  const payload = {
+    tipo_comprobante: document.getElementById('tipo_comprobante').value,
+    fecha: document.getElementById('fecha').value,
+    descripcion: desc,
+    lineas
+  };
+
+  const btn = document.getElementById('btn_guardar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+  const r = await fetch("{{ url_for('contabilidad.api_registrar_comprobante') }}", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  btn.innerHTML = '<i class="fa-solid fa-check"></i> Contabilizar';
+
+  if (d.ok) {
+    await Swal.fire({
+      title: 'Comprobante registrado',
+      text: `${d.numero} se contabilizó correctamente.`,
+      icon: 'success', confirmButtonColor: '#0d5c63'
+    });
+    window.location = `/financiero/contabilidad/comprobante/${d.comprobante_id}`;
+  } else {
+    Toast.show(d.error || 'No se pudo contabilizar', 'error', 6000);
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('fecha').valueAsDate = new Date();
+agregarLinea();
+agregarLinea();
+</script>
+{% endblock %}

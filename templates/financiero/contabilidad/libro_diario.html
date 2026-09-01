@@ -1,0 +1,59 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Libro diario · Contabilidad{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-book-open"></i>{% endblock %}
+{% block topbar_title %}Libro diario{% endblock %}
+{% block topbar_subtitle %}Movimientos cronológicos{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-book-open"></i>{% endblock %}
+{% block header_title %}Libro diario{% endblock %}
+{% block header_subtitle %}Todos los movimientos en orden cronológico.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+{% endblock %}
+
+{% block content %}
+  <form method="get" class="cbl-filter-bar">
+    <label>Periodo (YYYY-MM):</label>
+    <input type="text" name="periodo" value="{{ periodo or '' }}" placeholder="2026-01" class="cbl-input" style="width:130px">
+    <button class="btn-ax primary" style="min-height:38px">Filtrar</button>
+    {% if periodo %}<a href="{{ url_for('contabilidad.libro_diario') }}" class="btn-ax ghost" style="min-height:38px">Limpiar</a>{% endif %}
+  </form>
+
+  <div style="overflow-x:auto">
+    <table class="cbl-table">
+      <thead>
+        <tr>
+          <th>Comprobante</th><th>Fecha</th><th>Cuenta</th><th>Nombre</th>
+          <th>Descripción</th><th class="ta-r">Débito</th><th class="ta-r">Crédito</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in filas %}
+        <tr>
+          <td class="mono">{{ f.numero }}</td>
+          <td>{{ f.fecha }}</td>
+          <td class="mono">{{ f.cuenta_codigo }}</td>
+          <td>{{ f.cuenta_nombre }}</td>
+          <td>{{ f.descripcion or '—' }}</td>
+          <td class="ta-r mono">{% if f.debito %}${{ '{:,.2f}'.format(f.debito) }}{% endif %}</td>
+          <td class="ta-r mono">{% if f.credito %}${{ '{:,.2f}'.format(f.credito) }}{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="cbl-empty">No hay movimientos en este periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="ta-r"><strong>Totales</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(total_debito) }}</strong></td>
+          <td class="ta-r mono"><strong>${{ '{:,.2f}'.format(total_credito) }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+{% endblock %}
+
+{% block extra_css %}{% include "financiero/contabilidad/_estilos.html" %}{% endblock %}
