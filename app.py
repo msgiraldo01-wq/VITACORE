@@ -64,6 +64,9 @@ app.register_blueprint(bp_rda)
 app.register_blueprint(inventario_bp)
 app.register_blueprint(bp_hc_home)
 app.register_blueprint(bp_financiero_contabilidad)
+app.register_blueprint(bp_hc_reportes)
+app.register_blueprint(bp_hc_admisiones)
+app.register_blueprint(bp_hc_agenda_clinica)
 
 @app.route("/")
 def inicio():

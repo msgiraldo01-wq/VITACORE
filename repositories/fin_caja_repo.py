@@ -177,10 +177,35 @@ def registrar_movimiento(data: dict):
     """
     Registra un movimiento de ingreso en la caja.
     data: { caja_id, factura_id, tipo, medio_pago, valor,
-            descripcion, paciente_id, paciente_nombre, numero_factura }
+            descripcion, paciente_id, paciente_nombre, numero_factura,
+            cita_id (opcional -- lo usa Admisiones al cobrar un copago
+            por anticipado, para poder enlazarlo después con su factura) }
     """
     res = _sb().table("fin_caja_movimientos").insert(data).execute()
     return res.data[0] if res.data else None
+
+
+def buscar_copagos_anticipados(cita_ids: list):
+    """
+    Movimientos de copago ya cobrados por anticipado (desde Admisiones,
+    ver hc_admisiones/routes.py) para estas citas, que todavía no están
+    enlazados a ninguna factura (factura_id IS NULL). Se usa desde
+    registrar_cobro_factura, al facturar, para no volver a cobrarlos.
+    """
+    ids = [c for c in (cita_ids or []) if c]
+    if not ids:
+        return []
+
+    res = (
+        _sb()
+        .table("fin_caja_movimientos")
+        .select("*")
+        .in_("cita_id", ids)
+        .eq("tipo", "COPAGO")
+        .is_("factura_id", "null")
+        .execute()
+    )
+    return res.data or []
 
 
 def listar_movimientos(caja_id: int):
@@ -334,10 +359,18 @@ def listar_conteo_historial(caja_id: int):
 # (Se llama automáticamente al facturar)
 # =============================================================
 
-def registrar_cobro_factura(caja_id: int, factura: dict, medio_pago: str = "EFECTIVO"):
+def registrar_cobro_factura(caja_id: int, factura: dict, medio_pago: str = "EFECTIVO", cita_ids: list = None):
     """
     Registra los cobros de una factura en la caja.
     Genera movimientos separados para copago, cuota moderadora, etc.
+
+    cita_ids: las citas que se están facturando en esta factura (una
+    factura puede agrupar varias). Antes de crear un movimiento nuevo de
+    COPAGO se revisa si alguna de esas citas ya tiene un copago cobrado
+    por anticipado desde Admisiones (buscar_copagos_anticipados) -- si
+    lo tiene, se enlaza ese movimiento existente con esta factura en vez
+    de duplicar el cobro, y solo se registra un movimiento nuevo por la
+    diferencia (si el copago de la factura es mayor a lo ya cobrado).
     """
     movimientos = []
     numero = factura.get("numero_factura", "")
@@ -353,17 +386,34 @@ def registrar_cobro_factura(caja_id: int, factura: dict, medio_pago: str = "EFEC
     # Copago
     copago = float(factura.get("copago", 0) or 0)
     if copago > 0:
-        movimientos.append({
-            "caja_id": caja_id,
-            "factura_id": factura_id,
-            "tipo": "COPAGO",
-            "medio_pago": medio_pago,
-            "valor": copago,
-            "descripcion": f"Copago factura {numero}",
-            "paciente_id": paciente_id,
-            "paciente_nombre": pac_nombre,
-            "numero_factura": numero,
-        })
+        anticipados = buscar_copagos_anticipados(cita_ids)
+        total_anticipado = sum(float(m.get("valor", 0) or 0) for m in anticipados)
+
+        # Enlazar los copagos ya cobrados por anticipado con esta
+        # factura -- así el reporte de caja los muestra asociados a su
+        # número de factura, y no se vuelven a contar como ingreso.
+        for m in anticipados:
+            _sb().table("fin_caja_movimientos").update({
+                "factura_id": factura_id,
+                "numero_factura": numero,
+            }).eq("id", m["id"]).execute()
+
+        copago_restante = copago - total_anticipado
+        if copago_restante > 0.01:  # tolerancia de redondeo
+            movimientos.append({
+                "caja_id": caja_id,
+                "factura_id": factura_id,
+                "tipo": "COPAGO",
+                "medio_pago": medio_pago,
+                "valor": copago_restante,
+                "descripcion": (
+                    f"Copago factura {numero}" if not anticipados
+                    else f"Copago factura {numero} (saldo tras anticipo en Admisiones)"
+                ),
+                "paciente_id": paciente_id,
+                "paciente_nombre": pac_nombre,
+                "numero_factura": numero,
+            })
 
     # Cuota moderadora
     cuota_mod = float(factura.get("cuota_moderadora", 0) or 0)

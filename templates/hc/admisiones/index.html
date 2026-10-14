@@ -239,6 +239,26 @@
 
   body.dark-mode .adm-btn-inasistencia:hover{ color:#f87171; }
 
+  .adm-btn-copago{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:var(--radius-sm);
+    border:1px solid rgba(37,99,235,.35);
+    background:rgba(37,99,235,.1);
+    color:#2563eb;
+    font-size:.78rem;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+
+  .adm-btn-copago:hover{ background:rgba(37,99,235,.2); }
+  .adm-btn-copago:disabled{ opacity:.55; cursor:default; }
+
+  body.dark-mode .adm-btn-copago{ color:#60a5fa; }
+
   .adm-empty{
     padding:48px 20px;
     text-align:center;
@@ -407,8 +427,18 @@
   }
 
   function renderAccion(cita){
+    const botonCopago = `
+      <button type="button" class="adm-btn-copago" onclick="cobrarCopago(${cita.id}, this)">
+        <i class="fa-solid fa-money-bill-wave"></i>
+        Cobrar copago
+      </button>`;
+
     if (cita.hora_llegada){
-      return '<span class="adm-espera-info"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Llegada registrada</span>';
+      return `
+        <div class="adm-acciones-grupo">
+          <span class="adm-espera-info"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Llegada registrada</span>
+          ${botonCopago}
+        </div>`;
     }
     return `
       <div class="adm-acciones-grupo">
@@ -420,6 +450,7 @@
           <i class="fa-solid fa-user-xmark"></i>
           No se presentó
         </button>
+        ${botonCopago}
       </div>`;
   }
 
@@ -624,6 +655,90 @@
     } else {
       confirmar();
     }
+  }
+
+  function cobrarCopago(citaId, boton){
+    const citaInfo = ADM_CITAS.find((c) => c.id === citaId);
+    const nombrePaciente = citaInfo ? citaInfo.paciente_nombre : "el paciente";
+
+    if (typeof Swal === "undefined") {
+      if (typeof Toast !== "undefined") {
+        Toast.show("No se pudo abrir el formulario de cobro.", "error");
+      }
+      return;
+    }
+
+    Swal.fire({
+      title: "Cobrar copago",
+      html: `
+        <div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:.8rem; font-weight:700; display:block;">Paciente</label>
+            <div>${escaparHtml(nombrePaciente)}</div>
+          </div>
+          <div>
+            <label for="swalCopagoValor" style="font-size:.8rem; font-weight:700; display:block;">Valor a cobrar</label>
+            <input id="swalCopagoValor" type="number" min="1" step="1" class="swal2-input" placeholder="Ej: 15000" style="margin:4px 0 0;">
+          </div>
+          <div>
+            <label for="swalCopagoMedio" style="font-size:.8rem; font-weight:700; display:block;">Medio de pago</label>
+            <select id="swalCopagoMedio" class="swal2-input" style="margin:4px 0 0;">
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="DATAFONO">Datáfono (tarjeta)</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Cobrar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#059669",
+      cancelButtonColor: "#64748b",
+      reverseButtons: true,
+      preConfirm: () => {
+        const valorTexto = document.getElementById("swalCopagoValor").value;
+        const medio = document.getElementById("swalCopagoMedio").value;
+        const valorNum = parseFloat(valorTexto);
+        if (!valorTexto || isNaN(valorNum) || valorNum <= 0){
+          Swal.showValidationMessage("Ingresa un valor válido mayor a cero.");
+          return false;
+        }
+        return { valor: valorNum, medio_pago: medio };
+      },
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      fetch("/hc/admisiones/api/cobrar-copago", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cita_id: citaId,
+          valor: result.value.valor,
+          medio_pago: result.value.medio_pago,
+          paciente_nombre: nombrePaciente,
+        }),
+      })
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.ok){
+            if (typeof Toast !== "undefined") {
+              Toast.show(`Copago de ${nombrePaciente} registrado en caja.`, "success", 5000);
+            }
+          } else {
+            if (typeof Toast !== "undefined") {
+              Toast.show(json.error || "No se pudo registrar el copago.", "error");
+            }
+          }
+        })
+        .catch(() => {
+          if (typeof Toast !== "undefined") {
+            Toast.show("Error de conexión al registrar el copago.", "error");
+          }
+        });
+    });
   }
 
   document.addEventListener("DOMContentLoaded", function(){

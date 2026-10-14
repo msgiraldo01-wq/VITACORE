@@ -18,11 +18,12 @@
 
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, session
 
 from blueprints.auth.decorators import login_required
 from repositories import hc_citas_repo as citas_repo
 from repositories import hc_motivos_cancelacion_repo as motivos_repo
+from repositories import fin_caja_repo as caja_repo
 from services.permisos_service import requiere_permiso
 
 bp_hc_admisiones = Blueprint(
@@ -143,6 +144,70 @@ def api_marcar_inasistencia():
             extra={"motivo_cancelacion_id": motivo["id"]},
         )
         return jsonify({"ok": True})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp_hc_admisiones.route("/api/cobrar-copago", methods=["POST"])
+@login_required
+@requiere_permiso("admisiones", "edit")
+def api_cobrar_copago():
+    body = request.get_json(silent=True) or {}
+    cita_id = body.get("cita_id")
+    paciente_nombre = (body.get("paciente_nombre") or "").strip()
+    medio_pago = body.get("medio_pago")
+
+    if not cita_id:
+        return jsonify({"ok": False, "error": "cita_id es requerido"}), 400
+
+    try:
+        valor = float(body.get("valor"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "El valor del copago no es válido"}), 400
+
+    if valor <= 0:
+        return jsonify({"ok": False, "error": "El valor del copago debe ser mayor a cero"}), 400
+
+    if not medio_pago:
+        return jsonify({"ok": False, "error": "Debe indicar el medio de pago"}), 400
+
+    try:
+        cita = citas_repo.obtener(cita_id)
+        if not cita:
+            return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+
+        usuario_id = session.get("user", {}).get("id", "")
+
+        # Requiere caja abierta -- el copago de Admisiones es dinero real
+        # que entra a caja, así que se registra igual que cualquier otro
+        # cobro: solo mientras el cajero tiene su turno abierto.
+        caja = caja_repo.obtener_caja_abierta(usuario_id)
+        if not caja:
+            return jsonify({
+                "ok": False,
+                "error": "No tiene una caja abierta. Abra una caja en el módulo de Caja antes de cobrar el copago.",
+            }), 400
+
+        hora_corta = (cita.get("hora_inicio") or "")[:5]
+
+        # Se guarda con cita_id (ver sql_copago_admisiones.sql) y SIN
+        # factura_id todavía -- cuando esta cita se facture más
+        # adelante, registrar_cobro_factura() busca este movimiento por
+        # cita_id y lo enlaza con la factura en vez de volver a
+        # cobrarlo, evitando que el copago se cuente dos veces.
+        movimiento = caja_repo.registrar_movimiento({
+            "caja_id": caja["id"],
+            "cita_id": cita_id,
+            "tipo": "COPAGO",
+            "medio_pago": medio_pago,
+            "valor": valor,
+            "descripcion": f"Copago admisión - cita del {cita.get('fecha')} {hora_corta}".strip(),
+            "paciente_id": cita.get("paciente_id"),
+            "paciente_nombre": paciente_nombre,
+        })
+
+        return jsonify({"ok": True, "data": movimiento})
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

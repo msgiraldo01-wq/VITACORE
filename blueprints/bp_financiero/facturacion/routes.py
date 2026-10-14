@@ -653,7 +653,7 @@ def api_facturar():
             if caja:
                 medio_pago       = data.get("medio_pago", "EFECTIVO")
                 factura_completa = repo.obtener_factura(factura["id"])
-                caja_repo.registrar_cobro_factura(caja["id"], factura_completa, medio_pago)
+                caja_repo.registrar_cobro_factura(caja["id"], factura_completa, medio_pago, cita_ids=list(cita_ids))
         except Exception as e_caja:
             print(f"[WARN] Error registrando cobro en caja: {e_caja}")
 
