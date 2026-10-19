@@ -3,50 +3,442 @@
 {% block title %}HC · Dashboard clínico{% endblock %}
 {% block header_icon %}<i class="fa-solid fa-chart-line"></i>{% endblock %}
 {% block header_title %}Dashboard clínico{% endblock %}
-{% block header_subtitle %}Vista general inicial del proyecto de historia clínica{% endblock %}
+{% block header_subtitle %}Lo que está pendiente hoy y cómo va la operación{% endblock %}
 
 {% block header_actions %}
+<button class="btn-ax ghost" id="dbRefrescar" type="button">
+  <i class="fa-solid fa-rotate"></i> Actualizar
+</button>
 <a class="btn-ax ghost" href="/hc/configuracion">
-  <i class="fa-solid fa-gear"></i>
-  Configuración
+  <i class="fa-solid fa-gear"></i> Configuración
 </a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .db-estado{ display:flex; align-items:center; gap:8px; font-size:.78rem;
+              color:var(--text-faint); margin:0 0 14px; min-height:18px; }
+  .db-estado.error{ color:var(--danger); }
+
+  /* ---------- Pendientes (lo primero que se lee) ---------- */
+  .db-pendientes{ background:var(--surface); border:1px solid var(--border);
+                  border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+                  padding:18px 20px; margin-bottom:16px; }
+  .db-pendientes > h3{ margin:0 0 4px; font-size:.95rem; display:flex;
+                       align-items:center; gap:9px; color:var(--text); }
+  .db-pendientes .sub{ margin:0 0 14px; font-size:.78rem; color:var(--text-faint); }
+
+  .pend-lista{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .pend{ display:flex; align-items:center; gap:13px; padding:12px 14px;
+         border:1px solid var(--border); border-left-width:3px;
+         border-radius:var(--radius-sm); background:var(--bg); }
+  .pend .ico{ width:30px; height:30px; border-radius:50%; display:grid;
+              place-items:center; font-size:.82rem; flex-shrink:0; }
+  .pend .txt{ flex:1; min-width:0; }
+  .pend .txt b{ display:block; font-size:.88rem; font-weight:600; color:var(--text); }
+  .pend .txt span{ font-size:.76rem; color:var(--text-faint); }
+  .pend .cta{ font-size:.78rem; font-weight:600; text-decoration:none;
+              padding:6px 13px; border-radius:var(--radius-pill);
+              border:1px solid var(--border-strong); color:var(--text-soft);
+              white-space:nowrap; transition:all .15s ease; }
+  .pend .cta:hover{ border-color:var(--brand); color:var(--brand); }
+
+  .pend.critico{ border-left-color:var(--danger); }
+  .pend.critico .ico{ background:var(--danger-soft); color:var(--danger); }
+  .pend.atencion{ border-left-color:var(--warn); }
+  .pend.atencion .ico{ background:var(--warn-soft); color:var(--warn); }
+  .pend.info{ border-left-color:var(--brand); }
+  .pend.info .ico{ background:var(--brand-soft); color:var(--brand); }
+
+  .db-aldia{ display:flex; align-items:center; gap:13px; padding:16px 14px;
+             border:1px dashed var(--border-strong); border-radius:var(--radius-sm);
+             background:var(--bg); }
+  .db-aldia i{ font-size:1.3rem; color:var(--success); }
+  .db-aldia b{ display:block; font-size:.9rem; color:var(--text); }
+  .db-aldia span{ font-size:.78rem; color:var(--text-faint); }
+
+  /* ---------- Rejilla de contexto: 12 columnas, sin huecos ---------- */
+  .db-grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px;
+            align-items:stretch; }
+  .db-card{ background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius-lg); padding:16px 18px;
+            box-shadow:var(--shadow-xs); display:flex; flex-direction:column; }
+  .col6{ grid-column:span 6; } .col4{ grid-column:span 4; }
+  @media (max-width:1100px){ .col6,.col4{ grid-column:span 12; } }
+
+  .db-card h3{ margin:0 0 12px; font-size:.82rem; display:flex; align-items:center;
+               justify-content:space-between; gap:8px; color:var(--text-soft);
+               text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+  .db-card h3 .tit{ display:flex; align-items:center; gap:7px; }
+  .db-card h3 a{ font-size:.72rem; font-weight:600; color:var(--brand);
+                 text-decoration:none; text-transform:none; letter-spacing:0; }
+  .db-card h3 a:hover{ text-decoration:underline; }
+
+  .db-nums{ display:flex; gap:20px; flex-wrap:wrap; }
+  .db-num .n{ font-size:1.45rem; font-weight:700; margin:0; line-height:1.15;
+              color:var(--text); }
+  .db-num .n.ok{ color:var(--success); } .db-num .n.err{ color:var(--danger); }
+  .db-num .n.warn{ color:var(--warn); }
+  .db-num .l{ font-size:.68rem; color:var(--text-faint); margin:1px 0 0;
+              text-transform:uppercase; letter-spacing:.03em; }
+
+  .db-lista{ list-style:none; margin:12px 0 0; padding:0; }
+  .db-lista li{ display:flex; align-items:center; gap:10px; padding:7px 0;
+                border-top:1px solid var(--border); font-size:.83rem; }
+  .db-lista li:first-child{ border-top:none; }
+  .db-lista .hora{ font-family:ui-monospace,Menlo,monospace; font-size:.76rem;
+                   color:var(--brand); font-weight:600; min-width:42px; }
+  .db-lista .quien{ flex:1; min-width:0; }
+  .db-lista .quien b{ display:block; font-weight:600; color:var(--text);
+                      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .db-lista .quien span{ font-size:.73rem; color:var(--text-faint);
+                         display:block; white-space:nowrap; overflow:hidden;
+                         text-overflow:ellipsis; }
+  .db-chip{ font-size:.68rem; padding:2px 8px; border-radius:var(--radius-pill);
+            background:var(--brand-soft); color:var(--brand); font-weight:600;
+            text-decoration:none; white-space:nowrap; }
+
+  /* Estado vacío con contexto, en vez de un cero gigante */
+  .db-vacio{ display:flex; flex-direction:column; justify-content:center;
+             flex:1; padding:6px 0; }
+  .db-vacio b{ font-size:.88rem; color:var(--text); font-weight:600; }
+  .db-vacio span{ font-size:.79rem; color:var(--text-faint); margin-top:4px; }
+  .db-vacio a{ font-size:.79rem; color:var(--brand); text-decoration:none;
+               margin-top:9px; font-weight:600; }
+  .db-vacio a:hover{ text-decoration:underline; }
+
+  .db-barras{ display:flex; align-items:flex-end; gap:4px; height:52px; margin-top:14px; }
+  /* La altura final va inline desde el servidor y el crecimiento lo hace
+     CSS: si el navegador no esta pintando (pestaña en segundo plano), la
+     barra ya queda en su altura correcta en vez de quedarse plana. */
+  .db-barra{ flex:1; background:var(--brand-soft); border-radius:2px 2px 0 0;
+             min-height:2px; position:relative; transform-origin:bottom;
+             animation:crecer .45s cubic-bezier(.4,0,.2,1); }
+  @keyframes crecer{ from{ transform:scaleY(0) } to{ transform:scaleY(1) } }
+  .db-barra.hoy{ background:var(--brand); }
+  .db-barra:hover::after{ content:attr(data-tip); position:absolute; bottom:100%;
+             left:50%; transform:translateX(-50%); white-space:nowrap;
+             background:var(--text); color:var(--surface); font-size:.68rem;
+             padding:3px 7px; border-radius:4px; margin-bottom:4px; z-index:5; }
+  .db-eje{ display:flex; justify-content:space-between; font-size:.66rem;
+           color:var(--text-faint); margin-top:5px; }
+
+  /* ---------- Carga ---------- */
+  .sk{ background:linear-gradient(90deg, var(--border) 25%,
+       var(--surface-2,#f1f5f9) 37%, var(--border) 63%);
+       background-size:400% 100%; animation:sk 1.3s ease infinite;
+       border-radius:6px; display:block; }
+  @keyframes sk{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+  .sk-num{ width:46px; height:26px; margin-bottom:5px; }
+  .sk-lbl{ width:66px; height:8px; }
+  .sk-fila{ height:34px; margin-top:8px; }
+  .db-cargando .db-dato{ display:none; }
+  .db-card:not(.db-cargando) .db-sk,
+  .db-pendientes:not(.db-cargando) .db-sk{ display:none; }
+  .db-cargando .pend-lista{ display:none; }
+
+  .db-msg{ font-size:.79rem; color:var(--text-faint); margin:10px 0 0; }
+  .db-msg.err{ color:var(--danger); }
+
+  @media (prefers-reduced-motion: reduce){
+    .sk{ animation:none; } .db-barra{ animation:none; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="content-block">
-  <h3 style="margin-top:0;">Proyecto Historia Clínica</h3>
-  <p style="margin-bottom:12px; color:var(--muted);">
-    La base visual ya está operativa. Desde aquí comenzaremos a construir los módulos funcionales del sistema.
-  </p>
 
-  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:16px;">
-    <div class="content-block">
-      <h4 style="margin-top:0;">Configuración</h4>
-      <p style="margin:0; color:var(--muted);">
-        Maestros base del sistema: sedes, especialidades, consultorios, servicios y más.
-      </p>
-    </div>
+<p class="db-estado" id="dbEstado" role="status" aria-live="polite">
+  <i class="fa-solid fa-spinner fa-spin"></i> Cargando…
+</p>
 
-    <div class="content-block">
-      <h4 style="margin-top:0;">Pacientes</h4>
-      <p style="margin:0; color:var(--muted);">
-        Registro, búsqueda y administración de pacientes.
-      </p>
-    </div>
-
-    <div class="content-block">
-      <h4 style="margin-top:0;">Citas</h4>
-      <p style="margin:0; color:var(--muted);">
-        Agenda médica, programación y control de atención.
-      </p>
-    </div>
-
-    <div class="content-block">
-      <h4 style="margin-top:0;">Historia clínica</h4>
-      <p style="margin:0; color:var(--muted);">
-        Registro clínico, evolución, antecedentes y trazabilidad asistencial.
-      </p>
-    </div>
+<section class="db-pendientes db-cargando" id="cardPendientes">
+  <h3><i class="fa-solid fa-list-check" style="color:var(--brand)"></i> Pendientes</h3>
+  <p class="sub" id="pendSub">Lo que necesita a alguien ahora mismo</p>
+  <div class="db-sk">
+    <span class="sk" style="height:54px"></span>
+    <span class="sk" style="height:54px;margin-top:8px"></span>
   </div>
+  <ul class="pend-lista" id="pendLista"></ul>
+</section>
+
+<div class="db-grid">
+
+  {% if puede_ver('citas') %}
+  <div class="db-card col6 db-cargando" id="cardAgenda">
+    <h3>
+      <span class="tit"><i class="fa-solid fa-calendar-check"></i> Agenda de hoy</span>
+      <a href="/hc/agenda-clinica">Ver agenda</a>
+    </h3>
+    <div class="db-sk">
+      <div class="db-nums">
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+      </div>
+      <span class="sk sk-fila"></span><span class="sk sk-fila"></span>
+    </div>
+    <div class="db-dato" id="agCuerpo"></div>
+  </div>
+  {% endif %}
+
+  {% if puede_ver('historia_clinica') %}
+  <div class="db-card col6 db-cargando" id="cardActividad">
+    <h3>
+      <span class="tit"><i class="fa-solid fa-notes-medical"></i> Actividad clínica</span>
+      <a href="/hc/historia-clinica">Historia clínica</a>
+    </h3>
+    <div class="db-sk">
+      <div class="db-nums">
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+      </div>
+      <span class="sk" style="height:52px;margin-top:14px"></span>
+    </div>
+    <div class="db-dato" id="acCuerpo"></div>
+  </div>
+
+  <div class="db-card col4 db-cargando" id="cardUltimas">
+    <h3><span class="tit"><i class="fa-solid fa-clock-rotate-left"></i> Últimas notas</span></h3>
+    <div class="db-sk">
+      <span class="sk sk-fila"></span><span class="sk sk-fila"></span><span class="sk sk-fila"></span>
+    </div>
+    <div class="db-dato"><ul class="db-lista" id="ulLista"></ul></div>
+  </div>
+  {% endif %}
+
+  {% if puede_ver('rda') %}
+  <div class="db-card col4 db-cargando" id="cardRda">
+    <h3>
+      <span class="tit"><i class="fa-solid fa-share-from-square"></i> Ministerio</span>
+      <a href="/rda/">Ver envíos</a>
+    </h3>
+    <div class="db-sk">
+      <div class="db-nums">
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+      </div>
+    </div>
+    <div class="db-dato" id="rdaCuerpo"></div>
+  </div>
+  {% endif %}
+
+  {% if puede_ver('farmacia') %}
+  <div class="db-card col4 db-cargando" id="cardFarmacia">
+    <h3>
+      <span class="tit"><i class="fa-solid fa-pills"></i> Farmacia</span>
+      <a href="/inventario/dashboard">Ver inventario</a>
+    </h3>
+    <div class="db-sk">
+      <div class="db-nums">
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+        <div><span class="sk sk-num"></span><span class="sk sk-lbl"></span></div>
+      </div>
+    </div>
+    <div class="db-dato" id="fcCuerpo"></div>
+  </div>
+  {% endif %}
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const estado = document.getElementById('dbEstado');
+  const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g,
+      c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const listo = id => document.getElementById(id)?.classList.remove('db-cargando');
+  const html = (id, contenido) => { const el = document.getElementById(id); if (el) el.innerHTML = contenido; };
+
+  function fallo(idTarjeta, idCuerpo, mensaje){
+    const c = document.getElementById(idTarjeta);
+    if (!c) return;
+    c.classList.remove('db-cargando');
+    html(idCuerpo, '<p class="db-msg err">' + esc(mensaje) + '</p>');
+  }
+
+  const numero = (valor, clase, etiqueta) =>
+    '<div class="db-num"><p class="n ' + (clase || '') + '">' + (valor ?? 0) + '</p>' +
+    '<p class="l">' + esc(etiqueta) + '</p></div>';
+
+  // ---------- Pendientes ----------
+  function pintarPendientes(lista){
+    const sub = document.getElementById('pendSub');
+    if (!lista || !lista.length){
+      sub.textContent = 'Nada requiere intervención en este momento';
+      html('pendLista',
+        '<li class="db-aldia"><i class="fa-solid fa-circle-check"></i>' +
+        '<div><b>Todo al día</b><span>No hay pendientes en este momento.</span></div></li>');
+    } else {
+      const criticos = lista.filter(p => p.nivel === 'critico').length;
+      sub.textContent = criticos
+        ? criticos + (criticos === 1 ? ' asunto crítico' : ' asuntos críticos') + ' de ' + lista.length
+        : lista.length + (lista.length === 1 ? ' asunto por resolver' : ' asuntos por resolver');
+      html('pendLista', lista.map(p =>
+        '<li class="pend ' + esc(p.nivel) + '">' +
+        '<span class="ico"><i class="fa-solid ' + esc(p.icono) + '"></i></span>' +
+        '<span class="txt"><b>' + esc(p.texto) + '</b><span>' + esc(p.detalle || '') + '</span></span>' +
+        '<a class="cta" href="' + esc(p.enlace) + '">' + esc(p.cta) + '</a></li>'
+      ).join(''));
+    }
+    listo('cardPendientes');
+  }
+
+  // ---------- Agenda ----------
+  function pintarAgenda(a){
+    if (!a) return fallo('cardAgenda', 'agCuerpo', 'No se pudo leer la agenda.');
+    if (!a.total){
+      const u = a.ultima_jornada;
+      html('agCuerpo',
+        '<div class="db-vacio"><b>Sin citas programadas para hoy.</b>' +
+        (u ? '<span>Última jornada con atención: ' + esc(u.etiqueta) + ' · ' +
+             u.citas + (u.citas === 1 ? ' cita' : ' citas') + '.</span>' +
+             '<a href="/citas">Abrir agenda</a>'
+           : '<span>Todavía no hay citas registradas en el sistema.</span>' +
+             '<a href="/citas">Programar una cita</a>') +
+        '</div>');
+    } else {
+      html('agCuerpo',
+        '<div class="db-nums">' +
+          numero(a.total, '', 'Citas hoy') +
+          numero(a.atendidas, 'ok', 'Atendidas') +
+          numero(a.pendientes_admision, a.pendientes_admision ? 'warn' : '', 'Por admitir') +
+        '</div>' +
+        '<ul class="db-lista">' + ((a.proximas || []).length
+          ? a.proximas.map(c =>
+              '<li><span class="hora">' + esc(c.hora) + '</span>' +
+              '<span class="quien"><b>' + esc(c.paciente) + '</b>' +
+              '<span>' + esc(c.medico) + '</span></span>' +
+              '<span class="db-chip">' + esc((c.estado || '').replace('_', ' ')) + '</span></li>').join('')
+          : '<li><span class="quien"><span>Ya se atendieron todas las citas de hoy.</span></span></li>') +
+        '</ul>');
+    }
+    listo('cardAgenda');
+  }
+
+  // ---------- Actividad ----------
+  function pintarActividad(a){
+    if (!a) return fallo('cardActividad', 'acCuerpo', 'No se pudo leer la actividad clínica.');
+    if (!a.semana){
+      const u = a.ultima_nota;
+      html('acCuerpo',
+        '<div class="db-vacio"><b>Sin notas clínicas esta semana.</b>' +
+        (u ? '<span>La última se registró el ' + esc(u.etiqueta) + '.</span>'
+           : '<span>Todavía no hay notas registradas.</span>') +
+        '<a href="/hc/historia-clinica">Abrir historia clínica</a></div>');
+      return listo('cardActividad');
+    }
+    const serie = a.serie || [];
+    const tope = Math.max(a.maximo || 0, 1);
+    html('acCuerpo',
+      '<div class="db-nums">' +
+        numero(a.hoy, '', 'Notas hoy') +
+        numero(a.semana, '', 'Esta semana') +
+        numero(a.pacientes_semana, '', 'Pacientes') +
+      '</div>' +
+      '<div class="db-barras" id="acBarras">' + serie.map((d, i) =>
+        '<div class="db-barra' + (i === serie.length - 1 ? ' hoy' : '') + '"' +
+        ' data-tip="' + esc(d.dia.slice(5)) + ': ' + d.total + '"' +
+        ' style="height:' + Math.max(2, Math.round((d.total / tope) * 52)) + 'px"></div>').join('') +
+      '</div><div class="db-eje"><span>' + esc((serie[0] || {}).dia || '').slice(5) +
+      '</span><span>hoy</span></div>');
+    listo('cardActividad');
+  }
+
+  // ---------- Últimas notas ----------
+  function pintarUltimas(lista){
+    if (!lista) return fallo('cardUltimas', 'ulLista', 'No se pudieron leer las notas.');
+    html('ulLista', lista.length
+      ? lista.map(e =>
+          '<li><span class="quien"><b>' + esc(e.paciente) + '</b>' +
+          '<span>' + esc(e.fecha) + (e.dx ? ' · ' + esc(e.dx) : '') + '</span></span>' +
+          '<a class="db-chip" href="/hc/historia/paciente/' + encodeURIComponent(e.paciente_id) +
+          '">Abrir</a></li>').join('')
+      : '<li><span class="quien"><span>Todavía no hay notas registradas.</span></span></li>');
+    listo('cardUltimas');
+  }
+
+  // ---------- Ministerio ----------
+  function pintarRda(r){
+    if (!r) return fallo('cardRda', 'rdaCuerpo', 'No se pudo leer el estado de los envíos.');
+    html('rdaCuerpo',
+      '<div class="db-nums">' +
+        numero(r.aceptados, 'ok', 'Aceptados') +
+        numero(r.rechazados, r.rechazados ? 'err' : '', 'Rechazados') +
+        numero(r.pendientes, r.pendientes ? 'warn' : '', 'Pendientes') +
+      '</div><p class="db-msg">' + r.total + ' transmisiones registradas.</p>');
+    listo('cardRda');
+  }
+
+  // ---------- Farmacia ----------
+  function pintarFarmacia(f){
+    if (!f) return fallo('cardFarmacia', 'fcCuerpo', 'No se pudo leer el inventario.');
+    const etiquetas = { total_productos:'Productos', bajo_minimo:'Bajo mínimo',
+                        amarillo:'Por vencer', vencidos:'Vencidos', rojo:'En rojo',
+                        valor_inventario:'Valor' };
+    const orden = ['total_productos', 'bajo_minimo', 'amarillo', 'vencidos'];
+    const items = orden.filter(k => typeof f[k] === 'number').map(k => {
+      const alerta = k === 'vencidos' ? 'err' : (k !== 'total_productos' && f[k] > 0 ? 'warn' : '');
+      return numero(f[k], alerta, etiquetas[k] || k.replace(/_/g, ' '));
+    });
+    html('fcCuerpo', items.length
+      ? '<div class="db-nums">' + items.join('') + '</div>' +
+        (typeof f.valor_inventario === 'number'
+          ? '<p class="db-msg">Valor del inventario: $' +
+            Math.round(f.valor_inventario).toLocaleString('es-CO') + '</p>' : '')
+      : '<p class="db-msg">Sin datos de inventario todavía.</p>');
+    listo('cardFarmacia');
+  }
+
+  // ---------- Carga ----------
+  async function cargar(){
+    estado.className = 'db-estado';
+    estado.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando…';
+    document.querySelectorAll('.db-card, .db-pendientes')
+            .forEach(c => c.classList.add('db-cargando'));
+
+    const t0 = performance.now();
+    try{
+      const r = await fetch('/hc/api/dashboard', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const d = await r.json().catch(() => null);
+
+      if (!d || !d.ok){
+        const motivo = (d && (d.message || d.error)) || ('HTTP ' + r.status);
+        estado.className = 'db-estado error';
+        estado.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar: ' + esc(motivo);
+        document.querySelectorAll('.db-card, .db-pendientes')
+                .forEach(c => c.classList.remove('db-cargando'));
+        html('pendLista', '<li class="db-aldia"><i class="fa-solid fa-plug-circle-xmark" ' +
+             'style="color:var(--danger)"></i><div><b>Sin datos</b>' +
+             '<span>No se pudo consultar el servidor.</span></div></li>');
+        return;
+      }
+
+      pintarPendientes(d.pendientes);
+      if (document.getElementById('cardAgenda')) pintarAgenda(d.agenda);
+      if (document.getElementById('cardActividad')) pintarActividad(d.actividad);
+      if (document.getElementById('cardUltimas')) pintarUltimas(d.ultimas);
+      if (document.getElementById('cardRda')) pintarRda(d.rda);
+      if (document.getElementById('cardFarmacia')) pintarFarmacia(d.farmacia);
+
+      estado.className = 'db-estado';
+      estado.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> ' +
+        'Actualizado a las ' + esc(d.generado || '') +
+        (d.cacheado ? ' · desde caché' : ' · ' + (d.consultas || 0) + ' consultas') +
+        ' · ' + Math.round(performance.now() - t0) + ' ms';
+
+    } catch(e){
+      estado.className = 'db-estado error';
+      estado.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' +
+                         'No se pudo contactar al servidor: ' + esc(e.message);
+      document.querySelectorAll('.db-card, .db-pendientes')
+              .forEach(c => c.classList.remove('db-cargando'));
+    }
+  }
+
+  document.getElementById('dbRefrescar').addEventListener('click', cargar);
+  cargar();
+})();
+</script>
 {% endblock %}

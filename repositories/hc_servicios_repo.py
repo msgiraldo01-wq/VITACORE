@@ -1,6 +1,8 @@
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
+@cacheado()
 def listar_servicios():
 
     sb = get_supabase_admin()
@@ -31,6 +33,7 @@ def obtener_servicio(servicio_id):
 
 
 def crear_servicio(data):
+    invalidar("hc_servicios_repo")
 
     sb = get_supabase_admin()
 
@@ -44,6 +47,7 @@ def crear_servicio(data):
 
 
 def actualizar_servicio(servicio_id, data):
+    invalidar("hc_servicios_repo")
 
     sb = get_supabase_admin()
 
@@ -58,6 +62,7 @@ def actualizar_servicio(servicio_id, data):
 
 
 def cambiar_estado(item_id: int, nuevo_estado: str):
+    invalidar("hc_servicios_repo")
     
     sb = get_supabase_admin
 

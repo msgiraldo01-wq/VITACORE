@@ -1,6 +1,7 @@
 from typing import Any
 from flask import session  # 🔥 CLAVE
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name() -> str:
@@ -33,6 +34,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
 # ================================
 # LISTAR
 # ================================
+@cacheado()
 def listar():
 
     empresa_id = _empresa_id()
@@ -113,6 +115,7 @@ def existe_codigo(codigo: str, exclude_id: int | None = None):
 # ================================
 def crear(data: dict):
 
+    invalidar("hc_especialidades_repo")
     empresa_id = _empresa_id()
 
     if not empresa_id:
@@ -143,6 +146,7 @@ def crear(data: dict):
 # ================================
 def actualizar(item_id: int, data: dict):
 
+    invalidar("hc_especialidades_repo")
     empresa_id = _empresa_id()
 
     if not empresa_id:
@@ -173,6 +177,7 @@ def actualizar(item_id: int, data: dict):
 # ================================
 def cambiar_estado(item_id: int, nuevo_estado: str):
 
+    invalidar("hc_especialidades_repo")
     empresa_id = _empresa_id()
 
     if not empresa_id:
@@ -196,6 +201,7 @@ def cambiar_estado(item_id: int, nuevo_estado: str):
 # ================================
 # SELECT (DROPDOWN)
 # ================================
+@cacheado()
 def listar_select():
 
     empresa_id = _empresa_id()

@@ -267,7 +267,14 @@ def crear(data: dict) -> Optional[dict]:
             raise ValueError(f"Campo requerido: {field}")
 
     try:
+        # empresa_id: sin esto la evolucion queda huerfana y no aparece en
+        # ninguna consulta filtrada por empresa (dashboard, recientes,
+        # resumen de historia clinica). Mismo patron que hc_citas_repo.crear().
+        from flask import session
+        empresa_id = data.get("empresa_id") or session.get("empresa_id")
+
         insert_data = {
+            "empresa_id": int(empresa_id) if empresa_id else None,
             "paciente_id": data.get("paciente_id"),
             "medico_id": data.get("medico_id"),
             "tipo_atencion": data.get("tipo_atencion", "CONSULTA_EXTERNA"),
@@ -394,10 +401,10 @@ def listar_recientes(limite: int = 20) -> list:
     básicos del paciente y del médico. Para la pantalla de inicio de
     Historia Clínica (/hc/historia-clinica).
 
-    NOTA: filtra por empresa_id, pero hc_evoluciones.crear() todavía no
-    guarda ese campo -- hasta que se corrija, las evoluciones nuevas no
-    aparecerán aquí si el filtro está activo. Ver el fix de crear() antes
-    de usar esto en producción con más de una empresa."""
+    NOTA: filtra por empresa_id. crear() ya guarda ese campo, pero las
+    evoluciones registradas ANTES de ese arreglo lo tienen en NULL y no
+    aparecen aquí. Para recuperarlas hay que rellenarlo una vez en la base
+    (UPDATE hc_evoluciones SET empresa_id = <id> WHERE empresa_id IS NULL)."""
     from flask import session
 
     empresa_id = session.get("empresa_id")

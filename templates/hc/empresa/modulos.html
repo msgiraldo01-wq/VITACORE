@@ -1,0 +1,205 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Módulos · {{ empresa.razon_social }}{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-toggle-on"></i>{% endblock %}
+{% block topbar_title %}Modo administrador{% endblock %}
+{% block topbar_subtitle %}Módulos contratados{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-toggle-on"></i>{% endblock %}
+{% block header_title %}{{ empresa.nombre_comercial or empresa.razon_social }}{% endblock %}
+{% block header_subtitle %}
+  NIT {{ empresa.nit }} · <span id="mdContador">{{ activos }}</span> de {{ total }} módulos activos
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/empresa/seleccionar">
+  <i class="fa-solid fa-arrow-left"></i> Empresas
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .md-intro{ font-size:.88rem; color:var(--text-soft); max-width:46rem;
+             margin:0 0 20px; line-height:1.6; }
+
+  .md-seccion{ margin-bottom:26px; }
+  .md-seccion h3{ font-size:.74rem; text-transform:uppercase; letter-spacing:.06em;
+                  color:var(--text-faint); font-weight:700; margin:0 0 12px; }
+
+  .md-lista{ display:grid; gap:10px; }
+  .md-item{ background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius-md); padding:14px 16px;
+            display:flex; align-items:flex-start; gap:14px;
+            transition:border-color .15s ease, opacity .15s ease; }
+  .md-item.off{ opacity:.62; }
+  .md-item.off:hover{ opacity:.85; }
+
+  .md-txt{ flex:1; min-width:0; }
+  .md-txt b{ display:block; font-size:.92rem; font-weight:600; color:var(--text); }
+  .md-code{ font-family:ui-monospace,Menlo,monospace; font-size:.7rem;
+            color:var(--text-faint); }
+  .md-rel{ font-size:.76rem; color:var(--text-faint); margin:6px 0 0; line-height:1.5; }
+  .md-rel strong{ font-weight:600; color:var(--text-soft); }
+
+  .md-nucleo{ font-size:.68rem; background:var(--brand-soft); color:var(--brand);
+              padding:2px 8px; border-radius:var(--radius-pill); font-weight:600;
+              white-space:nowrap; }
+
+  /* interruptor */
+  .md-sw{ position:relative; width:44px; height:25px; flex-shrink:0;
+          border:none; border-radius:999px; cursor:pointer; padding:0;
+          background:var(--border-strong); transition:background .2s ease; }
+  .md-sw[aria-checked="true"]{ background:var(--brand); }
+  .md-sw::after{ content:""; position:absolute; top:3px; left:3px;
+                 width:19px; height:19px; border-radius:50%; background:#fff;
+                 transition:transform .2s cubic-bezier(.4,0,.2,1); }
+  .md-sw[aria-checked="true"]::after{ transform:translateX(19px); }
+  .md-sw:disabled{ cursor:not-allowed; opacity:.45; }
+  .md-sw:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+
+  /* aviso de dependencias */
+  .md-dialogo{ position:fixed; inset:0; background:var(--overlay); z-index:2000;
+               display:grid; place-items:center; padding:20px; }
+  .md-dialogo[hidden]{ display:none; }
+  .md-caja{ background:var(--surface); border-radius:var(--radius-lg);
+            padding:24px; max-width:27rem; width:100%; box-shadow:var(--shadow-lg); }
+  .md-caja h4{ margin:0 0 8px; font-size:1rem; display:flex; align-items:center; gap:9px; }
+  .md-caja h4 i{ color:var(--warn); }
+  .md-caja p{ margin:0 0 14px; font-size:.88rem; color:var(--text-soft); line-height:1.55; }
+  .md-caja ul{ margin:0 0 18px; padding:0; list-style:none; display:grid; gap:8px; }
+  .md-caja li{ background:var(--bg); border-radius:var(--radius-sm); padding:10px 12px;
+               font-size:.85rem; }
+  .md-caja li b{ display:block; color:var(--text); }
+  .md-caja li span{ font-size:.77rem; color:var(--text-faint); }
+  .md-caja .cerrar{ background:var(--brand); color:#fff; border:none; width:100%;
+                    border-radius:var(--radius-sm); padding:10px; font-size:.88rem;
+                    font-weight:600; cursor:pointer; font-family:inherit; }
+
+  @media (prefers-reduced-motion: reduce){
+    .md-sw, .md-sw::after, .md-item{ transition:none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="md-intro">
+  Lo que se apague aquí desaparece para todos los usuarios de esta empresa, sin importar
+  su rol: ni sale en el menú ni responden sus direcciones. Apagar un módulo
+  <strong>oculta, nunca borra</strong>: los datos quedan intactos y vuelven al activarlo.
+</p>
+
+{% for seccion in secciones %}
+<div class="md-seccion">
+  <h3>{{ seccion.nombre }}</h3>
+  <div class="md-lista">
+    {% for m in seccion.modulos %}
+    <div class="md-item {% if not m.activo %}off{% endif %}" id="item-{{ m.code }}">
+      <button class="md-sw" type="button" role="switch"
+              aria-checked="{{ 'true' if m.activo else 'false' }}"
+              data-code="{{ m.code }}"
+              aria-label="{{ 'Desactivar' if m.activo else 'Activar' }} {{ m.name }}"
+              {% if m.nucleo %}disabled{% endif %}></button>
+
+      <div class="md-txt">
+        <b>{{ m.name }}</b>
+        <span class="md-code">{{ m.code }}</span>
+
+        {% if m.requiere %}
+        <p class="md-rel">
+          <strong>Necesita:</strong>
+          {% for r in m.requiere %}{{ r.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+        {% endif %}
+
+        {% if m.usado_por %}
+        <p class="md-rel">
+          <strong>Lo necesitan:</strong>
+          {% for d in m.usado_por %}{{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+        {% endif %}
+      </div>
+
+      {% if m.nucleo %}
+      <span class="md-nucleo">Siempre activo</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="md-dialogo" id="mdDialogo" hidden role="dialog" aria-modal="true"
+     aria-labelledby="mdTitulo">
+  <div class="md-caja">
+    <h4 id="mdTitulo"><i class="fa-solid fa-triangle-exclamation"></i> <span id="mdEncabezado"></span></h4>
+    <p id="mdTexto"></p>
+    <ul id="mdLista"></ul>
+    <button class="cerrar" type="button" id="mdCerrar">Entendido</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g,
+      c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const dialogo = document.getElementById('mdDialogo');
+  const contador = document.getElementById('mdContador');
+
+  function avisar(encabezado, texto, bloqueantes){
+    document.getElementById('mdEncabezado').textContent = encabezado;
+    document.getElementById('mdTexto').textContent = texto;
+    document.getElementById('mdLista').innerHTML = (bloqueantes || []).map(b =>
+      '<li><b>' + esc(b.name) + '</b><span>' + esc(b.motivo || '') + '</span></li>'
+    ).join('');
+    dialogo.hidden = false;
+    document.getElementById('mdCerrar').focus();
+  }
+  document.getElementById('mdCerrar').addEventListener('click', () => { dialogo.hidden = true; });
+  dialogo.addEventListener('click', e => { if (e.target === dialogo) dialogo.hidden = true; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') dialogo.hidden = true; });
+
+  document.querySelectorAll('.md-sw').forEach(sw => {
+    sw.addEventListener('click', async () => {
+      if (sw.disabled) return;
+      const code = sw.dataset.code;
+      const activar = sw.getAttribute('aria-checked') !== 'true';
+
+      sw.disabled = true;
+      try{
+        const r = await fetch('/empresa/modulos/{{ empresa.id }}/cambiar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ code: code, activar: activar })
+        });
+        const d = await r.json().catch(() => null);
+
+        if (!d || !d.ok){
+          avisar(
+            activar ? 'Faltan módulos' : 'No se puede apagar',
+            (d && d.message) || 'No se pudo guardar el cambio.',
+            d && d.bloqueantes
+          );
+          return;                       // el interruptor se queda como estaba
+        }
+
+        sw.setAttribute('aria-checked', activar ? 'true' : 'false');
+        sw.setAttribute('aria-label', (activar ? 'Desactivar ' : 'Activar ') + code);
+        document.getElementById('item-' + code).classList.toggle('off', !activar);
+        contador.textContent = document.querySelectorAll('.md-sw[aria-checked="true"]').length;
+
+      } catch(e){
+        avisar('Sin conexión', 'No se pudo contactar al servidor: ' + e.message, []);
+      } finally {
+        sw.disabled = false;
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

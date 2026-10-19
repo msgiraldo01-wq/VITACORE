@@ -36,29 +36,10 @@ Perfil clínico y resumen operativo del paciente
 .patient-hero{
   position:relative;
   overflow:hidden;
-  border-radius:26px;
-  padding:24px;
-  color:#fff;
-  box-shadow:var(--shadow-sm);
-}
-
-.patient-hero.masculino{
-  background:
-    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
-    linear-gradient(135deg, #1177b7 0%, #0d5c63 100%);
-}
-
-.patient-hero.femenino{
-  background:
-    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
-    linear-gradient(135deg, #c63d8b 0%, #6d4ec9 100%);
-}
-
-.patient-hero.otro{
-  background:
-    radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 26%),
-    linear-gradient(135deg, #4b6470 0%, #7a8b97 100%);
-}
+  border-radius:var(--radius-lg);
+  padding:18px 20px;
+  color:var(--text);
+  box-shadow:var(--shadow-xs); background:var(--surface); border:1px solid var(--border);}
 
 .patient-hero-top{
   display:flex;
@@ -76,18 +57,16 @@ Perfil clínico y resumen operativo del paciente
 }
 
 .avatar-lg{
-  width:78px;
-  height:78px;
-  border-radius:24px;
+  width:72px;
+  height:72px;
+  border-radius:var(--radius-lg);
   flex-shrink:0;
   display:grid;
   place-items:center;
   font-size:1.45rem;
   font-weight:800;
-  background:rgba(255,255,255,.20);
-  border:1px solid rgba(255,255,255,.18);
-  backdrop-filter:blur(8px);
-}
+  background:var(--brand-soft);
+  border:1px solid var(--border); color:var(--brand);}
 
 .patient-copy{
   min-width:0;
@@ -103,7 +82,7 @@ Perfil clínico y resumen operativo del paciente
 
 .patient-subline{
   margin:8px 0 0;
-  color:rgba(255,255,255,.88);
+  color:var(--text-soft);
   font-size:14px;
   line-height:1.6;
 }
@@ -121,12 +100,12 @@ Perfil clínico y resumen operativo del paciente
   gap:8px;
   min-height:38px;
   padding:0 12px;
-  border-radius:999px;
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.16);
-  color:#fff;
+  border-radius:var(--radius-pill);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-soft);
   font-size:12px;
-  font-weight:700;
+  font-weight:600;
 }
 
 .patient-status{
@@ -135,21 +114,32 @@ Perfil clínico y resumen operativo del paciente
   gap:8px;
   min-height:40px;
   padding:0 14px;
-  border-radius:999px;
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.16);
+  border-radius:var(--radius-pill);
+  background:var(--surface-2);
+  border:1px solid var(--border);
   font-size:12px;
-  font-weight:800;
+  font-weight:700;
   letter-spacing:.05em;
-  text-transform:uppercase;
+  text-transform:uppercase; color:var(--text-soft);}
+
+/* El estado sí merece color: verde si está activo, rojo si no. */
+.patient-status.activo{
+  background:var(--success-soft);
+  color:var(--success);
+  border-color:transparent;
+}
+.patient-status.inactivo{
+  background:var(--danger-soft);
+  color:var(--danger);
+  border-color:transparent;
 }
 
 .patient-status::before{
   content:"";
-  width:9px;
-  height:9px;
+  width:8px;
+  height:8px;
   border-radius:50%;
-  background:#fff;
+  background:currentColor;
 }
 
 .patient-kpis{
@@ -160,11 +150,10 @@ Perfil clínico y resumen operativo del paciente
 }
 
 .kpi-card{
-  padding:16px;
-  border-radius:18px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.14);
-  backdrop-filter:blur(8px);
+  padding:14px 16px;
+  border-radius:var(--radius-md);
+  background:var(--surface-2);
+  border:1px solid var(--border);
 }
 
 .kpi-card .kpi-label{
@@ -174,21 +163,21 @@ Perfil clínico y resumen operativo del paciente
   font-weight:800;
   letter-spacing:.08em;
   text-transform:uppercase;
-  color:rgba(255,255,255,.80);
+  color:var(--text-faint);
 }
 
 .kpi-card strong{
   display:block;
   font-size:1.3rem;
   line-height:1;
-  color:#fff;
+  color:var(--text);
 }
 
 .kpi-card span{
   display:block;
   margin-top:6px;
   font-size:12px;
-  color:rgba(255,255,255,.82);
+  color:var(--text-soft);
 }
 
 .patient-layout{
@@ -202,8 +191,8 @@ Perfil clínico y resumen operativo del paciente
 .mini-card{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:24px;
-  box-shadow:var(--shadow-sm);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-xs);
 }
 
 .info-panel{
@@ -235,10 +224,9 @@ Perfil clínico y resumen operativo del paciente
 }
 
 .info-item{
-  padding:12px 14px;
-  border-radius:16px;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
   background:var(--surface-2);
-  border:1px solid var(--border);
 }
 
 .info-item strong{
@@ -283,7 +271,7 @@ Perfil clínico y resumen operativo del paciente
 
 .tab{
   padding:10px 14px;
-  border-radius:12px;
+  border-radius:var(--radius-sm);
   border:1px solid var(--border);
   background:var(--surface);
   color:var(--text-soft);
@@ -363,8 +351,8 @@ Perfil clínico y resumen operativo del paciente
   display:flex;
   align-items:flex-start;
   gap:12px;
-  padding:14px;
-  border-radius:18px;
+  padding:12px 14px;
+  border-radius:var(--radius-sm);
   background:var(--surface-2);
   border:1px solid var(--border);
 }
@@ -375,7 +363,7 @@ Perfil clínico y resumen operativo del paciente
   margin-top:5px;
   border-radius:50%;
   background:var(--brand);
-  box-shadow:0 0 0 6px rgba(13,92,99,.10);
+  box-shadow:0 0 0 5px var(--brand-soft);
   flex-shrink:0;
 }
 
@@ -441,11 +429,10 @@ Perfil clínico y resumen operativo del paciente
 {% endblock %}
 
 {% block content %}
-{% set header_class = 'femenino' if paciente.sexo == 'F' else ('masculino' if paciente.sexo == 'M' else 'otro') %}
 
 <div class="patient-page">
 
-  <section class="patient-hero {{ header_class }}">
+  <section class="patient-hero">
     <div class="patient-hero-top">
       <div class="patient-main">
         <div class="avatar-lg">
@@ -486,7 +473,7 @@ Perfil clínico y resumen operativo del paciente
         </div>
       </div>
 
-      <div class="patient-status">
+      <div class="patient-status {{ 'activo' if (paciente.estado or '')|upper == 'ACTIVO' else 'inactivo' }}">
         {{ paciente.estado or 'Sin estado' }}
       </div>
     </div>

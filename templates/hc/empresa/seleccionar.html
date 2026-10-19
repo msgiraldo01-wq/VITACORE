@@ -524,6 +524,11 @@
             {{ 'Desactivar' if emp.estado == 'ACTIVA' else 'Activar' }}
           </button>
 
+          <a href="/empresa/modulos/{{ emp.id }}" class="btn-ax ghost">
+            <i class="fa-solid fa-toggle-on"></i>
+            Módulos
+          </a>
+
           <a href="/empresa/entrar/{{ emp.id }}" class="btn-ax primary">
             <i class="fa-solid fa-arrow-right-to-bracket"></i>
             Entrar

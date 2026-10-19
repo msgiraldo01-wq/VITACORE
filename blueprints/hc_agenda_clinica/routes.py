@@ -30,6 +30,7 @@ from flask import Blueprint, jsonify, render_template, request
 
 from blueprints.auth.decorators import login_required
 from repositories import hc_citas_repo as citas_repo
+from services import error_service
 
 bp_hc_agenda_clinica = Blueprint(
     "hc_agenda_clinica",
@@ -81,4 +82,5 @@ def api_dia():
         return jsonify({"ok": True, "data": visibles})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

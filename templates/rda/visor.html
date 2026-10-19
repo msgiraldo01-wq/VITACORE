@@ -301,5 +301,15 @@ function vsPager(total, pagina){
 }
 
 document.getElementById('vsDoc').addEventListener('keydown', e=>{ if(e.key==='Enter') vsConsultar(); });
+
+// Si se llega desde el panel de envios con /rda/visor?doc=<cedula>,
+// se precarga el documento y se consulta de una vez.
+(function(){
+  const doc = new URLSearchParams(location.search).get('doc');
+  if(doc){
+    document.getElementById('vsDoc').value = doc;
+    vsConsultar();
+  }
+})();
 </script>
 {% endblock %}

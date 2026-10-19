@@ -153,79 +153,69 @@ async function consultarMinisterio(){
   const doc = document.getElementById('qDoc').value.trim();
   const out = document.getElementById('rdaResultado');
   if(!doc){ out.innerHTML = '<div style="color:#c9a24b">Escribe una cédula.</div>'; return; }
-  
-  out.innerHTML = '<div style="color:#6e8693"><i class="fa-solid fa-spinner fa-spin"></i> Consultando al Ministerio (Extrayendo recursos FHIR)…</div>';
-  
-  // 1. Construimos el payload en formato Parameters exigido por el nuevo servicio interno
-  const fhirPayload = {
-    "payload": {
-      "resourceType": "Parameters",
-      "parameter": [
-        {
-          "name": "identifier",
-          "part": [
-            { "name": "type", "valueString": "CC" },
-            { "name": "value", "valueString": doc }
-          ]
-        }
-      ]
-    }
-  };
+
+  out.innerHTML = '<div style="color:#6e8693"><i class="fa-solid fa-spinner fa-spin"></i> Consultando al Ministerio…</div>';
 
   try{
-    // 2. Apuntamos al prefijo único de tu nuevo Blueprint (/api/composition)
-    const r = await fetch('/api/composition', {
+    // Endpoint real del blueprint RDA (bp_rda, url_prefix="/rda"): routes.py -> consultar()
+    const r = await fetch('/rda/consultar', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      body: JSON.stringify(fhirPayload)
+      body: JSON.stringify({ tipo_doc: 'CC', num_doc: doc })
     });
-    
-    const d = await r.json();
-    
-    // Si el backend reporta un error estructurado
-    if(d.error){ 
-      out.innerHTML = '<div style="color:#d9534f">No se pudo consultar: ' + esc(d.error) + '</div>'; 
-      return; 
+
+    // Si la sesión venció, Flask responde HTML y r.json() revienta: lo distinguimos
+    // de un error real en vez de culpar a la conexión.
+    const d = await r.json().catch(() => null);
+
+    if(!d){
+      out.innerHTML = '<div style="color:#d9534f">El servidor no respondió JSON (lo más probable: la sesión venció). Recarga la página e inténtalo de nuevo.</div>';
+      return;
     }
-    
-    // El nuevo backend organiza las composiciones dentro de 'entriesBySource'
-    const rdasEncontrados = d.entriesBySource?.encuentros || [];
-    
-    if(!rdasEncontrados.length){ 
-      out.innerHTML = '<div style="color:#6e8693">Sin registros de RDA activos en el Ministerio para esta cédula.</div>'; 
-      return; 
+
+    if(!r.ok || d.ok === false){
+      const motivo = d.message || d.error || ('el Ministerio respondió HTTP ' + (d.status || r.status));
+      out.innerHTML = '<div style="color:#d9534f">No se pudo consultar: ' + esc(motivo) + '</div>';
+      return;
     }
-    
-    // 3. Pintamos las tarjetas con el enlace ajustado al Visor de tu compañero
-    let html = '<div style="font-weight:700;color:#0a8c81;margin:6px 0">' + rdasEncontrados.length + ' RDA en el Ministerio:</div>';
-    
-    rdasEncontrados.forEach(e => {
-      const recurso = e.resource || {};
-      const idOficial = recurso.id || '—';
-      const titulo = esc(recurso.title || 'Resumen Digital de Atención');
-      const fecha = esc((recurso.date || '—').substring(0, 16).replace('T', ' '));
-      const estado = esc(recurso.status || '—');
-      
+
+    // El backend ya devuelve los Composition resumidos en d.rdas
+    const rdas = d.rdas || [];
+
+    if(!rdas.length){
+      out.innerHTML = '<div style="color:#6e8693">Sin registros de RDA activos en el Ministerio para esta cédula.</div>';
+      return;
+    }
+
+    let html = '<div style="font-weight:700;color:#0a8c81;margin:6px 0">' + rdas.length + ' RDA en el Ministerio:</div>';
+
+    rdas.forEach(a => {
+      const idOficial = esc(a.id || '-');
+      const titulo = esc(a.titulo || a.tipo || 'Resumen Digital de Atención');
+      const fecha = esc((a.fecha || '-').substring(0, 16).replace('T', ' '));
+      const estado = esc(a.estado || '-');
+
       html += '<div style="background:#eaf4f2;border:1px solid #cfe6e0;border-radius:10px;padding:12px;margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">'
         + '  <div>'
         + '    <div style="font-weight:600">' + titulo + '</div>'
-        + '    <div style="font-size:.78rem;color:#6e8693">Fecha: ' + fecha + ' · Estado: ' + estado + '</div>'
+        + '    <div style="font-size:.78rem;color:#6e8693">Fecha: ' + fecha + ' . Estado: ' + estado + '</div>'
         + '    <div class="mono" style="font-size:.7rem">id: ' + idOficial + '</div>'
         + '  </div>'
         + '  <div>'
-        // Este botón redirige directamente a la pantalla del visor de tu compañero pasando el ID oficial del recurso
-        + '    <a href="/visor/' + idOficial + '" class="rda-btn ghost" style="padding:5px 12px; font-size:.78rem; text-decoration:none; display:inline-block;">Ver en Visor</a>'
+        // El visor busca por documento (POST /rda/visor/atenciones), no por id de
+        // Composition: se abre con la cédula ya cargada.
+        + '    <a href="/rda/visor?doc=' + encodeURIComponent(doc) + '" class="rda-btn ghost" style="padding:5px 12px; font-size:.78rem; text-decoration:none; display:inline-block;">Ver en Visor</a>'
         + '  </div>'
         + '</div>';
     });
-    
+
     out.innerHTML = html;
-    
-  } catch(e) { 
-    out.innerHTML = '<div style="color:#d9534f">Error de conexión con el API Gateway local de Vitacore.</div>'; 
+
+  } catch(e) {
+    out.innerHTML = '<div style="color:#d9534f">No se pudo contactar al servidor de Vitacore: ' + esc(e.message) + '</div>';
   }
 }
 </script>

@@ -1,6 +1,13 @@
-from flask import Flask, render_template, session, redirect, url_for, request, jsonify # type: ignore
+import os
+import time
+
+from flask import Flask, render_template, session, redirect, url_for, request, jsonify, abort, g # type: ignore
+from werkzeug.exceptions import HTTPException
+
 from config import Config
 from services import permisos_service
+from services import modulos_service
+from services import error_service
 from blueprints.auth.routes import bp_auth
 from blueprints.configuracion_roles.routes import bp_roles
 from blueprints.configuracion_usuarios.routes import bp_usuarios
@@ -31,12 +38,16 @@ from blueprints.hc.historia_clinica.routes import bp_hc_home
 from blueprints.hc_reportes.routes import bp_hc_reportes
 from blueprints.hc_admisiones.routes import bp_hc_admisiones
 from blueprints.hc_agenda_clinica.routes import bp_hc_agenda_clinica
+from blueprints.configuracion_soporte.routes import bp_soporte
 
 
 
 
 app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
+
+# Logger a archivo rotativo (logs/vitacore.log) + consola.
+error_service.configurar_logging(app)
 app.register_blueprint(bp_auth)
 app.register_blueprint(bp_roles)
 app.register_blueprint(bp_usuarios)
@@ -67,6 +78,7 @@ app.register_blueprint(bp_financiero_contabilidad)
 app.register_blueprint(bp_hc_reportes)
 app.register_blueprint(bp_hc_admisiones)
 app.register_blueprint(bp_hc_agenda_clinica)
+app.register_blueprint(bp_soporte)
 
 @app.route("/")
 def inicio():
@@ -88,6 +100,30 @@ def ping():
 # blueprints/auth/routes.py) por una sola matriz por módulo de
 # negocio (roles_modulos), la misma que se configura con checkboxes
 # en /hc/configuracion/roles-permisos.
+# =========================================================
+# CUÁNTO TARDÓ EL SERVIDOR
+# =========================================================
+# Flask sabe cuánto tardó en armar cada respuesta y hasta ahora no lo
+# decía. Con esta cabecera el navegador puede separar lo que es lento
+# por la red de lo que es lento por la aplicación, que es la pregunta
+# que uno se hace cuando "el sistema está lento".
+
+@app.before_request
+def marcar_inicio():
+    g._inicio_peticion = time.perf_counter()
+
+
+@app.after_request
+def informar_tiempo_servidor(respuesta):
+    inicio = getattr(g, "_inicio_peticion", None)
+    if inicio is not None:
+        ms = (time.perf_counter() - inicio) * 1000
+        respuesta.headers["X-Tiempo-Servidor"] = f"{ms:.0f}"
+        # para que el navegador pueda leerla también en peticiones fetch
+        respuesta.headers["Timing-Allow-Origin"] = "*"
+    return respuesta
+
+
 @app.before_request
 def gate_permisos_por_modulo():
     if not session.get("user"):
@@ -96,6 +132,12 @@ def gate_permisos_por_modulo():
     modulo_code = permisos_service.resolver_modulo_code(request.path)
     if not modulo_code:
         return None  # ruta pública o todavía no mapeada a un módulo
+
+    # Módulo que la empresa no contrató: se responde como si la ruta no
+    # existiera. Un 403 confirmaría que el módulo está ahí; con 404 el
+    # sistema se ve hecho a la medida de lo que cada IPS compró.
+    if not modulos_service.tiene(modulo_code):
+        abort(404)
 
     if permisos_service.puede(modulo_code, "view"):
         return None
@@ -107,8 +149,74 @@ def gate_permisos_por_modulo():
 
 @app.context_processor
 def inyectar_helpers_permisos():
-    return {"puede_ver": permisos_service.puede_ver, "puede": permisos_service.puede}
+    # menu_modulos arma el menú lateral desde la tabla `modulos`, ya
+    # filtrado por lo que la empresa contrató y lo que el rol puede ver.
+    return {
+        "puede_ver": permisos_service.puede_ver,
+        "puede": permisos_service.puede,
+        "menu_modulos": lambda: modulos_service.menu_visible(permisos_service.puede_ver),
+    }
+
+# =========================================================
+# MANEJO DE ERRORES
+# =========================================================
+# Todo lo que no se atrape en una vista termina aquí: se registra con un
+# código y al usuario se le muestra ese código, nunca la traza. Las
+# peticiones AJAX reciben el mismo código en JSON, para que el frontend
+# lo pueda mostrar sin inventarse un mensaje.
+
+def _es_ajax():
+    return (request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.path.startswith("/api/")
+            or "/api/" in request.path)
+
+
+def _pagina_error(codigo_http, titulo, mensaje, codigo_error=None):
+    if _es_ajax():
+        cuerpo = {"ok": False, "error": mensaje}
+        if codigo_error:
+            cuerpo["codigo"] = codigo_error
+        return jsonify(cuerpo), codigo_http
+    return render_template(
+        "hc/error.html", codigo_http=codigo_http, titulo=titulo,
+        mensaje=mensaje, codigo_error=codigo_error,
+    ), codigo_http
+
+
+@app.errorhandler(404)
+def error_404(e):
+    return _pagina_error(404, "Página no encontrada",
+                         "La dirección que abriste no existe o cambió de lugar.")
+
+
+@app.errorhandler(403)
+def error_403(e):
+    return _pagina_error(403, "Sin permiso",
+                         "Tu rol no tiene acceso a esta parte del sistema.")
+
+
+@app.errorhandler(Exception)
+def error_no_controlado(e):
+    # Los errores HTTP "normales" (404, 405, 413...) no son fallas del
+    # sistema: no se registran como tales.
+    if isinstance(e, HTTPException) and e.code and e.code < 500:
+        return _pagina_error(e.code, e.name or "No se pudo completar",
+                             e.description or "La petición no se pudo procesar.")
+
+    codigo = error_service.registrar(e)
+    return _pagina_error(
+        500, "Algo falló de nuestro lado",
+        "El equipo de soporte ya tiene el detalle. Si necesitas ayuda, "
+        "dicta este código.", codigo_error=codigo,
+    )
+
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    # debug=True levanta el depurador de Werkzeug, que permite ejecutar
+    # código en el servidor desde el navegador: NUNCA en producción.
+    # En el servidor se arranca con un WSGI real, por ejemplo:
+    #     waitress-serve --host=0.0.0.0 --port=8000 app:app
+    debug = os.getenv("FLASK_DEBUG", "1") == "1"
+    app.run(debug=debug, host="0.0.0.0")
 

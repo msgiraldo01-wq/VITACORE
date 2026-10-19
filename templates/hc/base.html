@@ -74,6 +74,7 @@
       --offline-h: 38px;
       --sb-mobile-w: 280px;
       --sb-z: 1200;
+      --nav-z: 2000;
       --overlay: rgba(15,23,42,.4);
       --font: 'DM Sans', system-ui, -apple-system, sans-serif;
     }
@@ -502,11 +503,29 @@
       .btn-ax { width: 100%; }
       .toast-container { left: 12px; right: 12px; max-width: none; }
     }
-  </style>
+  
+    /* ── Barra de progreso de navegación ──────────────────────────
+       El servidor arma cada pantalla en unos cientos de milisegundos y
+       durante ese rato el navegador sigue mostrando la página anterior:
+       el clic parece no haber funcionado. Esta barra responde a los 30 ms
+       y muere con la página cuando llega la nueva. */
+    #nav-progreso{
+      position: fixed; top: 0; left: 0; height: 3px; width: 0;
+      background: var(--brand); z-index: var(--nav-z);
+      opacity: 0; pointer-events: none;
+      transition: width .2s ease-out, opacity .2s ease;
+      box-shadow: 0 0 8px var(--brand);
+    }
+    #nav-progreso.activa{ opacity: 1; }
+    @media (prefers-reduced-motion: reduce){
+      #nav-progreso{ transition: opacity .2s ease; }
+    }
+</style>
 
   {% block extra_css %}{% endblock %}
 </head>
 <body>
+  <div id="nav-progreso" aria-hidden="true"></div>
   <div class="offline-indicator" id="offlineIndicator" role="status" aria-live="polite">
     <i class="fa-solid fa-wifi-slash"></i>
     Sin conexión. Algunas funciones podrían no estar disponibles.
@@ -551,147 +570,30 @@
       </div>
 
       <div class="sidebar-nav-wrap">
-        <p class="nav-section-title">Clínico</p>
+        {# Menú generado desde la tabla `modulos`: solo las secciones y los
+           items que la empresa tiene contratados y el rol puede ver. Antes
+           esto eran 18 enlaces escritos a mano, y agregar un módulo obligaba
+           a editar esta plantilla. #}
+        {% for seccion in menu_modulos() %}
+        <p class="nav-section-title">{{ seccion.nombre }}</p>
         <nav class="sidebar-nav">
+          {% if loop.first %}
           <a href="/" class="nav-item" data-tip="Inicio">
             <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
             <span class="nav-label">Inicio</span>
           </a>
-          {% if puede_ver('dashboard_clinico') %}
-          <a href="/hc/" class="nav-item" data-tip="Dashboard clínico">
-            <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-            <span class="nav-label">Dashboard clínico</span>
-          </a>
           {% endif %}
-          {% if puede_ver('pacientes') %}
-          <a href="/hc/pacientes" class="nav-item" data-tip="Pacientes">
-            <span class="nav-icon"><i class="fa-solid fa-user-injured"></i></span>
-            <span class="nav-label">Pacientes</span>
+          {% for item in seccion.enlaces %}
+          <a href="{{ item.endpoint }}" class="nav-item" data-tip="{{ item.name }}">
+            <span class="nav-icon"><i class="fa-solid {{ item.icon }}"></i></span>
+            <span class="nav-label">{{ item.name }}</span>
+            {% if item.code == 'citas' and kpi_citas and kpi_citas > 0 %}
+            <span class="nav-badge">{{ kpi_citas }}</span>
+            {% endif %}
           </a>
-          {% endif %}
-          {% if puede_ver('admisiones') %}
-          <a href="/hc/admisiones" class="nav-item" data-tip="Admisiones">
-            <span class="nav-icon"><i class="fa-solid fa-door-open"></i></span>
-            <span class="nav-label">Admisiones</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('citas') %}
-          <a href="/citas" class="nav-item" data-tip="Citas">
-            <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
-            <span class="nav-label">Citas</span>
-            {% if kpi_citas and kpi_citas > 0 %}<span class="nav-badge">{{ kpi_citas }}</span>{% endif %}
-          </a>
-          {% endif %}
-          {% if puede_ver('historia_clinica') %}
-          <a href="/hc/historia-clinica" class="nav-item" data-tip="Historia clínica">
-            <span class="nav-icon"><i class="fa-solid fa-notes-medical"></i></span>
-            <span class="nav-label">Historia clínica</span>
-          </a>
-          <a href="/hc/agenda-clinica" class="nav-item" data-tip="Agenda clínica">
-            <span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span>
-            <span class="nav-label">Agenda clínica</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('rda') %}
-          <!-- Nueva sección integrada para Envíos RDA -->
-          <a href="/rda" class="nav-item" data-tip="Envíos RDA">
-            <span class="nav-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-            <span class="nav-label">Envíos RDA</span>
-          </a>
-          <a href="/rda/visor" class="nav-item" data-tip="Visor RDA">
-            <span class="nav-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
-            <span class="nav-label">Visor RDA</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('farmacia') %}
-          <a href="/inventario/dashboard" class="nav-item" data-tip="Farmacia">
-            <span class="nav-icon"><i class="fa-solid fa-pills"></i></span>
-            <span class="nav-label">Farmacia</span>
-          </a>
-          {% endif %}
+          {% endfor %}
         </nav>
-
-        <p class="nav-section-title">Financiero</p>
-        <nav class="sidebar-nav">
-          {% if puede_ver('dashboard_financiero') %}
-          <a href="/financiero/dashboard" class="nav-item" data-tip="Dashboard financiero">
-            <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-            <span class="nav-label">Dashboard financiero</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('contratos') %}
-          <a href="/financiero/contratos/" class="nav-item" data-tip="Contratos">
-            <span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span>
-            <span class="nav-label">Contratos</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('facturacion') %}
-          <a href="/facturacion/" class="nav-item" data-tip="Facturación">
-            <span class="nav-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-            <span class="nav-label">Facturación</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('radicacion') %}
-          <a href="/financiero/radicacion/" class="nav-item" data-tip="Radicación">
-            <span class="nav-icon"><i class="fa-solid fa-folder-open"></i></span>
-            <span class="nav-label">Radicación</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('glosas') %}
-          <a href="/financiero/glosas/" class="nav-item" data-tip="Glosas">
-            <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
-            <span class="nav-label">Glosas</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('cartera') %}
-          <a href="/financiero/cartera/" class="nav-item" data-tip="Cartera">
-            <span class="nav-icon"><i class="fa-solid fa-wallet"></i></span>
-            <span class="nav-label">Cartera</span>
-          </a>
-          <a href="/financiero/contabilidad/" class="nav-item" data-tip="Contabilidad">
-            <span class="nav-icon"><i class="fa-solid fa-book"></i></span>
-            <span class="nav-label">Contabilidad</span>
-          </a>
-          <a href="/financiero/conciliaciones/" class="nav-item" data-tip="Conciliaciones">
-            <span class="nav-icon"><i class="fa-solid fa-money-check-dollar"></i></span>
-            <span class="nav-label">Conciliaciones</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('tesoreria') %}
-          <a href="/financiero/tesoreria/" class="nav-item" data-tip="Tesorería">
-            <span class="nav-icon"><i class="fa-solid fa-building-columns"></i></span>
-            <span class="nav-label">Tesorería</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('config_financiera') %}
-          <a href="/financiero/configuracion/" class="nav-item" data-tip="Config. financiera">
-            <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>
-            <span class="nav-label">Configuración financiera</span>
-          </a>
-          {% endif %}
-        </nav>
-
-        <p class="nav-section-title">Administrativo</p>
-        <nav class="sidebar-nav">
-          {% if puede_ver('caja') %}
-          <a href="/caja" class="nav-item" data-tip="Caja / auditoría">
-            <span class="nav-icon"><i class="fa-solid fa-cash-register"></i></span>
-            <span class="nav-label">Caja / auditoría</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('reportes') %}
-          <a href="/hc/reportes" class="nav-item" data-tip="Reportes">
-            <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-            <span class="nav-label">Reportes</span>
-          </a>
-          {% endif %}
-          {% if puede_ver('configuracion') %}
-          <a href="/hc/configuracion" class="nav-item" data-tip="Configuración">
-            <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
-            <span class="nav-label">Configuración</span>
-          </a>
-          {% endif %}
-        </nav>
+        {% endfor %}
       </div>
 
       <div class="sidebar-user">
@@ -939,13 +841,49 @@
 
     let lastState = null; // null | 'slow' | 'ok'
 
+    // Tiempos de ESTA pantalla, que el navegador ya midió al cargarla.
+    function tiemposDeLaPantalla(){
+      try {
+        const nav = performance.getEntriesByType('navigation')[0];
+        if (!nav) return null;
+        const total = Math.round(nav.duration);
+        const servidor = Math.round(nav.responseStart - nav.requestStart);
+        return { total, servidor };
+      } catch (e) { return null; }
+    }
+
+    function actualizarDetalleIndicador(){
+      const ind = document.getElementById('offlineIndicator');
+      if (!ind) return;
+      const p = tiemposDeLaPantalla();
+      const partes = [];
+      if (p) partes.push('Esta pantalla: ' + p.total + ' ms (servidor ' + p.servidor + ' ms)');
+      if (ultimaRed !== null) partes.push('Último ping: red ' + Math.round(ultimaRed) + ' ms');
+      ind.title = partes.join(' · ');
+    }
+
+    // Último par de medidas, para poder decir de qué lado está la lentitud.
+    let ultimaRed = null, ultimoServidor = null;
+
+    function detalle(){
+      // La red es el viaje de ida y vuelta; el servidor es lo que Flask
+      // tardó en armar la respuesta (cabecera X-Tiempo-Servidor). Separarlos
+      // responde la pregunta de siempre: ¿es el internet o es el sistema?
+      const partes = [];
+      if (ultimaRed !== null) partes.push('red ' + Math.round(ultimaRed) + ' ms');
+      if (ultimoServidor !== null) partes.push('servidor ' + Math.round(ultimoServidor) + ' ms');
+      return partes.length ? ' · ' + partes.join(' · ') : '';
+    }
+
     function notify(state){
       if (state === lastState) return; // evita spam de toasts repetidos
       lastState = state;
       if (state === 'slow') {
-        Toast.show('Tu conexión a internet está lenta. Algunas acciones podrían tardar más de lo normal.', 'warning', 5000);
+        const culpa = (ultimoServidor !== null && ultimaRed !== null && ultimoServidor > ultimaRed)
+          ? 'El sistema está tardando en responder' : 'Tu conexión a internet está lenta';
+        Toast.show(culpa + detalle(), 'warning', 6000);
       } else if (state === 'ok') {
-        Toast.show('La velocidad de conexión se normalizó.', 'success', 3000);
+        Toast.show('La velocidad de conexión se normalizó' + detalle(), 'success', 3000);
       }
     }
 
@@ -981,7 +919,7 @@
 
       const start = performance.now();
       try {
-        await fetch(window.location.origin + '/ping?_=' + Date.now(), {
+        const resp = await fetch(window.location.origin + '/ping?_=' + Date.now(), {
           method: 'HEAD',
           cache: 'no-store'
         });
@@ -995,6 +933,14 @@
         if (document.hidden) return;
 
         const elapsed = performance.now() - start;
+
+        // /ping devuelve 204 sin tocar la base: lo que tarde es red pura.
+        // Aun así se descuenta lo que el servidor reporte, por si acaso.
+        const servidor = parseFloat(resp.headers.get('X-Tiempo-Servidor'));
+        ultimoServidor = isNaN(servidor) ? null : servidor;
+        ultimaRed = Math.max(0, elapsed - (ultimoServidor || 0));
+
+        actualizarDetalleIndicador();
         notify(elapsed > THRESHOLDS.pingSlowMs ? 'slow' : 'ok');
       } catch (e) {
         // si falla la petición, probablemente ya lo cubre el listener de 'offline'
@@ -1030,6 +976,74 @@
   {% endwith %}
 
   {% block overlays %}{% endblock %}
+  <script>
+  // Barra de progreso de navegación. Se activa con los clics que de verdad
+  // cargan otra página y con el envío de formularios; se queda quieta en el
+  // 90 % porque no hay forma de saber cuánto falta, y desaparece sola cuando
+  // el navegador reemplaza la página.
+  (function(){
+    const barra = document.getElementById('nav-progreso');
+    if (!barra) return;
+    let avance = 0, reloj = null;
+
+    function arrancar(){
+      if (reloj) return;
+      avance = 0;
+      barra.classList.add('activa');
+      barra.style.width = '0';
+      reloj = setInterval(() => {
+        // se acerca al 90 % sin llegar nunca: el salto final lo da la página nueva
+        avance += (90 - avance) * 0.12;
+        barra.style.width = avance.toFixed(1) + '%';
+      }, 120);
+    }
+
+    function detener(){
+      if (!reloj) return;
+      clearInterval(reloj); reloj = null;
+      barra.style.width = '100%';
+      setTimeout(() => {
+        barra.classList.remove('activa');
+        setTimeout(() => { barra.style.width = '0'; }, 220);
+      }, 120);
+    }
+
+    document.addEventListener('click', e => {
+      // un clic con Ctrl, Cmd, Shift o el botón del medio abre otra pestaña:
+      // esta pestaña no navega y la barra no debe aparecer
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey ||
+          e.shiftKey || e.altKey) return;
+
+      const enlace = e.target.closest('a');
+      if (!enlace) return;
+      const href = enlace.getAttribute('href') || '';
+
+      if (!href || href.startsWith('#') || enlace.target === '_blank' ||
+          enlace.hasAttribute('download') ||
+          /^(javascript|mailto|tel|sms|blob|data):/i.test(href)) return;
+
+      // enlaces a otro sitio: tampoco, se van a otra pestaña o salen de la app
+      const destino = new URL(enlace.href, location.href);
+      if (destino.origin !== location.origin) return;
+      // misma página, solo cambia el ancla
+      if (destino.pathname === location.pathname &&
+          destino.search === location.search && destino.hash) return;
+
+      arrancar();
+    }, true);
+
+    document.addEventListener('submit', e => {
+      if (!e.defaultPrevented) arrancar();
+    }, true);
+
+    // si el usuario cancela (Esc) o vuelve con el botón atrás, la barra no
+    // puede quedarse colgada en pantalla
+    window.addEventListener('pageshow', detener);
+    window.addEventListener('pagehide', detener);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') detener(); });
+  })();
+  </script>
+
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -3,6 +3,7 @@ from flask import current_app  # type: ignore
 
 from services.supabase_service import get_supabase_admin
 from flask import session 
+from services.cache_service import cacheado, invalidar
 
 
 # =========================
@@ -44,6 +45,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
 # LISTAR
 # =========================
 
+@cacheado()
 def listar():
 
     empresa_id = _empresa_id()
@@ -128,6 +130,7 @@ def existe_codigo(codigo: str, exclude_id: int | None = None):
 # =========================
 
 def crear(data: dict):
+    invalidar("hc_eps_repo")
 
     empresa_id = _empresa_id()
 
@@ -159,6 +162,7 @@ def crear(data: dict):
 # =========================
 
 def actualizar(item_id: int, data: dict):
+    invalidar("hc_eps_repo")
 
     empresa_id = _empresa_id()
 
@@ -190,6 +194,7 @@ def actualizar(item_id: int, data: dict):
 # =========================
 
 def cambiar_estado(item_id: int, nuevo_estado: str):
+    invalidar("hc_eps_repo")
 
     empresa_id = _empresa_id()
 

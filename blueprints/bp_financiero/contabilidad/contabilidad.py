@@ -24,6 +24,7 @@ from services.contabilidad_service import (
     obtener_libro_mayor,
     catalogos_para_formulario,
 )
+from services import error_service
 
 bp_financiero_contabilidad = Blueprint(
     "contabilidad", __name__, url_prefix="/financiero/contabilidad"
@@ -115,7 +116,8 @@ def api_crear_tercero():
         tercero = crear_tercero(data)
         return jsonify({"ok": True, "tercero": tercero})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -235,4 +237,5 @@ def api_cambiar_periodo():
         cambiar_estado_periodo(1, periodo, estado, _usuario())
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

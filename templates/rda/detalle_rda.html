@@ -2,41 +2,388 @@
 
 {% block title %}VITACORE · Detalle RDA{% endblock %}
 
-{% block topbar_icon %}
-<i class="fa-solid fa-file-medical"></i>
-{% endblock %}
-
+{% block topbar_icon %}<i class="fa-solid fa-file-medical"></i>{% endblock %}
 {% block topbar_title %}Resumen Digital de Atención (RDA){% endblock %}
 {% block topbar_subtitle %}Consulta de estado de transmisión ante Minsalud{% endblock %}
 
-{% block header_icon %}
-<i class="fa-solid fa-file-waveform"></i>
-{% endblock %}
-
+{% block header_icon %}<i class="fa-solid fa-file-waveform"></i>{% endblock %}
 {% block header_title %}Detalle del Registro RDA{% endblock %}
 {% block header_subtitle %}
-  Visualización y auditoría del Bundle HL7 FHIR transmitido para interoperabilidad.
+  Atención transmitida al Ministerio · envío #{{ envio.id }}
 {% endblock %}
 
 {% block header_actions %}
-<a class="btn-ax ghost" href="/facturacion/">
+<a class="btn-ax ghost" href="/rda/">
   <i class="fa-solid fa-arrow-left"></i> Volver al módulo
 </a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .dt-card{ background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius-lg); padding:20px 22px; margin-bottom:16px;
+            box-shadow:var(--shadow-xs); }
+  .dt-card > h3{ margin:0 0 14px; font-size:1rem; display:flex; align-items:center;
+                 gap:8px; color:var(--text); }
+  .dt-sub{ font-size:.74rem; text-transform:uppercase; letter-spacing:.04em;
+           color:var(--text-faint); font-weight:700; margin:18px 0 10px; }
+
+  .dt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+            gap:14px 24px; }
+  .dt-item .k{ font-size:.72rem; color:var(--text-faint); margin:0 0 3px;
+               text-transform:uppercase; letter-spacing:.03em; }
+  .dt-item .v{ font-size:.9rem; color:var(--text); margin:0; font-weight:500;
+               word-break:break-word; }
+
+  .pill{ padding:3px 11px; border-radius:var(--radius-pill); font-size:.75rem;
+         font-weight:600; white-space:nowrap; display:inline-block; }
+  .pill.ok{ background:var(--success-soft); color:var(--success); }
+  .pill.err{ background:var(--danger-soft); color:var(--danger); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.pend{ background:var(--info-soft); color:var(--info); }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:.78rem; }
+
+  .dt-nota{ white-space:pre-wrap; font-size:.88rem; line-height:1.55;
+            color:var(--text); margin:0; }
+  .dt-bloque{ margin-bottom:16px; }
+
+  .dt-signos{ display:flex; flex-wrap:wrap; gap:8px; }
+  .dt-signo{ background:var(--brand-soft); border-radius:var(--radius-sm);
+             padding:7px 12px; font-size:.82rem; color:var(--text); }
+  .dt-signo b{ color:var(--brand); font-weight:700; }
+
+  .dt-tabla{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  .dt-tabla th{ text-align:left; padding:8px 12px; font-size:.72rem;
+                text-transform:uppercase; letter-spacing:.03em;
+                color:var(--text-faint); border-bottom:1px solid var(--border); }
+  .dt-tabla td{ padding:9px 12px; border-bottom:1px solid var(--border); }
+  .dt-tabla tr:last-child td{ border-bottom:none; }
+
+  .dt-json{ background:var(--bg); border:1px solid var(--border);
+            border-radius:var(--radius-sm); padding:14px; overflow:auto;
+            max-height:420px; font-family:ui-monospace,Menlo,monospace;
+            font-size:.74rem; line-height:1.5; color:var(--text); margin:10px 0 0;
+            white-space:pre; }
+  .dt-det{ border-top:1px solid var(--border); }
+  .dt-det:first-of-type{ border-top:none; }
+  .dt-det summary{ cursor:pointer; font-weight:600; font-size:.88rem;
+                   padding:12px 0; color:var(--text); list-style:none;
+                   display:flex; align-items:center; gap:10px;
+                   transition:color .18s ease; }
+  .dt-det summary::-webkit-details-marker{ display:none; }
+  .dt-det summary:hover{ color:var(--brand); }
+  .dt-det summary .chevron{ font-size:.75rem; color:var(--text-faint);
+                            transition:transform .28s cubic-bezier(.4,0,.2,1); }
+  .dt-det[open] summary .chevron{ transform:rotate(90deg); }
+
+  /* La altura la anima el JS (un <details> no transiciona solo);
+     aquí solo queda el desvanecido del contenido. */
+  .dt-det-body{ overflow:hidden; }
+  .dt-det-body > *{ opacity:1; transition:opacity .22s ease .06s; }
+  .dt-det-body.cerrando > *{ opacity:0; transition-delay:0s; }
+
+  @media (prefers-reduced-motion: reduce){
+    .dt-det summary .chevron,
+    .dt-det-body > *{ transition:none; }
+  }
+  .dt-copiar{ background:transparent; border:1px solid var(--border-strong);
+              color:var(--text-soft); border-radius:var(--radius-xs);
+              padding:4px 10px; font-size:.75rem; cursor:pointer; float:right; }
+  .dt-vacio{ color:var(--text-faint); font-size:.86rem; font-style:italic; margin:0; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="content-block" style="margin-bottom: 16px;">
-  <h3 style="margin:0 0 8px;"><i class="fa-solid fa-circle-info" style="color: var(--brand);"></i> Información General</h3>
-  <p style="margin:0; color:var(--text-soft);">
-    Aquí puedes renderizar las variables que le pases desde tu ruta de Flask (ej. datos del paciente, el JSON enviado, o el ID de confirmación).
-  </p>
+
+{# ============ 1. ESTADO DE LA TRANSMISIÓN ============ #}
+<div class="dt-card">
+  <h3><i class="fa-solid fa-satellite-dish" style="color:var(--brand)"></i> Estado de la transmisión</h3>
+  <div class="dt-grid">
+    <div class="dt-item">
+      <p class="k">Estado</p>
+      <p class="v">
+        {% if envio.estado == 'aceptado' %}<span class="pill ok">Aceptado</span>
+        {% elif envio.estado in ('rechazado', 'error') %}<span class="pill err">Rechazado</span>
+        {% elif envio.estado == 'excepcion_identidad' %}<span class="pill warn">Excepción</span>
+        {% else %}<span class="pill pend">Pendiente</span>{% endif %}
+      </p>
+    </div>
+    <div class="dt-item">
+      <p class="k">Respuesta HTTP</p>
+      <p class="v">{{ envio.http_status or '—' }}</p>
+    </div>
+    <div class="dt-item">
+      <p class="k">Intentos</p>
+      <p class="v">{{ envio.intentos }}</p>
+    </div>
+    <div class="dt-item">
+      <p class="k">ID RDA (Composition)</p>
+      <p class="v mono">{{ envio.composition_id or '—' }}</p>
+    </div>
+    <div class="dt-item">
+      <p class="k">Enviado</p>
+      <p class="v">{{ (envio.created_at or '')[:19]|replace('T', ' ') or '—' }}</p>
+    </div>
+    <div class="dt-item">
+      <p class="k">Último intento</p>
+      <p class="v">{{ (envio.updated_at or '')[:19]|replace('T', ' ') or '—' }}</p>
+    </div>
+  </div>
+  {% if envio.motivo %}
+  <p class="dt-sub">Respuesta del Ministerio</p>
+  <p class="dt-nota">{{ envio.motivo }}</p>
+  {% endif %}
 </div>
 
-<!-- Puedes crear tantas tarjetas o bloques de contenido como necesites -->
-<div class="content-block">
-  <h3 style="margin:0 0 8px;"><i class="fa-solid fa-code" style="color: var(--accent);"></i> Estado de la Transmisión</h3>
-  <p style="margin:0; color:var(--text-soft);">
-    Logs técnicos del API Gateway y validación del identificador VIDA.
-  </p>
+{# ============ 2. LO QUE SE LE ENVIÓ AL MINISTERIO ============ #}
+<div class="dt-card">
+  <h3><i class="fa-solid fa-share-from-square" style="color:var(--accent)"></i> Lo que se le envió al Ministerio</h3>
+
+  {% if resumen.paciente %}
+  <p class="dt-sub" style="margin-top:0">Paciente</p>
+  <div class="dt-grid">
+    <div class="dt-item"><p class="k">Nombre</p><p class="v">{{ resumen.paciente.nombre or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Documento</p><p class="v mono">{{ resumen.paciente.tipo_doc }} {{ resumen.paciente.documento }}</p></div>
+    <div class="dt-item"><p class="k">Sexo</p><p class="v">{{ resumen.paciente.sexo }}</p></div>
+    <div class="dt-item"><p class="k">Nacimiento</p><p class="v">{{ resumen.paciente.nacimiento or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Municipio</p><p class="v">{{ resumen.paciente.municipio or '—' }}</p></div>
+  </div>
+  {% endif %}
+
+  <p class="dt-sub">Prestador y asegurador</p>
+  <div class="dt-grid">
+    <div class="dt-item"><p class="k">IPS</p><p class="v">{{ resumen.ips.nombre or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Código de habilitación</p><p class="v mono">{{ resumen.ips.habilitacion or '—' }}</p></div>
+    <div class="dt-item"><p class="k">NIT</p><p class="v mono">{{ resumen.ips.nit or '—' }}</p></div>
+    <div class="dt-item"><p class="k">EPS / EAPB</p><p class="v">{{ resumen.eps.nombre or 'No reportada' }}</p></div>
+    <div class="dt-item"><p class="k">Código EAPB</p><p class="v mono">{{ resumen.eps.codigo or '—' }}</p></div>
+  </div>
+
+  {% if resumen.profesional %}
+  <p class="dt-sub">Profesional que atendió</p>
+  <div class="dt-grid">
+    <div class="dt-item"><p class="k">Nombre</p><p class="v">{{ resumen.profesional.nombre or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Documento</p><p class="v mono">{{ resumen.profesional.tipo_doc }} {{ resumen.profesional.documento }}</p></div>
+  </div>
+  {% endif %}
+
+  {% if resumen.encuentro %}
+  <p class="dt-sub">Encuentro</p>
+  <div class="dt-grid">
+    <div class="dt-item"><p class="k">Inicio</p><p class="v">{{ resumen.encuentro.inicio[:19]|replace('T', ' ') or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Fin</p><p class="v">{{ resumen.encuentro.fin[:19]|replace('T', ' ') or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Procedimiento (CUPS)</p><p class="v">{{ resumen.encuentro.cups_codigo }} · {{ resumen.encuentro.cups_nombre }}</p></div>
+    <div class="dt-item"><p class="k">Causa externa</p><p class="v">{{ resumen.encuentro.causa_nombre or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Prestador del encuentro</p><p class="v mono">{{ resumen.encuentro.prestador_ref or 'No reportado' }}</p></div>
+  </div>
+  {% if resumen.encuentro.tipos %}
+  <div class="dt-signos" style="margin-top:12px">
+    {% for t in resumen.encuentro.tipos %}<span class="dt-signo">{{ t }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if resumen.diagnosticos %}
+  <p class="dt-sub">Diagnósticos</p>
+  <table class="dt-tabla">
+    <thead><tr><th>CIE-10</th><th>Descripción</th><th>Tipo</th></tr></thead>
+    <tbody>
+      {% for d in resumen.diagnosticos %}
+      <tr>
+        <td class="mono">{{ d.codigo }}</td>
+        <td>{{ d.descripcion }}</td>
+        <td>{{ d.tipo or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if not resumen.paciente and not resumen.encuentro %}
+  <p class="dt-vacio">Este envío no guardó el Bundle, así que no hay detalle que mostrar.</p>
+  {% endif %}
 </div>
+
+{# ============ 3. LA CONSULTA CLÍNICA ============ #}
+<div class="dt-card">
+  <h3><i class="fa-solid fa-notes-medical" style="color:var(--brand)"></i> La consulta clínica</h3>
+
+  {% if evolucion %}
+  <div class="dt-grid" style="margin-bottom:18px">
+    <div class="dt-item"><p class="k">Fecha de atención</p><p class="v">{{ (evolucion.fecha or '')[:16]|replace('T', ' ') or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Médico tratante</p><p class="v">{{ evolucion.medico_nombre or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Tipo de atención</p><p class="v">{{ evolucion.tipo_atencion or '—' }}</p></div>
+    <div class="dt-item"><p class="k">Diagnóstico</p><p class="v">{{ evolucion.cie10_codigo }} · {{ evolucion.cie10_nombre }}</p></div>
+  </div>
+
+  {% if evolucion.ta or evolucion.fc or evolucion.fr or evolucion.temperatura
+        or evolucion.peso or evolucion.talla or evolucion.imc or evolucion.spo2 %}
+  <p class="dt-sub">Signos vitales</p>
+  <div class="dt-signos">
+    {% if evolucion.ta %}<span class="dt-signo"><b>TA</b> {{ evolucion.ta }}</span>{% endif %}
+    {% if evolucion.fc %}<span class="dt-signo"><b>FC</b> {{ evolucion.fc }} lpm</span>{% endif %}
+    {% if evolucion.fr %}<span class="dt-signo"><b>FR</b> {{ evolucion.fr }} rpm</span>{% endif %}
+    {% if evolucion.temperatura %}<span class="dt-signo"><b>T°</b> {{ evolucion.temperatura }} °C</span>{% endif %}
+    {% if evolucion.spo2 %}<span class="dt-signo"><b>SpO₂</b> {{ evolucion.spo2 }}%</span>{% endif %}
+    {% if evolucion.peso %}<span class="dt-signo"><b>Peso</b> {{ evolucion.peso }} kg</span>{% endif %}
+    {% if evolucion.talla %}<span class="dt-signo"><b>Talla</b> {{ evolucion.talla }}</span>{% endif %}
+    {% if evolucion.imc %}<span class="dt-signo"><b>IMC</b> {{ evolucion.imc }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% set bloques = [
+      ('Motivo de consulta', evolucion.motivo_consulta),
+      ('Enfermedad actual', evolucion.enfermedad_actual),
+      ('Antecedentes', evolucion.antecedentes),
+      ('Alergias', evolucion.alergias),
+      ('Examen físico', evolucion.examen_fisico),
+      ('Examen por sistemas', evolucion.examen_sistemas),
+      ('Impresión diagnóstica', evolucion.impresion_diagnostica),
+      ('Diagnósticos secundarios', evolucion.diagnosticos_secundarios),
+      ('Resultados de paraclínicos', evolucion.resultados_paraclinicos),
+      ('Plan de manejo', evolucion.plan),
+      ('Recomendaciones', evolucion.recomendaciones)
+  ] %}
+  {% for titulo, texto in bloques %}
+    {% if texto %}
+    <div class="dt-bloque">
+      <p class="dt-sub">{{ titulo }}</p>
+      <p class="dt-nota">{{ texto }}</p>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if evolucion.proximo_control_fecha %}
+  <p class="dt-sub">Próximo control</p>
+  <p class="dt-nota">{{ evolucion.proximo_control_fecha }} {{ evolucion.proximo_control_tipo }}</p>
+  {% endif %}
+
+  {% else %}
+  <p class="dt-vacio">No se encontró la evolución que originó este envío (evolución #{{ envio.evolucion_id or '—' }}).</p>
+  {% endif %}
+</div>
+
+{# ============ 4. AUDITORÍA ============ #}
+<div class="dt-card">
+  <h3><i class="fa-solid fa-code" style="color:var(--accent)"></i> Auditoría técnica</h3>
+
+  <details class="dt-det">
+    <summary>
+      <i class="fa-solid fa-chevron-right chevron"></i>
+      <span>Bundle HL7 FHIR transmitido{% if resumen.bundle_id %}<span class="mono" style="color:var(--text-faint);font-weight:400"> · {{ resumen.bundle_id }}</span>{% endif %}</span>
+    </summary>
+    <div class="dt-det-body">
+      <div>
+        {% if bundle_txt %}
+          <button class="dt-copiar" onclick="copiarJson('jsonBundle', this)">Copiar</button>
+          <pre class="dt-json" id="jsonBundle">{{ bundle_txt }}</pre>
+        {% else %}
+          <p class="dt-vacio" style="padding-bottom:12px">Este envío no guardó el Bundle.</p>
+        {% endif %}
+      </div>
+    </div>
+  </details>
+
+  <details class="dt-det">
+    <summary>
+      <i class="fa-solid fa-chevron-right chevron"></i>
+      <span>Acuse del Ministerio</span>
+    </summary>
+    <div class="dt-det-body">
+      <div>
+        {% if acuse_txt %}
+          <button class="dt-copiar" onclick="copiarJson('jsonAcuse', this)">Copiar</button>
+          <pre class="dt-json" id="jsonAcuse">{{ acuse_txt }}</pre>
+        {% else %}
+          <p class="dt-vacio" style="padding-bottom:12px">Sin acuse registrado.</p>
+        {% endif %}
+      </div>
+    </div>
+  </details>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ---- Apertura/cierre suave de los bloques de auditoría ----
+// Un <details> nativo salta de golpe: no hay transición de altura entre
+// "cerrado" y "abierto". Se intercepta el clic del summary y se anima la
+// altura del contenido a mano; al cerrar, el estado real del <details>
+// cambia solo cuando la animación termina, para que no desaparezca antes.
+(function(){
+  const DURACION = 260;
+  const EASING = 'cubic-bezier(.4,0,.2,1)';
+  const animacionPermitida = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animarAltura(det, body, desde, hasta, alTerminar){
+    det.dataset.animando = '1';
+
+    let yaTermino = false;
+    const terminar = () => {
+      if (yaTermino) return;          // onfinish y la red de seguridad compiten
+      yaTermino = true;
+      det.dataset.animando = '0';
+      body.style.height = '';
+      if (alTerminar) alTerminar();
+    };
+
+    let anim = null;
+    try {
+      anim = body.animate(
+        [{ height: desde + 'px' }, { height: hasta + 'px' }],
+        { duration: DURACION, easing: EASING }
+      );
+    } catch (err) {                   // navegador sin Web Animations
+      terminar();
+      return;
+    }
+
+    anim.onfinish = anim.oncancel = terminar;
+
+    // Red de seguridad: si el navegador no avanza los frames (pestaña en
+    // segundo plano, ventana tapada), 'onfinish' no se dispara nunca y el
+    // bloque se quedaría a medio cerrar y sin poder volver a abrirse.
+    setTimeout(() => {
+      if (yaTermino) return;
+      if (anim && anim.playState === 'running') { try { anim.finish(); } catch (e) {} }
+      terminar();
+    }, DURACION + 200);
+  }
+
+  document.querySelectorAll('.dt-det').forEach(det => {
+    const summary = det.querySelector('summary');
+    const body = det.querySelector('.dt-det-body');
+    if (!summary || !body) return;
+
+    summary.addEventListener('click', e => {
+      e.preventDefault();
+      if (det.dataset.animando === '1') return;
+
+      if (!animacionPermitida){ det.open = !det.open; return; }
+
+      if (!det.open){
+        det.open = true;                      // hay que abrirlo para medirlo
+        animarAltura(det, body, 0, body.scrollHeight);
+      } else {
+        body.classList.add('cerrando');
+        animarAltura(det, body, body.scrollHeight, 0, () => {
+          det.open = false;
+          body.classList.remove('cerrando');
+        });
+      }
+    });
+  });
+})();
+
+function copiarJson(id, btn){
+  const el = document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'Copiado';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+}
+</script>
 {% endblock %}

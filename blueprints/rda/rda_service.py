@@ -25,6 +25,7 @@ from .fhir import builders as B
 from .fhir import client as ihce
 from .fhir.bundle import ensamblar_bundle
 import base64
+import json
 from .fhir import epicrisis as EPI
 
 
@@ -288,6 +289,7 @@ def construir_bundle(evolucion_id, empresa_id):
         fhir_id="Encounter-0",
         patient_ref=refs["patient"], practitioner_ref=refs["practitioner"],
         condition_ref=refs["conditions"][0],
+        ips_ref=refs["ips"],
         inicio=inicio.strftime(fmt), fin=fin.strftime(fmt),
         causa_externa_cod=causa_cod, causa_externa_nombre=causa_nom,
         tipo_dx_cod=tipo_dx_cod, tipo_dx_nombre=tipo_dx_nom,
@@ -502,3 +504,151 @@ def transmitir_en_segundo_plano(evolucion_id, empresa_id):
     hilo = threading.Thread(target=_worker, daemon=True)
     hilo.start()
     return hilo
+
+# =========================
+# LECTURA DE VUELTA DEL BUNDLE (pantalla de detalle)
+# =========================
+
+def _ident_por_sistema(recurso, fragmento):
+    """Valor del identifier cuyo system contiene `fragmento` (REPS, DIAN, RNEC)."""
+    for ident in recurso.get("identifier") or []:
+        if fragmento in str(ident.get("system") or ""):
+            return ident.get("value", "")
+    return ""
+
+
+def _tipo_documento(recurso):
+    """Código del tipo de documento (CC, TI, ...) que va dentro del identifier."""
+    for ident in recurso.get("identifier") or []:
+        for cod in ((ident.get("type") or {}).get("coding") or []):
+            if "ColombianPersonIdentifier" in str(cod.get("system") or ""):
+                return cod.get("code", "")
+    return ""
+
+
+def _nombre_humano(recurso):
+    nombres = recurso.get("name") or []
+    if not nombres:
+        return ""
+    n = nombres[0]
+    dado = " ".join(n.get("given") or [])
+    return f"{dado} {n.get('family', '')}".strip()
+
+
+def _display_coding(concepto):
+    """(code, display) del primer coding de un CodeableConcept."""
+    if not isinstance(concepto, dict):
+        return "", ""
+    for c in concepto.get("coding") or []:
+        return c.get("code", ""), c.get("display", "")
+    return "", concepto.get("text", "")
+
+
+def resumen_bundle(bundle):
+    """
+    Lee de vuelta el Bundle que se transmitió y devuelve un resumen plano
+    para la pantalla de detalle del envío. Es defensivo a propósito: un
+    envío viejo puede no tener todos los campos, y la pantalla debe abrir
+    igual en vez de reventar con un KeyError.
+    """
+    vacio = {"paciente": {}, "ips": {}, "eps": {}, "profesional": {},
+             "encuentro": {}, "diagnosticos": [], "bundle_id": "", "timestamp": ""}
+
+    if isinstance(bundle, str):
+        try:
+            bundle = json.loads(bundle)
+        except Exception:
+            return vacio
+    if not isinstance(bundle, dict):
+        return vacio
+
+    recursos = [(e.get("resource") or {}) for e in (bundle.get("entry") or [])]
+    por_tipo = {}
+    for r in recursos:
+        por_tipo.setdefault(r.get("resourceType", ""), []).append(r)
+
+    res = dict(vacio)
+    res["bundle_id"] = (bundle.get("identifier") or {}).get("value", "")
+    res["timestamp"] = bundle.get("timestamp", "")
+
+    # --- Paciente ---
+    for p in por_tipo.get("Patient", []):
+        dire = (p.get("address") or [{}])[0]
+        res["paciente"] = {
+            "nombre": _nombre_humano(p),
+            "tipo_doc": _tipo_documento(p),
+            "documento": _ident_por_sistema(p, "RNEC"),
+            "sexo": "Masculino" if p.get("gender") == "male" else "Femenino",
+            "nacimiento": p.get("birthDate", ""),
+            "municipio": dire.get("city", ""),
+            "pais": dire.get("country", ""),
+        }
+        break
+
+    # --- Organizaciones: la IPS se distingue de la EAPB por su perfil ---
+    for o in por_tipo.get("Organization", []):
+        perfiles = " ".join((o.get("meta") or {}).get("profile") or [])
+        if "CareDeliveryOrganization" in perfiles:
+            res["ips"] = {
+                "nombre": o.get("name", ""),
+                "habilitacion": _ident_por_sistema(o, "REPS"),
+                "nit": _ident_por_sistema(o, "DIAN"),
+                "municipio": ((o.get("address") or [{}])[0]).get("city", ""),
+            }
+        else:
+            res["eps"] = {"nombre": o.get("name", ""), "codigo": o.get("id", "")}
+
+    # --- Profesional ---
+    for pr in por_tipo.get("Practitioner", []):
+        res["profesional"] = {
+            "nombre": _nombre_humano(pr),
+            "tipo_doc": _tipo_documento(pr),
+            "documento": _ident_por_sistema(pr, "RNEC"),
+        }
+        break
+
+    # --- Encuentro ---
+    for e in por_tipo.get("Encounter", []):
+        periodo = e.get("period") or {}
+        cups_cod, cups_nom = _display_coding(e.get("serviceType") or {})
+        causa_cod, causa_nom = _display_coding((e.get("reasonCode") or [{}])[0])
+        # Encounter.type trae modalidad, grupo de servicios, servicio y entorno
+        tipos = []
+        for t in e.get("type") or []:
+            _, disp = _display_coding(t)
+            if disp:
+                tipos.append(disp)
+        res["encuentro"] = {
+            "estado": e.get("status", ""),
+            "clase": (e.get("class") or {}).get("display", ""),
+            "inicio": periodo.get("start", ""),
+            "fin": periodo.get("end", ""),
+            "cups_codigo": cups_cod,
+            "cups_nombre": cups_nom,
+            "causa_codigo": causa_cod,
+            "causa_nombre": causa_nom,
+            "tipos": tipos,
+            "prestador_ref": (e.get("serviceProvider") or {}).get("reference", ""),
+        }
+
+        # --- Diagnósticos (el tipo va en una extensión del Encounter) ---
+        tipos_dx = {}
+        for d in e.get("diagnosis") or []:
+            ref = (d.get("condition") or {}).get("reference", "")
+            for ext in d.get("extension") or []:
+                if "DiagnosisType" in str(ext.get("url") or ""):
+                    tipos_dx[ref] = (ext.get("valueCoding") or {}).get("display", "")
+        res["_tipos_dx"] = tipos_dx
+        break
+
+    # --- Condiciones ---
+    tipos_dx = res.pop("_tipos_dx", {})
+    for c in por_tipo.get("Condition", []):
+        cod, disp = _display_coding(c.get("code") or {})
+        res["diagnosticos"].append({
+            "codigo": cod,
+            "descripcion": disp or (c.get("code") or {}).get("text", ""),
+            "tipo": tipos_dx.get(f"#{c.get('id', '')}", ""),
+        })
+
+    return res

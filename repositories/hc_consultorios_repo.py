@@ -2,6 +2,7 @@ from typing import Any
 from flask import current_app, session  # 🔥 agregar session
 
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name() -> str:
@@ -39,6 +40,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
 # ================================
 # LISTAR
 # ================================
+@cacheado()
 def listar():
 
     empresa_id = _empresa_id()
@@ -119,6 +121,7 @@ def existe_codigo(codigo: str, exclude_id: int | None = None):
 # CREAR
 # ================================
 def crear(data: dict):
+    invalidar("hc_consultorios_repo")
 
     empresa_id = _empresa_id()
 
@@ -154,6 +157,7 @@ def crear(data: dict):
 # ACTUALIZAR
 # ================================
 def actualizar(item_id: int, data: dict):
+    invalidar("hc_consultorios_repo")
 
     empresa_id = _empresa_id()
 
@@ -189,6 +193,7 @@ def actualizar(item_id: int, data: dict):
 # CAMBIAR ESTADO
 # ================================
 def cambiar_estado(item_id: int, nuevo_estado: str):
+    invalidar("hc_consultorios_repo")
 
     empresa_id = _empresa_id()
 

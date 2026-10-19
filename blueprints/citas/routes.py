@@ -11,6 +11,7 @@ from postgrest.exceptions import APIError
 import ipaddress
 import os
 import io
+from services import error_service
 
 
 bp_citas = Blueprint("citas", __name__, url_prefix="/citas")
@@ -83,7 +84,8 @@ def test_citas():
         data = repo.listar_por_fecha("2026-04-29")
         return jsonify({"ok": True, "total": len(data), "data": data})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -770,7 +772,8 @@ def api_procedimientos_medico(medico_id):
         return jsonify({"ok": True, "data": resultado})
  
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
  
 
 
@@ -971,7 +974,8 @@ def api_clientes():
         return jsonify({"ok": True, "data": activos})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -991,7 +995,8 @@ def api_contratos_cliente(cliente_id):
         return jsonify({"ok": True, "data": activos})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -1181,4 +1186,5 @@ def api_tarifa_cups(contrato_id, cups_id):
         })
  
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

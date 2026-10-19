@@ -21,6 +21,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import date
+from services import error_service
 
 
 bp_financiero_glosas = Blueprint(
@@ -97,7 +98,8 @@ def api_registrar_respuesta():
         registrar_respuesta(data, archivo=archivo)
         return jsonify({"ok": True, "mensaje": "Respuesta registrada correctamente"})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -131,7 +133,8 @@ def api_nueva_glosa():
         })
         return jsonify({"ok": True, "numero_glosa": resultado})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -204,7 +207,8 @@ Responde con este JSON exacto:
     except json.JSONDecodeError as e:
         return jsonify({"ok": False, "error": f"JSON inválido: {str(e)}"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------

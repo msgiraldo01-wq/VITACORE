@@ -280,7 +280,7 @@ def build_practitioner(*, fhir_id, tipo_doc, num_doc, primer_nombre, segundo_nom
 # =========================
 
 def build_encounter(*, fhir_id, patient_ref, practitioner_ref, condition_ref,
-                    inicio, fin, cups_codigo="890201",
+                    ips_ref, inicio, fin, cups_codigo="890201",
                     cups_nombre="CONSULTA DE PRIMERA VEZ POR MEDICINA GENERAL",
                     servicio_cod="328", servicio_nombre="MEDICINA GENERAL",
                     tipo_dx_cod="02", tipo_dx_nombre="Confirmado Nuevo",
@@ -309,6 +309,11 @@ def build_encounter(*, fhir_id, patient_ref, practitioner_ref, condition_ref,
             "code": cups_codigo, "display": cups_nombre,
         }]},
         "subject": {"reference": patient_ref},
+        # Prestador que realizo la atencion (Organization IPS del Bundle).
+        # El Ministerio lo exige para validar duplicados: sin el, el RDA se
+        # rechaza con "Encounter.serviceProvider.reference is required to
+        # validate duplicates and was not found in the resource".
+        "serviceProvider": {"reference": ips_ref},
         "participant": [{
             "id": "AttenderPhysician",
             "type": [{"coding": [{

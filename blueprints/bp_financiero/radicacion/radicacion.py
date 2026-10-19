@@ -14,6 +14,7 @@ from repositories.fin_radicacion_repo import (
     actualizar_estado_radicacion,
     obtener_kpis_radicacion,
 )
+from services import error_service
 
 bp_financiero_radicacion = Blueprint(
     "bp_financiero_radicacion",
@@ -82,7 +83,8 @@ def api_registrar():
             "msg": f"Factura {numero_factura} radicada correctamente"
         })
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -106,7 +108,8 @@ def api_actualizar_estado():
         actualizar_estado_radicacion(radicacion_id, nuevo_estado, motivo, usuario)
         return jsonify({"ok": True, "msg": "Estado actualizado correctamente"})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -119,4 +122,5 @@ def api_facturas_pendientes():
         facturas = obtener_facturas_para_radicar()
         return jsonify({"ok": True, "data": facturas})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

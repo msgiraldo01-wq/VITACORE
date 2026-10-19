@@ -5,12 +5,14 @@ ACTUALIZADO: Soporta bloqueos parciales (por horas).
 """
 
 from services.supabase_service import get_supabase_public
+from services.cache_service import cacheado, invalidar
 
 
 def _sb():
     return get_supabase_public()
 
 
+@cacheado(300)
 def _trabaja_festivos(profesional_id: int) -> bool:
     """Consulta directa y mínima (1 sola columna) a hc_profesionales."""
     res = (
@@ -28,6 +30,7 @@ def _trabaja_festivos(profesional_id: int) -> bool:
 #  PROGRAMACIÓN SEMANAL
 # ══════════════════════════════════════════════════════════════
 
+@cacheado(300)
 def listar_por_profesional(profesional_id: int) -> list:
     res = (
         _sb()
@@ -43,6 +46,7 @@ def listar_por_profesional(profesional_id: int) -> list:
 
 
 def agregar_bloque(profesional_id: int, dia_semana: int, hora_inicio: str, hora_fin: str) -> dict:
+    invalidar("hc_prof_programacion_repo")
     existentes = (
         _sb()
         .table("hc_prof_programacion")
@@ -74,6 +78,7 @@ def agregar_bloque(profesional_id: int, dia_semana: int, hora_inicio: str, hora_
 
 
 def eliminar_bloque(bloque_id: int):
+    invalidar("hc_prof_programacion_repo")
     _sb().table("hc_prof_programacion").delete().eq("id", bloque_id).execute()
 
 
@@ -116,6 +121,7 @@ def agregar_bloqueo(
     hora_inicio: str = None,
     hora_fin: str = None,
 ) -> dict:
+    invalidar("hc_prof_programacion_repo")
     payload = {
         "profesional_id": profesional_id,
         "fecha_inicio": fecha_inicio,
@@ -151,6 +157,7 @@ def actualizar_bloqueo(
     revés), el update realmente limpia/establece esos campos en vez de
     dejar el valor anterior.
     """
+    invalidar("hc_prof_programacion_repo")
     payload = {
         "fecha_inicio": fecha_inicio,
         "fecha_fin": fecha_fin,
@@ -170,6 +177,7 @@ def actualizar_bloqueo(
 
 
 def eliminar_bloqueo(bloqueo_id: int):
+    invalidar("hc_prof_programacion_repo")
     _sb().table("hc_prof_bloqueos").delete().eq("id", bloqueo_id).execute()
 
 

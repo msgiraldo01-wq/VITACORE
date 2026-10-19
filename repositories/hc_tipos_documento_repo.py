@@ -2,6 +2,7 @@ from typing import Any
 from flask import current_app  # type: ignore
 
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name() -> str:
@@ -30,6 +31,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+@cacheado()
 def listar():
     response = (
         _sb()
@@ -79,6 +81,7 @@ def existe_codigo(codigo: str, exclude_id: int | None = None):
 
 
 def crear(data: dict):
+    invalidar("hc_tipos_documento_repo")
     payload = {
         "codigo": (data.get("codigo") or "").strip().upper(),
         "nombre": (data.get("nombre") or "").strip(),
@@ -98,6 +101,7 @@ def crear(data: dict):
 
 
 def actualizar(item_id: int, data: dict):
+    invalidar("hc_tipos_documento_repo")
     payload = {
         "codigo": (data.get("codigo") or "").strip().upper(),
         "nombre": (data.get("nombre") or "").strip(),
@@ -118,6 +122,7 @@ def actualizar(item_id: int, data: dict):
 
 
 def cambiar_estado(item_id: int, nuevo_estado: str):
+    invalidar("hc_tipos_documento_repo")
     response = (
         _sb()
         .table(_table_name())

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from repositories.auth_repository import obtener_perfil_por_username
 from repositories.auth_historial_repo import registrar_intento, listar_historial_usuario
-from services.supabase_service import get_supabase_public
+from services.supabase_service import get_supabase_auth
 from services.geoip_service import obtener_ip_cliente, localizar_ip, parsear_user_agent
 from . decorators import login_required
 
@@ -63,7 +63,7 @@ def login():
             return render_template("auth/login.html")
 
         # 🔐 Login con Supabase
-        supabase = get_supabase_public()
+        supabase = get_supabase_auth()
         response = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
@@ -164,7 +164,7 @@ def cambiar_password():
 
         email = session["user"]["email"]
 
-        supabase = get_supabase_public()
+        supabase = get_supabase_auth()
 
         # volver a autenticar
         response = supabase.auth.sign_in_with_password({

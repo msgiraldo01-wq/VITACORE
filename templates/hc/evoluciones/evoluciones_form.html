@@ -47,15 +47,16 @@
 .paciente-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
 
 .paciente-header-card {
-  background: linear-gradient(135deg, var(--brand), var(--accent));
-  color: #fff;
-  padding: 24px 20px;
+  background: var(--surface);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 18px;
   text-align: center;
   position: relative;
 }
@@ -63,7 +64,8 @@
 .paciente-avatar {
   width: 72px;
   height: 72px;
-  background: rgba(255,255,255,.22);
+  background: var(--brand-soft);
+  color: var(--brand);
   border-radius: 50%;
   margin: 0 auto 12px;
   display: flex;
@@ -71,7 +73,7 @@
   justify-content: center;
   font-size: 1.6rem;
   font-weight: 800;
-  border: 3px solid rgba(255,255,255,.3);
+  border: 1px solid var(--border);
 }
 
 .paciente-name {
@@ -84,7 +86,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255,255,255,.18);
+  background: var(--surface-2);
+  color: var(--text-soft);
   padding: 4px 12px;
   border-radius: var(--radius-pill);
   font-size: .78rem;
@@ -146,7 +149,7 @@
 
 .stepper-line-progress {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand), var(--accent));
+  background: var(--brand);
   transition: width .4s ease;
   width: 0%;
 }
@@ -230,7 +233,14 @@
 .step-subtitle { font-size: 14px; color: var(--text-soft); }
 
 /* ── Campos ── */
-.form-section { margin-bottom: 24px; }
+.form-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
 
 .form-section-title {
   font-size: 12px; font-weight: 700;
@@ -278,16 +288,18 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 
 /* ── Alertas clínicas (antecedentes / alergias) ── */
 .alertas-section {
-  background: var(--warn-soft);
+  background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  border: 1px solid var(--warn);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  box-shadow: var(--shadow-xs);
   margin-bottom: 18px;
 }
 
 .alertas-section .form-section-title { color: var(--warn); }
 
-.field-alergias textarea { border-color: var(--danger); background: var(--danger-soft); }
+.field-alergias textarea { border-color: var(--danger); }
 .field-alergias textarea:focus { box-shadow: 0 0 0 3px var(--danger-soft); }
 
 /* ── Signos vitales ── */
@@ -297,18 +309,14 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   gap: 14px;
 }
 
+/* Los campos dejan de ser tarjetas sueltas: la tarjeta es la sección y
+   ellos viven adentro, en rejilla. */
 .vital-input-card {
-  background: var(--surface-2);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  border: 1px solid var(--border);
-  transition: all .2s;
-}
-
-.vital-input-card:focus-within {
-  border-color: var(--brand);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .vital-input-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -316,17 +324,11 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 .vital-icon {
   width: 32px; height: 32px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: #fff; background: var(--brand);
+  font-size: 13px; color: var(--text-faint); background: var(--surface-2);
 }
 
-/* variación sutil por tipo de signo vital, dentro de la misma familia teal/purple */
-.vital-icon.peso        { background: var(--brand); }
-.vital-icon.talla       { background: var(--accent); }
-.vital-icon.presion     { background: var(--danger); }
-.vital-icon.frecuencia  { background: var(--danger); }
-.vital-icon.temperatura { background: var(--info); }
-.vital-icon.respiratoria{ background: var(--success); }
-.vital-icon.spo2        { background: var(--info); }
+/* Un signo vital no es más importante por ser rojo: todos los iconos van
+   en el mismo gris y el color queda para lo que de verdad avisa algo. */
 
 .vital-label { font-size: 12px; font-weight: 600; color: var(--text-soft); }
 .vital-input-wrapper { position: relative; }
@@ -342,23 +344,24 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 }
 
 /* IMC calculado -- se distingue con el tono success sin salir de la paleta */
-.vital-input-card.imc-card {
-  background: var(--success-soft);
-  border-color: var(--success);
+.vital-input-card.imc-card .vital-icon { color: var(--brand); }
+.vital-input-card.imc-card input {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--brand);
 }
-.vital-input-card.imc-card .vital-icon { background: var(--success); }
-.vital-input-card.imc-card input { background: transparent; border-color: var(--success); }
 
 /* ── Medicamentos ── */
 .medicamentos-section {
-  background: var(--accent-soft);
+  background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  border: 1px solid var(--accent);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
 }
 
 .medicamentos-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.medicamentos-header i { color: var(--accent); font-size: 18px; }
+.medicamentos-header i { color: var(--text-faint); font-size: 16px; }
 .medicamentos-header span { font-weight: 700; color: var(--text); font-size: 15px; }
 
 .med-search-wrapper { display: flex; gap: 10px; margin-bottom: 14px; }
@@ -404,19 +407,17 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
 
 /* ── Datos para el Ministerio (RDA) ── */
 .form-section.rda-section {
-  background: var(--brand-soft);
-  border: 1px solid var(--brand);
-  border-radius: var(--radius-lg);
-  padding: 20px;
+  border-left: 3px solid var(--brand);
 }
 .form-section.rda-section .form-section-title { color: var(--brand); }
 
 /* ── Resumen final ── */
 .resumen-section {
-  background: var(--info-soft);
+  background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  border: 1px solid var(--info);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
   margin-top: 20px;
 }
 
@@ -424,7 +425,7 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   font-weight: 800; color: var(--text); margin-bottom: 16px;
   display: flex; align-items: center; gap: 8px; font-size: 16px;
 }
-.resumen-title i { color: var(--info); }
+.resumen-title i { color: var(--text-faint); }
 
 .resumen-grid { display: grid; gap: 12px; }
 

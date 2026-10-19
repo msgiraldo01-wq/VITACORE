@@ -1,14 +1,18 @@
+import json
+
 from flask import (
     Blueprint, render_template, request, redirect, session, jsonify, Response
 )
 
 from blueprints.auth.decorators import login_required
 from services.permisos_service import requiere_permiso
+from services import error_service
 from . import rda_service
 from . import visor_service
 from .fhir import client as ihce
 from repositories import rda_envios_repo as repo_envios
 from repositories import rda_catalogos_repo as repo_catalogos
+from repositories import hc_evoluciones_repo as repo_evo
 
 bp_rda = Blueprint(
     "bp_rda",
@@ -110,7 +114,9 @@ def reintentar(envio_id):
     try:
         envio = rda_service.reintentar_envio(envio_id, empresa_id)
     except Exception as e:
-        return jsonify({"ok": False, "message": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "codigo": codigo,
+                        "message": f"Ocurrió un error inesperado. Código: {codigo}"}), 500
 
     ok = envio and envio.get("estado") == "aceptado"
     return jsonify({
@@ -172,12 +178,48 @@ def consultar():
 @bp_rda.route("/detalle/<int:envio_id>")
 @login_required
 def detalle(envio_id):
+    """Detalle de un envio: estado de la transmision, lo que se le envio al
+    Ministerio (leido del Bundle guardado), la nota clinica de la evolucion
+    que lo origino, y los JSON crudos para auditoria."""
     if not _empresa_id():
         return redirect("/")
+
     envio = repo_envios.obtener(envio_id)
     if not envio:
         return redirect("/rda/")
-    return render_template("rda/detalle_rda.html", envio=envio)
+
+    # Nota clinica que origino el RDA. Si la evolucion fue borrada o el envio
+    # es viejo y no la tiene, la pantalla abre igual sin ese bloque.
+    evolucion = None
+    if envio.get("evolucion_id"):
+        try:
+            evolucion = repo_evo.obtener(envio["evolucion_id"])
+        except Exception as e:
+            print("[RDA] no se pudo cargar la evolucion del envio", envio_id, e)
+
+    resumen = rda_service.resumen_bundle(envio.get("bundle_json"))
+
+    def _json_legible(valor):
+        if valor in (None, ""):
+            return ""
+        if isinstance(valor, str):
+            try:
+                valor = json.loads(valor)
+            except Exception:
+                return valor
+        try:
+            return json.dumps(valor, indent=2, ensure_ascii=False)
+        except Exception:
+            return str(valor)
+
+    return render_template(
+        "rda/detalle_rda.html",
+        envio=envio,
+        evolucion=evolucion,
+        resumen=resumen,
+        bundle_txt=_json_legible(envio.get("bundle_json")),
+        acuse_txt=_json_legible(envio.get("acuse_json")),
+    )
 
 
 # =========================

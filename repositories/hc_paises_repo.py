@@ -1,5 +1,6 @@
 from typing import Any
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name():
@@ -30,6 +31,7 @@ def _normalize_row(row: dict[str, Any] | None):
 # LISTAR
 # ========================
 
+@cacheado()
 def listar():
 
     response = (
@@ -68,6 +70,7 @@ def obtener(item_id: int):
 # ========================
 
 def crear(data: dict):
+    invalidar("hc_paises_repo")
 
     payload = {
         "codigo_iso2": (data.get("codigo_iso2") or "").upper().strip(),
@@ -93,6 +96,7 @@ def crear(data: dict):
 # ========================
 
 def actualizar(item_id: int, data: dict):
+    invalidar("hc_paises_repo")
 
     payload = {
         "codigo_iso2": (data.get("codigo_iso2") or "").upper().strip(),
@@ -118,6 +122,7 @@ def actualizar(item_id: int, data: dict):
 # ========================
 
 def cambiar_estado(item_id: int, nuevo_estado: str):
+    invalidar("hc_paises_repo")
 
     response = (
         _sb()

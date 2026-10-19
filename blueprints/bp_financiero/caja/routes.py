@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, jsonify, session
 from blueprints.auth.decorators import login_required
 from services.permisos_service import requiere_permiso
 from repositories import fin_caja_repo as caja_repo
+from services import error_service
 
 bp_caja = Blueprint(
     "caja",
@@ -58,7 +59,8 @@ def api_estado_caja():
             "caja": caja,
         })
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -96,7 +98,8 @@ def api_abrir_caja():
         return jsonify({"ok": True, "caja": caja})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -136,7 +139,8 @@ def api_cerrar_caja():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -152,7 +156,8 @@ def api_movimientos(caja_id):
         resumen = caja_repo.resumen_movimientos(caja_id)
         return jsonify({"ok": True, "data": movimientos, "resumen": resumen})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -193,7 +198,8 @@ def api_registrar_movimiento():
         return jsonify({"ok": True, "data": movimiento})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -208,7 +214,8 @@ def api_obtener_conteo(caja_id):
         conteo = caja_repo.obtener_conteo(caja_id)
         return jsonify({"ok": True, "data": conteo})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_caja.route("/api/conteo/<int:caja_id>", methods=["POST"])
@@ -227,7 +234,8 @@ def api_guardar_conteo(caja_id):
         return jsonify({"ok": True, "data": conteo})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -242,7 +250,8 @@ def api_conteo_historial(caja_id):
         historial = caja_repo.listar_conteo_historial(caja_id)
         return jsonify({"ok": True, "data": historial})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -272,7 +281,8 @@ def api_detalle_caja(caja_id):
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -295,7 +305,8 @@ def api_historial_cajas():
         return jsonify({"ok": True, "data": cajas})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_caja.route("/cuadre/<int:caja_id>/reporte")
