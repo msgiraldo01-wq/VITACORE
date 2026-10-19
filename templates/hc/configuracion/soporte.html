@@ -1,0 +1,171 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Soporte · Errores{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-life-ring"></i>{% endblock %}
+{% block topbar_title %}Soporte{% endblock %}
+{% block topbar_subtitle %}Errores de la aplicación{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-bug"></i>{% endblock %}
+{% block header_title %}Errores de la aplicación{% endblock %}
+{% block header_subtitle %}
+  Lo que se está rompiendo en producción · busca por el código que reporta el usuario
+{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion">
+  <i class="fa-solid fa-arrow-left"></i> Configuración
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sp-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+             gap:14px; margin-bottom:20px; }
+  .sp-mc{ background:var(--surface); border:1px solid var(--border);
+          border-radius:var(--radius-lg); padding:16px 18px; box-shadow:var(--shadow-xs); }
+  .sp-mc .lbl{ font-size:.72rem; color:var(--text-faint); margin:0 0 5px;
+               text-transform:uppercase; letter-spacing:.03em; }
+  .sp-mc .num{ font-size:1.6rem; font-weight:700; margin:0; color:var(--text); }
+  .sp-mc.alerta .num{ color:var(--danger); }
+
+  .sp-barra{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+             margin-bottom:14px; }
+  .sp-barra form{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0; }
+  .sp-barra input, .sp-barra select{ padding:8px 12px; font-size:.84rem;
+             border:1px solid var(--border); border-radius:var(--radius-sm);
+             background:var(--surface); color:var(--text); font-family:inherit; }
+  .sp-barra input{ min-width:240px; }
+  .sp-btn{ background:var(--brand); color:#fff; border:none;
+           border-radius:var(--radius-sm); padding:8px 16px; font-size:.84rem;
+           font-weight:600; cursor:pointer; font-family:inherit; }
+  .sp-filtros{ margin-left:auto; display:flex; gap:6px; }
+  .sp-filtros a{ font-size:.8rem; padding:7px 13px; border-radius:var(--radius-sm);
+                 border:1px solid var(--border); text-decoration:none;
+                 color:var(--text-soft); }
+  .sp-filtros a.activo{ background:var(--brand); color:#fff; border-color:var(--brand); }
+
+  .sp-tabla{ width:100%; border-collapse:collapse; background:var(--surface);
+             border:1px solid var(--border); border-radius:var(--radius-lg);
+             overflow:hidden; }
+  .sp-tabla th{ text-align:left; padding:11px 14px; font-size:.71rem;
+                text-transform:uppercase; letter-spacing:.03em;
+                color:var(--text-faint); background:var(--bg); font-weight:700; }
+  .sp-tabla td{ padding:12px 14px; border-top:1px solid var(--border);
+                font-size:.85rem; vertical-align:top; }
+  .sp-tabla tr:hover td{ background:var(--bg); }
+
+  .sp-codigo{ font-family:ui-monospace,Menlo,monospace; font-weight:700;
+              color:var(--brand); font-size:.82rem; }
+  .sp-tipo{ font-weight:600; color:var(--text); }
+  .sp-msg{ color:var(--text-soft); font-size:.8rem; display:block;
+           max-width:420px; overflow:hidden; text-overflow:ellipsis;
+           white-space:nowrap; }
+  .sp-ruta{ font-family:ui-monospace,Menlo,monospace; font-size:.76rem;
+            color:var(--text-faint); }
+
+  .pill{ padding:3px 10px; border-radius:var(--radius-pill); font-size:.72rem;
+         font-weight:600; white-space:nowrap; }
+  .pill.nuevo{ background:var(--danger-soft); color:var(--danger); }
+  .pill.revisado{ background:var(--success-soft); color:var(--success); }
+  .pill.ignorado{ background:var(--bg); color:var(--text-faint); }
+  .pill.veces{ background:var(--warn-soft); color:var(--warn); }
+
+  .sp-vacio{ padding:48px 20px; text-align:center; color:var(--text-faint);
+             font-size:.88rem; }
+  .sp-vacio i{ font-size:2rem; color:var(--success); display:block; margin-bottom:12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="sp-cards">
+  <div class="sp-mc">
+    <p class="lbl">Errores distintos</p>
+    <p class="num">{{ resumen.distintos }}</p>
+  </div>
+  <div class="sp-mc {% if resumen.nuevos %}alerta{% endif %}">
+    <p class="lbl">Sin revisar</p>
+    <p class="num">{{ resumen.nuevos }}</p>
+  </div>
+  <div class="sp-mc">
+    <p class="lbl">Veces en total</p>
+    <p class="num">{{ resumen.ocurrencias }}</p>
+  </div>
+  <div class="sp-mc">
+    <p class="lbl">Ocurridos hoy</p>
+    <p class="num">{{ resumen.hoy }}</p>
+  </div>
+</div>
+
+<div class="sp-barra">
+  <form method="get" action="/hc/configuracion/soporte/">
+    <input type="search" name="q" value="{{ busqueda }}"
+           placeholder="Código VTC-… , ruta o mensaje" aria-label="Buscar">
+    {% if estado_filtro %}<input type="hidden" name="estado" value="{{ estado_filtro }}">{% endif %}
+    <button class="sp-btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+  </form>
+
+  <div class="sp-filtros">
+    {% set q = '&q=' ~ busqueda if busqueda else '' %}
+    <a href="?{{ q[1:] }}" class="{% if not estado_filtro %}activo{% endif %}">Todos</a>
+    <a href="?estado=NUEVO{{ q }}" class="{% if estado_filtro == 'NUEVO' %}activo{% endif %}">Sin revisar</a>
+    <a href="?estado=REVISADO{{ q }}" class="{% if estado_filtro == 'REVISADO' %}activo{% endif %}">Revisados</a>
+    <a href="?estado=IGNORADO{{ q }}" class="{% if estado_filtro == 'IGNORADO' %}activo{% endif %}">Ignorados</a>
+  </div>
+</div>
+
+{% if errores %}
+<table class="sp-tabla">
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Error</th>
+      <th>Dónde</th>
+      <th>Usuario</th>
+      <th>Última vez</th>
+      <th>Veces</th>
+      <th>Estado</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in errores %}
+    <tr>
+      <td class="sp-codigo">{{ e.codigo }}</td>
+      <td>
+        <span class="sp-tipo">{{ e.tipo }}</span>
+        <span class="sp-msg" title="{{ e.mensaje }}">{{ e.mensaje }}</span>
+      </td>
+      <td>
+        <span class="sp-ruta">{{ e.metodo }} {{ e.ruta }}</span>
+        {% if e.modulo %}<br><span class="sp-ruta">{{ e.modulo }}</span>{% endif %}
+      </td>
+      <td>{{ e.usuario or '—' }}</td>
+      <td>{{ (e.ultima_vez or '')[:16]|replace('T', ' ') }}</td>
+      <td>
+        {% if (e.veces or 1) > 1 %}
+          <span class="pill veces">{{ e.veces }}×</span>
+        {% else %}1{% endif %}
+      </td>
+      <td><span class="pill {{ (e.estado or 'nuevo')|lower }}">{{ e.estado|capitalize }}</span></td>
+      <td><a class="sp-btn" style="text-decoration:none"
+             href="/hc/configuracion/soporte/{{ e.id }}">Ver</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="sp-tabla">
+  <div class="sp-vacio">
+    <i class="fa-solid fa-circle-check"></i>
+    {% if busqueda or estado_filtro %}
+      No hay errores que coincidan con ese filtro.
+    {% else %}
+      Ningún error registrado. Cuando algo falle en la aplicación, aparecerá aquí.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

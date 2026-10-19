@@ -1,0 +1,92 @@
+{#
+  Página de error.
+
+  A propósito NO extiende hc/base.html: si lo que falló fue la sesión, los
+  permisos o el contexto del menú, una página que dependiera de todo eso
+  fallaría otra vez al intentar mostrarse. Esta se sostiene sola.
+#}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vitacore · Error {{ codigo_http }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/vitacore/icono_vitacore.png') }}">
+  <style>
+    :root{
+      --brand:#0d5c63; --brand-soft:#e6f3f4; --bg:#f5f7fa; --surface:#fff;
+      --border:#e2e8f0; --text:#0f172a; --soft:#64748b; --faint:#94a3b8;
+      --danger:#dc3545;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{ --bg:#0f172a; --surface:#1e293b; --border:rgba(148,163,184,.18);
+             --text:#e2e8f0; --soft:#94a3b8; --faint:#64748b;
+             --brand-soft:rgba(13,92,99,.25); }
+    }
+    *{ box-sizing:border-box }
+    body{ margin:0; min-height:100vh; display:grid; place-items:center;
+          background:var(--bg); color:var(--text); padding:24px;
+          font-family:'DM Sans',system-ui,-apple-system,sans-serif; }
+    .caja{ background:var(--surface); border:1px solid var(--border);
+           border-radius:18px; padding:40px 36px; max-width:520px; width:100%;
+           text-align:center; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+    .num{ font-size:3.2rem; font-weight:800; color:var(--brand); margin:0;
+          line-height:1; letter-spacing:-.02em; }
+    h1{ font-size:1.25rem; margin:14px 0 8px; }
+    p{ color:var(--soft); font-size:.92rem; line-height:1.55; margin:0 0 22px; }
+    .codigo{ background:var(--brand-soft); border-radius:12px; padding:16px;
+             margin:0 0 22px; }
+    .codigo .et{ font-size:.7rem; text-transform:uppercase; letter-spacing:.06em;
+                 color:var(--soft); margin:0 0 6px; }
+    .codigo .val{ font-family:ui-monospace,Menlo,monospace; font-size:1.3rem;
+                  font-weight:700; color:var(--brand); margin:0;
+                  user-select:all; cursor:pointer; }
+    .codigo .ayuda{ font-size:.73rem; color:var(--faint); margin:8px 0 0; }
+    .acciones{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    a.btn, button.btn{ font-size:.86rem; font-weight:600; padding:10px 18px;
+          border-radius:10px; text-decoration:none; cursor:pointer;
+          border:1px solid var(--border); background:transparent;
+          color:var(--soft); font-family:inherit; }
+    a.btn.primario{ background:var(--brand); border-color:var(--brand); color:#fff; }
+    .marca{ margin-top:26px; font-size:.72rem; color:var(--faint); }
+  </style>
+</head>
+<body>
+  <div class="caja">
+    <p class="num">{{ codigo_http }}</p>
+    <h1>{{ titulo }}</h1>
+    <p>{{ mensaje }}</p>
+
+    {% if codigo_error %}
+    <div class="codigo">
+      <p class="et">Código del error</p>
+      <p class="val" id="cod" title="Clic para seleccionar">{{ codigo_error }}</p>
+      <p class="ayuda">Dícta o copia este código cuando pidas soporte.</p>
+    </div>
+    {% endif %}
+
+    <div class="acciones">
+      <a class="btn primario" href="/hc/">Ir al inicio</a>
+      <a class="btn" href="javascript:history.back()">Volver atrás</a>
+      {% if codigo_error %}
+      <button class="btn" type="button" id="copiar">Copiar código</button>
+      {% endif %}
+    </div>
+
+    <p class="marca">Vitacore HMS</p>
+  </div>
+
+  {% if codigo_error %}
+  <script>
+    document.getElementById('copiar').addEventListener('click', function(){
+      var btn = this;
+      navigator.clipboard.writeText(document.getElementById('cod').textContent.trim())
+        .then(function(){
+          btn.textContent = 'Copiado';
+          setTimeout(function(){ btn.textContent = 'Copiar código'; }, 1500);
+        });
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

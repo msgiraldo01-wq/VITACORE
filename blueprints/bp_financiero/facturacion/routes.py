@@ -16,6 +16,7 @@ from services import factus_service
 from services import factus_mapper
 from services.factus_mapper import DatosFaltantesError
 from services.factus_service import FactusAPIError
+from services import error_service
 
 bp_facturacion = Blueprint(
     "facturacion",
@@ -136,7 +137,8 @@ def api_buscar_paciente():
         return jsonify({"ok": True, "paciente": paciente, "citas": citas})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -243,7 +245,8 @@ def api_crear_prefactura():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -263,7 +266,8 @@ def api_obtener_prefactura(prefactura_id):
         return jsonify({"ok": True, "data": prefactura, "items": items})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -307,7 +311,8 @@ def api_ajustar_prefactura(prefactura_id):
         return jsonify({"ok": True, "valor_neto": max(0, valor_neto)})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -677,7 +682,8 @@ def api_facturar():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -733,7 +739,8 @@ def api_reintentar_dian(factura_id):
         return jsonify({"ok": True, "cufe": resultado_dian["cufe"], "qr_image": resultado_dian["qr_image"]})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/adquiriente/completar", methods=["POST"])
@@ -767,7 +774,8 @@ def api_completar_datos_adquiriente():
         return jsonify({"ok": True})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -783,7 +791,8 @@ def api_factus_test_conexion():
     except FactusAPIError as e:
         return jsonify({"ok": False, "error": e.message, "detalle": e.errors}), e.status_code or 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/eliminar-pendiente", methods=["POST", "DELETE"])
@@ -834,7 +843,8 @@ def api_factus_eliminar_pendiente():
         )
         return jsonify({"ok": False, "error": e.message, "detalle": e.errors}), e.status_code or 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/consultar-por-referencia", methods=["GET"])
@@ -879,7 +889,8 @@ def api_factus_consultar_por_referencia():
     except FactusAPIError as e:
         return jsonify({"ok": False, "error": e.message, "detalle": e.errors}), e.status_code or 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/eventos", methods=["GET"])
@@ -901,7 +912,8 @@ def api_factus_eventos():
         eventos = fin_factus_repo.listar_eventos_recientes(limite=limite, solo_errores=solo_errores)
         return jsonify({"ok": True, "eventos": eventos})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/rangos-numeracion", methods=["GET"])
@@ -922,7 +934,8 @@ def api_factus_rangos_numeracion():
     except FactusAPIError as e:
         return jsonify({"ok": False, "error": e.message, "detalle": e.errors}), e.status_code or 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/municipios", methods=["GET"])
@@ -953,7 +966,8 @@ def api_factus_buscar_municipios():
         ]
         return jsonify({"ok": True, "data": data})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factus/sincronizar-municipios", methods=["POST"])
@@ -1100,7 +1114,8 @@ def api_factus_sincronizar_municipios():
             "error": f"No se pudo consultar el portal de datos abiertos DANE (revisa la conexión a internet del servidor): {e}",
         }), 502
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1140,7 +1155,8 @@ def api_listar_facturas():
         return jsonify({"ok": True, "data": facturas, "has_more": len(facturas) == limit})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1161,7 +1177,8 @@ def api_detalle_factura(factura_id):
         return jsonify({"ok": True, "data": factura, "detalle": detalle, "notas": notas})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1220,7 +1237,8 @@ def api_factura_pdf(factura_id):
         )
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/xml", methods=["GET"])
@@ -1244,7 +1262,8 @@ def api_factura_xml(factura_id):
     except FactusAPIError as e:
         return jsonify({"ok": False, "error": e.message, "detalle": e.errors}), e.status_code or 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1309,7 +1328,8 @@ def api_reenviar_email_factura(factura_id):
         )
         return jsonify({"ok": True, "email": email_destino, "data": respuesta})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/factura/<int:factura_id>/anular", methods=["POST"])
@@ -1332,7 +1352,8 @@ def api_anular_factura(factura_id):
         return jsonify({"ok": True, "msg": "Factura anulada correctamente"})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1472,7 +1493,8 @@ def api_crear_nota():
         return jsonify({"ok": True, "data": nota, "factura_anulada": factura_anulada})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1489,7 +1511,8 @@ def api_listar_consecutivos():
             c["sede_nombre"] = sede.get("nombre", "Todas")
         return jsonify({"ok": True, "data": data})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/consecutivos", methods=["POST"])
@@ -1514,7 +1537,8 @@ def api_crear_consecutivo():
         })
         return jsonify({"ok": True, "data": consecutivo})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/consecutivos/<int:consecutivo_id>/factus", methods=["PATCH"])
@@ -1544,7 +1568,8 @@ def api_actualizar_consecutivo_factus(consecutivo_id):
         resultado = repo.actualizar_consecutivo(consecutivo_id, campos)
         return jsonify({"ok": True, "data": resultado})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1558,7 +1583,8 @@ def api_resumen():
         resumen = repo.resumen_facturacion()
         return jsonify({"ok": True, "data": resumen})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1647,7 +1673,8 @@ def api_crear_prefactura_libre():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1667,7 +1694,8 @@ def api_buscar_cups():
         return jsonify({"ok": True, "data": cups})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # =============================================================
@@ -1697,7 +1725,8 @@ def api_tarifa_cups():
         return jsonify({"ok": True, "data": tarifa})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
     
 
 # =============================================================
@@ -1735,7 +1764,8 @@ def api_prefacturas_consolidables():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_facturacion.route("/api/facturar-consolidado", methods=["POST"])
@@ -1857,7 +1887,8 @@ def api_facturar_consolidado():
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
     
 
 @bp_facturacion.route("/api/prefacturas", methods=["GET"])
@@ -1873,4 +1904,5 @@ def api_listar_prefacturas():
 
         return jsonify({"ok": True, "data": prefacturas})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

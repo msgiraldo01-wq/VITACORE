@@ -1,0 +1,161 @@
+{% extends "hc/base.html" %}
+
+{% block title %}Soporte · {{ error.codigo }}{% endblock %}
+
+{% block topbar_icon %}<i class="fa-solid fa-life-ring"></i>{% endblock %}
+{% block topbar_title %}Soporte{% endblock %}
+{% block topbar_subtitle %}Detalle del error{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-bug"></i>{% endblock %}
+{% block header_title %}{{ error.codigo }}{% endblock %}
+{% block header_subtitle %}{{ error.tipo }} · ocurrió {{ error.veces }} {{ 'vez' if error.veces == 1 else 'veces' }}{% endblock %}
+
+{% block header_actions %}
+<a class="btn-ax ghost" href="/hc/configuracion/soporte/">
+  <i class="fa-solid fa-arrow-left"></i> Volver a la lista
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sd-card{ background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius-lg); padding:20px 22px; margin-bottom:16px;
+            box-shadow:var(--shadow-xs); }
+  .sd-card > h3{ margin:0 0 14px; font-size:.95rem; display:flex;
+                 align-items:center; gap:8px; color:var(--text); }
+
+  .sd-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+            gap:14px 24px; }
+  .sd-item .k{ font-size:.71rem; color:var(--text-faint); margin:0 0 3px;
+               text-transform:uppercase; letter-spacing:.03em; }
+  .sd-item .v{ font-size:.88rem; color:var(--text); margin:0; font-weight:500;
+               word-break:break-word; }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:.8rem; }
+
+  .sd-mensaje{ background:var(--danger-soft); border-radius:var(--radius-sm);
+               padding:14px 16px; margin:0; font-size:.88rem; color:var(--danger);
+               font-family:ui-monospace,Menlo,monospace; white-space:pre-wrap;
+               word-break:break-word; }
+
+  .sd-traza{ background:var(--bg); border:1px solid var(--border);
+             border-radius:var(--radius-sm); padding:14px; overflow:auto;
+             max-height:460px; font-family:ui-monospace,Menlo,monospace;
+             font-size:.74rem; line-height:1.55; color:var(--text);
+             margin:0; white-space:pre; }
+
+  .pill{ padding:4px 12px; border-radius:var(--radius-pill); font-size:.76rem;
+         font-weight:600; }
+  .pill.nuevo{ background:var(--danger-soft); color:var(--danger); }
+  .pill.revisado{ background:var(--success-soft); color:var(--success); }
+  .pill.ignorado{ background:var(--bg); color:var(--text-faint); }
+
+  .sd-acciones{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+                margin-top:14px; }
+  .sd-btn{ border:1px solid var(--border-strong); background:transparent;
+           color:var(--text-soft); border-radius:var(--radius-sm);
+           padding:8px 16px; font-size:.84rem; font-weight:600; cursor:pointer;
+           font-family:inherit; }
+  .sd-btn.ok{ background:var(--success); border-color:var(--success); color:#fff; }
+  .sd-btn:disabled{ opacity:.5; cursor:default; }
+  .sd-aviso{ font-size:.82rem; color:var(--text-faint); margin:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="sd-card">
+  <h3><i class="fa-solid fa-circle-info" style="color:var(--brand)"></i> Qué pasó</h3>
+  <p class="sd-mensaje">{{ error.tipo }}: {{ error.mensaje }}</p>
+
+  <div class="sd-grid" style="margin-top:18px">
+    <div class="sd-item"><p class="k">Dónde</p><p class="v mono">{{ error.metodo }} {{ error.ruta }}</p></div>
+    <div class="sd-item"><p class="k">Módulo</p><p class="v">{{ error.modulo or '—' }}</p></div>
+    <div class="sd-item"><p class="k">Usuario</p><p class="v">{{ error.usuario or 'sin sesión' }}</p></div>
+    <div class="sd-item"><p class="k">Empresa</p><p class="v">{{ error.empresa_id or '—' }}</p></div>
+    <div class="sd-item"><p class="k">Primera vez</p><p class="v">{{ (error.primera_vez or '')[:19]|replace('T', ' ') }}</p></div>
+    <div class="sd-item"><p class="k">Última vez</p><p class="v">{{ (error.ultima_vez or '')[:19]|replace('T', ' ') }}</p></div>
+    <div class="sd-item"><p class="k">Veces</p><p class="v">{{ error.veces }}</p></div>
+    <div class="sd-item"><p class="k">Estado</p>
+      <p class="v"><span class="pill {{ (error.estado or 'nuevo')|lower }}" id="pillEstado">{{ error.estado|capitalize }}</span></p>
+    </div>
+  </div>
+
+  <div class="sd-acciones">
+    <button class="sd-btn ok" id="btnRevisado" type="button">
+      <i class="fa-solid fa-check"></i> Marcar como revisado
+    </button>
+    <button class="sd-btn" id="btnIgnorar" type="button">
+      <i class="fa-solid fa-eye-slash"></i> Ignorar
+    </button>
+    <p class="sd-aviso" id="aviso"></p>
+  </div>
+</div>
+
+<div class="sd-card">
+  <h3><i class="fa-solid fa-desktop" style="color:var(--text-faint)"></i> Desde dónde</h3>
+  <div class="sd-grid">
+    <div class="sd-item"><p class="k">Dirección IP</p><p class="v mono">{{ error.ip or '—' }}</p></div>
+    <div class="sd-item" style="grid-column:span 2"><p class="k">Navegador</p>
+      <p class="v" style="font-size:.78rem">{{ error.user_agent or '—' }}</p></div>
+  </div>
+  <p class="sd-aviso" style="margin-top:14px">
+    No se guarda el contenido del formulario: por ahí viajan datos de pacientes.
+  </p>
+</div>
+
+<div class="sd-card">
+  <h3><i class="fa-solid fa-code" style="color:var(--accent)"></i> Traza técnica</h3>
+  <pre class="sd-traza" id="traza">{{ error.traceback or 'Sin traza registrada.' }}</pre>
+  <div class="sd-acciones">
+    <button class="sd-btn" type="button" id="btnCopiar">Copiar traza</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const aviso = document.getElementById('aviso');
+  const pill = document.getElementById('pillEstado');
+
+  async function marcar(estado, boton){
+    boton.disabled = true;
+    aviso.textContent = 'Guardando…';
+    try{
+      const r = await fetch('/hc/configuracion/soporte/{{ error.id }}/estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ estado: estado })
+      });
+      const d = await r.json().catch(() => null);
+      if (!d || !d.ok){
+        aviso.textContent = 'No se pudo guardar' + (d && d.message ? ': ' + d.message : '.');
+        boton.disabled = false;
+        return;
+      }
+      pill.textContent = d.estado.charAt(0) + d.estado.slice(1).toLowerCase();
+      pill.className = 'pill ' + d.estado.toLowerCase();
+      aviso.textContent = 'Listo.';
+    } catch(e){
+      aviso.textContent = 'No se pudo contactar al servidor.';
+      boton.disabled = false;
+    }
+  }
+
+  document.getElementById('btnRevisado')
+          .addEventListener('click', function(){ marcar('REVISADO', this); });
+  document.getElementById('btnIgnorar')
+          .addEventListener('click', function(){ marcar('IGNORADO', this); });
+
+  document.getElementById('btnCopiar').addEventListener('click', function(){
+    const btn = this;
+    navigator.clipboard.writeText(document.getElementById('traza').textContent)
+      .then(function(){
+        btn.textContent = 'Copiada';
+        setTimeout(function(){ btn.textContent = 'Copiar traza'; }, 1500);
+      });
+  });
+})();
+</script>
+{% endblock %}

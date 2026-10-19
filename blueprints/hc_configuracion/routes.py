@@ -31,6 +31,7 @@ from services.supabase_service import get_supabase_public
 from blueprints.auth.decorators import login_required
 from services.permisos_service import requiere_permiso
 from postgrest.exceptions import APIError
+from services import error_service
 
 
 bp_hc_configuracion = Blueprint(
@@ -2248,7 +2249,8 @@ def mt_procedimientos_importar(manual_id):
         total = repo_manuales.importar_procedimientos(manual_id, registros)
         return jsonify({"ok": True, "importados": total})
     except Exception as e:
-        return jsonify({"ok": False, "msg": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "msg": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -2387,7 +2389,8 @@ def mt_items_importar(manual_id):
         total = repo_manuales.importar_items(manual_id, registros)
         return jsonify({"ok": True, "importados": total})
     except Exception as e:
-        return jsonify({"ok": False, "msg": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "msg": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_hc_configuracion.route("/medicamentos/buscar-ajax")

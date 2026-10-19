@@ -25,6 +25,7 @@ from repositories import hc_citas_repo as citas_repo
 from repositories import hc_motivos_cancelacion_repo as motivos_repo
 from repositories import fin_caja_repo as caja_repo
 from services.permisos_service import requiere_permiso
+from services import error_service
 
 bp_hc_admisiones = Blueprint(
     "hc_admisiones",
@@ -97,7 +98,8 @@ def api_hoy():
         return jsonify({"ok": True, "data": pendientes})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_hc_admisiones.route("/api/registrar-llegada", methods=["POST"])
@@ -115,7 +117,8 @@ def api_registrar_llegada():
         return jsonify({"ok": True})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_hc_admisiones.route("/api/marcar-inasistencia", methods=["POST"])
@@ -146,7 +149,8 @@ def api_marcar_inasistencia():
         return jsonify({"ok": True})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 @bp_hc_admisiones.route("/api/cobrar-copago", methods=["POST"])
@@ -210,4 +214,5 @@ def api_cobrar_copago():
         return jsonify({"ok": True, "data": movimiento})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500

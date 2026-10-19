@@ -28,6 +28,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import date
+from services import error_service
 
 bp_financiero_cartera = Blueprint(
     "cartera", __name__, url_prefix="/financiero/cartera"
@@ -125,7 +126,8 @@ def api_registrar_pago():
         registrar_pago(data, archivo=archivo)
         return jsonify({"ok": True, "mensaje": "Pago registrado correctamente"})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -165,7 +167,8 @@ def api_registrar_documento():
         numero = crear_documento(data, archivo=archivo)
         return jsonify({"ok": True, "numero_documento": numero})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
@@ -187,7 +190,8 @@ def api_anular_documento():
         anular_documento(numero_documento, usuario)
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
 
 
 # --------------------------------------------------
