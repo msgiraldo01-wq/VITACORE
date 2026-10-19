@@ -480,6 +480,27 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   .step-content { padding: 18px; }
   .vitals-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Aviso de borrador recuperable ── */
+.borrador-aviso{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid var(--warn); border-radius:var(--radius-lg);
+  padding:14px 16px; margin-bottom:18px; box-shadow:var(--shadow-xs);
+}
+.borrador-aviso > i{ color:var(--warn); font-size:1.05rem; flex-shrink:0; }
+/* el texto necesita al menos 12rem antes de que los botones bajen;
+   si no, en la columna angosta se parte palabra por palabra */
+.borrador-texto{ flex:1 1 12rem; min-width:0; }
+.borrador-texto b{ display:block; font-size:.9rem; color:var(--text); }
+.borrador-texto span{ font-size:.78rem; color:var(--text-faint); }
+.borrador-btn{
+  border:1px solid var(--border-strong); background:transparent;
+  color:var(--text-soft); border-radius:var(--radius-sm);
+  padding:8px 15px; font-size:.84rem; font-weight:600;
+  cursor:pointer; font-family:inherit; white-space:nowrap;
+}
+.borrador-btn.recuperar{ background:var(--brand); border-color:var(--brand); color:#fff; }
 </style>
 {% endblock %}
 
@@ -537,6 +558,16 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
        FORMULARIO WIZARD
        ═══════════════════════════════════════════════════════════════ -->
   <main>
+    <div id="aviso-borrador" class="borrador-aviso" hidden>
+      <i class="fa-solid fa-rotate-left"></i>
+      <div class="borrador-texto">
+        <b>Tienes una evolución sin terminar de este paciente</b>
+        <span id="borrador-cuando"></span>
+      </div>
+      <button type="button" class="borrador-btn recuperar" id="btn-recuperar-borrador">Recuperar</button>
+      <button type="button" class="borrador-btn" id="btn-descartar-borrador">Descartar</button>
+    </div>
+
     <form id="form-evolucion" method="POST" action="{{ url_for('hc_evoluciones.evolucion_crear', paciente_id=paciente.id) }}">
 
       <input type="hidden" name="medico_id" id="medico_id_hidden">
@@ -1502,5 +1533,112 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+</script>
+
+<script>
+/* ──────────────────────────────────────────────────────────────
+   BORRADOR DE LA EVOLUCIÓN
+
+   Mismo criterio que el borrador de citas: se guarda en el equipo,
+   no viaja al servidor. Si el guardado falla, se cae la conexión o
+   se cierra la pestaña, la nota no se pierde.
+
+   El borrador es POR PACIENTE a propósito: una nota a medias de un
+   paciente no se puede ofrecer dentro de la historia de otro.
+
+   No se borra al enviar el formulario, porque si el guardado falla
+   el médico vuelve a esta página y lo necesita. Se borra cuando la
+   evolución quedó guardada de verdad -- eso lo hace la pantalla de
+   evoluciones del paciente, que es a donde lleva el guardado bueno.
+   ────────────────────────────────────────────────────────────── */
+(function(){
+  const CLAVE   = 'evolucion_borrador_{{ paciente.id }}';
+  const VENCE   = 48 * 60 * 60 * 1000;   // 48 horas
+  const form    = document.getElementById('form-evolucion');
+  const aviso   = document.getElementById('aviso-borrador');
+  if (!form || !aviso) return;
+
+  const campos = () => form.querySelectorAll('[name]');
+
+  function leer(){
+    try{
+      const raw = localStorage.getItem(CLAVE);
+      if (!raw) return null;
+      const b = JSON.parse(raw);
+      if (!b || !b.ts || (Date.now() - b.ts) > VENCE){ localStorage.removeItem(CLAVE); return null; }
+      return b;
+    }catch(e){ return null; }
+  }
+
+  function guardar(){
+    const datos = {};
+    let conContenido = false;
+    campos().forEach(el => {
+      if (el.type === 'checkbox' || el.type === 'radio'){
+        if (el.checked){ datos[el.name] = el.value; conContenido = true; }
+      } else if (el.value && String(el.value).trim()){
+        datos[el.name] = el.value;
+        // los selects que vienen preseleccionados no cuentan como "escribió algo"
+        if (el.tagName === 'TEXTAREA' || el.type === 'text' || el.type === 'number') conContenido = true;
+      }
+    });
+    if (!conContenido){ return; }
+    try{
+      localStorage.setItem(CLAVE, JSON.stringify({
+        datos, paso: (typeof CONFIG !== 'undefined' ? CONFIG.pasoActual : 1), ts: Date.now()
+      }));
+    }catch(e){ /* sin espacio o almacenamiento bloqueado: no es motivo para romper la nota */ }
+  }
+
+  function restaurar(b){
+    campos().forEach(el => {
+      if (!(el.name in b.datos)) return;
+      if (el.type === 'checkbox' || el.type === 'radio'){
+        el.checked = (el.value === b.datos[el.name]);
+      } else {
+        el.value = b.datos[el.name];
+      }
+      // para que se recalculen IMC, resúmenes y demás
+      el.dispatchEvent(new Event('input',  { bubbles:true }));
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    if (typeof Wizard !== 'undefined' && b.paso){
+      CONFIG.pasoActual = b.paso;
+      Wizard.cambiarPaso(b.paso);
+    }
+    aviso.hidden = true;
+  }
+
+  function hace(ts){
+    const min = Math.round((Date.now() - ts) / 60000);
+    if (min < 1)  return 'hace un momento';
+    if (min < 60) return `hace ${min} minuto${min === 1 ? '' : 's'}`;
+    const h = Math.round(min / 60);
+    return `hace ${h} hora${h === 1 ? '' : 's'}`;
+  }
+
+  // ── al abrir la página ──
+  const borrador = leer();
+  if (borrador){
+    document.getElementById('borrador-cuando').textContent =
+      'Guardada ' + hace(borrador.ts) + ' en este equipo.';
+    aviso.hidden = false;
+    document.getElementById('btn-recuperar-borrador')
+            .addEventListener('click', () => restaurar(borrador));
+    document.getElementById('btn-descartar-borrador')
+            .addEventListener('click', () => {
+              localStorage.removeItem(CLAVE);
+              aviso.hidden = true;
+            });
+  }
+
+  // ── guardado automático ──
+  let reloj = null;
+  form.addEventListener('input', () => {
+    clearTimeout(reloj);
+    reloj = setTimeout(guardar, 1000);
+  });
+  window.addEventListener('beforeunload', guardar);
+})();
 </script>
 {% endblock %}

@@ -596,3 +596,13 @@
   </div><!-- /timeline-wrap -->
 </div><!-- /ev-layout -->
 {% endblock %}
+
+{% block extra_js %}
+<script>
+/* El guardado bueno de una evolución termina en esta pantalla. Si había
+   un borrador de este paciente, ya cumplió su función y se borra: si el
+   guardado hubiera fallado, el médico estaría de vuelta en el formulario
+   y el borrador seguiría ahí esperándolo. */
+try { localStorage.removeItem('evolucion_borrador_{{ paciente.id }}'); } catch (e) {}
+</script>
+{% endblock %}
