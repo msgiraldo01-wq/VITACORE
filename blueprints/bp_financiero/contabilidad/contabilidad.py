@@ -4,6 +4,8 @@
 # =============================================
 
 from flask import Blueprint, render_template, request, jsonify, session
+from blueprints.auth.decorators import login_required
+from services.permisos_service import requiere_permiso
 from repositories.fin_contabilidad_repo import (
     listar_puc,
     buscar_cuentas,
@@ -39,6 +41,7 @@ def _usuario():
 # DASHBOARD / INICIO DEL MÓDULO
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/")
+@login_required
 def index():
     comprobantes = listar_comprobantes(limite=20)
     periodos = listar_periodos()
@@ -55,6 +58,7 @@ def index():
 # PLAN DE CUENTAS (PUC)
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/puc")
+@login_required
 def puc():
     cuentas = listar_puc()
     return render_template(
@@ -64,6 +68,7 @@ def puc():
 
 
 @bp_financiero_contabilidad.route("/api/buscar-cuentas")
+@login_required
 def api_buscar_cuentas():
     q = request.args.get("q", "").strip()
     if len(q) < 1:
@@ -75,6 +80,7 @@ def api_buscar_cuentas():
 # TERCEROS
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/terceros")
+@login_required
 def terceros():
     lista = listar_terceros()
     return render_template(
@@ -84,6 +90,7 @@ def terceros():
 
 
 @bp_financiero_contabilidad.route("/api/buscar-terceros")
+@login_required
 def api_buscar_terceros():
     q = request.args.get("q", "").strip()
     if len(q) < 1:
@@ -92,6 +99,8 @@ def api_buscar_terceros():
 
 
 @bp_financiero_contabilidad.route("/api/crear-tercero", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "create")
 def api_crear_tercero():
     body = request.get_json(silent=True) or {}
     if not body.get("numero_documento") or not body.get("razon_social"):
@@ -124,6 +133,7 @@ def api_crear_tercero():
 # NUEVO COMPROBANTE (formulario)
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/comprobante/nuevo")
+@login_required
 def nuevo_comprobante():
     catalogos = catalogos_para_formulario()
     return render_template(
@@ -133,6 +143,8 @@ def nuevo_comprobante():
 
 
 @bp_financiero_contabilidad.route("/comprobante/registrar", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "create")
 def api_registrar_comprobante():
     body = request.get_json(silent=True) or {}
     form = {
@@ -154,6 +166,7 @@ def api_registrar_comprobante():
 # DETALLE DE COMPROBANTE
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/comprobante/<int:comprobante_id>")
+@login_required
 def detalle(comprobante_id):
     cab, movs = detalle_comprobante(comprobante_id)
     if not cab:
@@ -166,6 +179,8 @@ def detalle(comprobante_id):
 
 
 @bp_financiero_contabilidad.route("/comprobante/anular", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "edit")
 def api_anular_comprobante():
     body = request.get_json(silent=True) or {}
     comprobante_id = body.get("comprobante_id")
@@ -183,6 +198,7 @@ def api_anular_comprobante():
 # LIBRO DIARIO
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/libro-diario")
+@login_required
 def libro_diario():
     periodo = request.args.get("periodo") or None
     filas = obtener_libro_diario(periodo=periodo)
@@ -201,6 +217,7 @@ def libro_diario():
 # LIBRO MAYOR
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/libro-mayor")
+@login_required
 def libro_mayor():
     cuenta_id = request.args.get("cuenta_id", type=int)
     periodo = request.args.get("periodo") or None
@@ -227,6 +244,8 @@ def libro_mayor():
 # PERIODOS (abrir / cerrar)
 # --------------------------------------------------
 @bp_financiero_contabilidad.route("/periodos/cambiar-estado", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "edit")
 def api_cambiar_periodo():
     body = request.get_json(silent=True) or {}
     periodo = body.get("periodo")

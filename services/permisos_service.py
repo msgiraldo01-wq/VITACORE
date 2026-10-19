@@ -91,6 +91,9 @@ RUTAS_MODULO = {
     "/facturacion/factus/eventos": "facturacion_diagnostico",
     "/facturacion/api/factus": "facturacion_diagnostico",
     "/facturacion": "facturacion",
+    # Sin este prefijo, /financiero/contabilidad no resolvía a ningún
+    # módulo y el portero central de app.py lo dejaba pasar siempre.
+    "/financiero/contabilidad": "contabilidad",
     "/financiero/radicacion": "radicacion",
     "/financiero/glosas": "glosas",
     "/financiero/cartera": "cartera",
