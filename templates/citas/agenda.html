@@ -2744,7 +2744,8 @@ async function buscarSiguienteDisponible(medicoId) {
     inputFecha.value = data.data.fecha;
     citaForm.fecha   = data.data.fecha;
 
-    await cargarHorariosMedico();
+    // se le pasan los rangos y las citas que la búsqueda ya trajo
+    await cargarHorariosMedico(data.data);
 
     // Esperar un tick para que el DOM refleje las opciones
     await new Promise(r => setTimeout(r, 50));
@@ -3068,7 +3069,11 @@ function seleccionarPaciente(id, nombre) {
 }
 
 // ===== PASO 2: HORARIOS =====
-async function cargarHorariosMedico() {
+// `precargado` llega solo cuando venimos de elegir médico: la búsqueda de
+// siguiente disponible ya calculó los rangos y las citas de ese día, así que
+// no tiene sentido volver a pedírselos al servidor. Sin ese argumento la
+// función se comporta exactamente como siempre.
+async function cargarHorariosMedico(precargado = null) {
   const medicoId = document.getElementById('medico_id_modal').value;
   const fecha    = document.getElementById('fecha_modal').value;
  
@@ -3091,15 +3096,23 @@ async function cargarHorariosMedico() {
   selectHora.innerHTML = '<option value="">Cargando...</option>';
  
   try {
-    // ── Consultar disponibilidad real del profesional + alertas (festivos, bloqueos) ──
+    // ── Disponibilidad del profesional + alertas (festivos, bloqueos) ──
+    // Las alertas siempre se consultan: esa regla la calcula otro sitio y
+    // duplicarla aquí sería arriesgarse a que las dos versiones diverjan.
+    const usarPrecargado = !!(precargado && Array.isArray(precargado.rangos));
+
     const [resDisp, resAlertasModal] = await Promise.all([
-      fetch(`/hc/configuracion/profesionales/${medicoId}/disponibilidad?fecha=${fecha}`),
+      usarPrecargado
+        ? Promise.resolve(null)
+        : fetch(`/hc/configuracion/profesionales/${medicoId}/disponibilidad?fecha=${fecha}`),
       fetch(`/hc/configuracion/profesionales/${medicoId}/alertas?fecha=${fecha}`),
     ]);
-    const dataDisp        = await resDisp.json();
+    const dataDisp         = resDisp ? await resDisp.json() : null;
     const dataAlertasModal = await resAlertasModal.json();
 
-    const rangos          = (dataDisp.ok && dataDisp.data) ? dataDisp.data : [];
+    const rangos          = usarPrecargado
+                              ? precargado.rangos
+                              : ((dataDisp && dataDisp.ok && dataDisp.data) ? dataDisp.data : []);
     const alertasModal    = (dataAlertasModal.ok && dataAlertasModal.data) ? dataAlertasModal.data : [];
     const festivoBloqueo  = alertasModal.find(a => a.tipo === 'bloqueo_total' && a.motivo?.startsWith('Festivo:'));
     const festivoInfoModal = alertasModal.find(a => a.tipo === 'festivo_informativo');
@@ -3134,10 +3147,15 @@ async function cargarHorariosMedico() {
       return;
     }
  
-    // ── Obtener citas existentes ──
-    const resCitas       = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
-    const dataCitas      = await resCitas.json();
-    const citasExistentes = dataCitas.data || [];
+    // ── Citas existentes del día ──
+    let citasExistentes;
+    if (usarPrecargado && Array.isArray(precargado.citas)) {
+      citasExistentes = precargado.citas;
+    } else {
+      const resCitas  = await fetch(`/citas/api/agenda?fecha=${fecha}&medico_id=${medicoId}`);
+      const dataCitas = await resCitas.json();
+      citasExistentes = dataCitas.data || [];
+    }
     const duracionActual  = parseInt(document.getElementById('duracion').value) || 20;
 
     ULTIMAS_CITAS_MEDICO_DIA = citasExistentes;

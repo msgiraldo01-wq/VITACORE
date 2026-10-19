@@ -491,9 +491,20 @@ def buscar_siguiente_disponible(profesional_id: int, fecha_desde: str, duracion_
                         break
 
                 if not ocupado:
+                    # Se devuelven también los rangos y las citas del día
+                    # encontrado. No cuestan nada: son las mismas variables
+                    # que se acaban de usar para hallar el cupo. Con esto el
+                    # formulario puede pintar la lista de horas sin volver a
+                    # pedirle al servidor lo que ya calculó aquí.
                     return {
                         "fecha": fecha_str,
                         "hora": _min_to_time(slot),
+                        "rangos": [
+                            {"hora_inicio": _min_to_time(r_i),
+                             "hora_fin": _min_to_time(r_f)}
+                            for r_i, r_f in rangos
+                        ],
+                        "citas": citas,
                     }
                 slot += 5
 
