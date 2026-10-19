@@ -53,12 +53,12 @@ Historia clínica
 .patient-name-header{
   font-size:1.05rem;
   font-weight:800;
-  color:#fff;
+  color:var(--text);
 }
 
 .patient-doc-header{
   font-size:.85rem;
-  color:rgba(255,255,255,.82);
+  color:var(--text-soft);
   display:flex;
   align-items:center;
   gap:8px;
@@ -73,12 +73,11 @@ Historia clínica
 .hc-hero{
   position:relative;
   overflow:hidden;
-  padding:24px;
-  border-radius:var(--radius-xl);
-  background:linear-gradient(135deg, var(--brand), var(--accent));
-  color:#fff;
-  box-shadow:var(--shadow-sm);
-}
+  padding:18px 20px;
+  border-radius:var(--radius-lg);
+  background:var(--surface);
+  color:var(--text);
+  box-shadow:var(--shadow-xs); border:1px solid var(--border);}
 
 .hc-hero::after{
   content:"";
@@ -88,9 +87,8 @@ Historia clínica
   width:220px;
   height:220px;
   border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,.16), transparent 68%);
-  pointer-events:none;
-}
+  background:none;
+  pointer-events:none; display:none;}
 
 .hc-hero-top{
   display:flex;
@@ -113,13 +111,12 @@ Historia clínica
   border-radius:var(--radius-lg);
   display:grid;
   place-items:center;
-  background:rgba(255,255,255,.18);
-  border:1px solid rgba(255,255,255,.16);
+  background:var(--brand-soft);
+  border:1px solid var(--border);
   backdrop-filter:blur(8px);
   font-size:1.45rem;
   font-weight:800;
-  flex-shrink:0;
-}
+  flex-shrink:0; color:var(--brand);}
 
 .hc-hero-copy{
   min-width:0;
@@ -135,7 +132,7 @@ Historia clínica
 
 .hc-hero-sub{
   margin:10px 0 0;
-  color:rgba(255,255,255,.88);
+  color:var(--text-soft);
   font-size:14px;
   line-height:1.65;
   max-width:760px;
@@ -155,9 +152,9 @@ Historia clínica
   min-height:38px;
   padding:0 12px;
   border-radius:var(--radius-pill);
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.16);
-  color:#fff;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text-soft);
   font-size:12px;
   font-weight:700;
 }
@@ -169,20 +166,19 @@ Historia clínica
   min-height:40px;
   padding:0 14px;
   border-radius:var(--radius-pill);
-  background:rgba(255,255,255,.14);
-  border:1px solid rgba(255,255,255,.16);
+  background:var(--surface-2);
+  border:1px solid var(--border);
   font-size:12px;
   font-weight:800;
   letter-spacing:.05em;
-  text-transform:uppercase;
-}
+  text-transform:uppercase; color:var(--text-soft);}
 
 .hc-status::before{
   content:"";
-  width:9px;
-  height:9px;
+  width:8px;
+  height:8px;
   border-radius:50%;
-  background:#fff;
+  background:currentColor;
 }
 
 .hc-hero-stats{
@@ -193,10 +189,10 @@ Historia clínica
 }
 
 .hero-stat{
-  padding:16px;
-  border-radius:var(--radius-lg);
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.14);
+  padding:14px 16px;
+  border-radius:var(--radius-md);
+  background:var(--surface-2);
+  border:1px solid var(--border);
   backdrop-filter:blur(8px);
 }
 
@@ -207,21 +203,21 @@ Historia clínica
   font-weight:800;
   letter-spacing:.08em;
   text-transform:uppercase;
-  color:rgba(255,255,255,.80);
+  color:var(--text-faint);
 }
 
 .hero-stat strong{
   display:block;
   font-size:1.15rem;
   line-height:1.2;
-  color:#fff;
+  color:var(--text);
 }
 
 .hero-stat span{
   display:block;
   margin-top:6px;
   font-size:12px;
-  color:rgba(255,255,255,.82);
+  color:var(--text-soft);
 }
 
 .hc-layout{
@@ -370,7 +366,7 @@ Historia clínica
 }
 
 .filter-btn.active{
-  background:linear-gradient(135deg, var(--brand), var(--accent));
+  background:var(--brand);
   color:#fff;
   border-color:transparent;
 }
@@ -414,15 +410,14 @@ Historia clínica
   border-radius:var(--radius-lg);
   display:grid;
   place-items:center;
-  color:#fff;
+  color:var(--text-faint);
   font-size:1rem;
-  background:linear-gradient(135deg, var(--brand), var(--accent));
+  background:var(--surface-2);
   box-shadow:var(--shadow-xs);
 }
 
 .tl-type.signos{
-  background:var(--danger);
-}
+  background:var(--surface-2); color:var(--text-faint);}
 
 .tl-main{
   min-width:0;
@@ -504,7 +499,7 @@ Historia clínica
 .timeline-item.expanded .tl-expand{
   transform:rotate(180deg);
   color:#fff;
-  background:linear-gradient(135deg, var(--brand), var(--accent));
+  background:var(--brand);
 }
 
 .tl-content{
@@ -576,8 +571,8 @@ Historia clínica
   border-radius:var(--radius-md);
   display:grid;
   place-items:center;
-  color:#fff;
-  background:var(--danger);
+  color:var(--text-faint);
+  background:var(--surface-2);
 }
 
 .vital-info{
