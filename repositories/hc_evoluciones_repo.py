@@ -300,29 +300,29 @@ def crear(data: dict) -> Optional[dict]:
             "medico_id": data.get("medico_id"),
             "tipo_atencion": data.get("tipo_atencion", "CONSULTA_EXTERNA"),
             "sede_id": data.get("sede_id") or None,
-            "servicio": data.get("servicio", "").strip() or None,
+            "servicio": (data.get("servicio") or "").strip() or None,
 
             # SUBJETIVO
-            "motivo_consulta": data.get("motivo_consulta", "").strip(),
-            "enfermedad_actual": data.get("enfermedad_actual", "").strip(),
+            "motivo_consulta": (data.get("motivo_consulta") or "").strip(),
+            "enfermedad_actual": (data.get("enfermedad_actual") or "").strip(),
 
             # OBJETIVO
-            "examen_fisico": data.get("examen_fisico", "").strip() or None,
-            "examen_sistemas": data.get("examen_sistemas", "").strip() or None,
+            "examen_fisico": (data.get("examen_fisico") or "").strip() or None,
+            "examen_sistemas": (data.get("examen_sistemas") or "").strip() or None,
 
             # ANÁLISIS
             "cie10_codigo": data.get("cie10_codigo") or None,
-            "cie10_nombre": data.get("cie10_nombre", "").strip() or None,
-            "diagnosticos_secundarios": data.get("diagnosticos_secundarios", "").strip() or None,
-            "impresion_diagnostica": data.get("impresion_diagnostica", "").strip(),
-            "resultados_paraclinicos": data.get("resultados_paraclinicos", "").strip() or None,
+            "cie10_nombre": (data.get("cie10_nombre") or "").strip() or None,
+            "diagnosticos_secundarios": (data.get("diagnosticos_secundarios") or "").strip() or None,
+            "impresion_diagnostica": (data.get("impresion_diagnostica") or "").strip(),
+            "resultados_paraclinicos": (data.get("resultados_paraclinicos") or "").strip() or None,
 
             # PLAN
-            "plan": data.get("plan", "").strip(),
-            "recomendaciones": data.get("recomendaciones", "").strip() or None,
+            "plan": (data.get("plan") or "").strip(),
+            "recomendaciones": (data.get("recomendaciones") or "").strip() or None,
             "proximo_control_fecha": data.get("proximo_control_fecha") or None,
-            "proximo_control_tipo": data.get("proximo_control_tipo", "").strip() or None,
-            "destino_paciente": data.get("destino_paciente", "").strip() or None,
+            "proximo_control_tipo": (data.get("proximo_control_tipo") or "").strip() or None,
+            "destino_paciente": (data.get("destino_paciente") or "").strip() or None,
 
             # RDA (Resolución 1888)
             "causa_externa_codigo": data.get("causa_externa_codigo") or None,

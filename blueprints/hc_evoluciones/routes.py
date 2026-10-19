@@ -224,8 +224,11 @@ def evolucion_crear(paciente_id):
         )
 
     except Exception as e:
-        flash(f"Error al guardar la evolución: {str(e)}", "error")
-        print("ERROR creando evolución:", e)
+        # Se registra con código para poder rastrearlo después: antes solo
+        # se imprimía en consola y al médico le salía el error de Postgres
+        # en pantalla, que no le dice nada y además expone la base.
+        codigo = error_service.registrar(e)
+        flash(f"No se pudo guardar la evolución. Código del error: {codigo}", "error")
         return redirect(request.referrer)
 # =========================
 # BUSCADOR CIE10
