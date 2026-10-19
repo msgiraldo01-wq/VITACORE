@@ -434,6 +434,13 @@
       <div class="cfg-sec-text">Traza completa de inicios de sesión: quién, cuándo, desde dónde y con qué resultado.</div>
     </a>
     {% endif %}
+    {% if puede_ver('soporte') %}
+    <a class="cfg-sec-card" href="/hc/configuracion/soporte/">
+      <div class="cfg-sec-icon"><i class="fa-solid fa-life-ring"></i></div>
+      <div class="cfg-sec-title">Soporte y errores</div>
+      <div class="cfg-sec-text">Errores de la aplicación en producción. Busca por el código que reporta el usuario.</div>
+    </a>
+    {% endif %}
   </div>
 </div>
 

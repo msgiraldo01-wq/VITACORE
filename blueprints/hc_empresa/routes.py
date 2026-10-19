@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from services.supabase_service import get_supabase_admin
+from services import modulos_service
+from blueprints.auth.decorators import login_required
 
 bp_hc_empresa = Blueprint(
     "bp_hc_empresa",
@@ -235,3 +237,66 @@ def cambiar_estado_empresa(empresa_id):
         })
     except Exception as exc:
         return jsonify({"ok": False, "message": str(exc)}), 400
+
+
+# =========================================================
+# MÓDULOS CONTRATADOS POR EMPRESA
+# =========================================================
+# Vive bajo /empresa (fuera del control de módulos, que es
+# justamente lo que se administra aquí) y es solo para
+# SUPER_ADMIN: es la pantalla del vendedor, no la del cliente.
+
+@bp_hc_empresa.route("/modulos/<int:empresa_id>")
+@login_required
+def modulos_empresa(empresa_id):
+    if not es_super_admin():
+        return redirect("/hc")
+
+    sb = get_supabase_admin()
+    empresa = (sb.table("hc_empresas")
+               .select("id, nit, razon_social, nombre_comercial")
+               .eq("id", empresa_id).limit(1).execute().data or [None])[0]
+    if not empresa:
+        return redirect("/empresa/seleccionar")
+
+    modulos = modulos_service.estado_empresa(empresa_id)
+
+    # agrupados por sección, en el orden que trae el catálogo
+    secciones, indice = [], {}
+    for m in modulos:
+        if m["section"] not in indice:
+            indice[m["section"]] = {"nombre": m["section"], "modulos": []}
+            secciones.append(indice[m["section"]])
+        indice[m["section"]]["modulos"].append(m)
+
+    return render_template(
+        "hc/empresa/modulos.html",
+        empresa=empresa,
+        secciones=secciones,
+        activos=sum(1 for m in modulos if m["activo"]),
+        total=len(modulos),
+    )
+
+
+@bp_hc_empresa.route("/modulos/<int:empresa_id>/cambiar", methods=["POST"])
+@login_required
+def cambiar_modulo_empresa(empresa_id):
+    if not es_super_admin():
+        return jsonify({"ok": False, "message": "No autorizado"}), 403
+
+    datos = request.get_json(silent=True) or {}
+    code = (datos.get("code") or "").strip()
+    activar = bool(datos.get("activar"))
+
+    try:
+        modulos_service.cambiar(
+            empresa_id, code, activar,
+            usuario=(session.get("user") or {}).get("username", ""))
+    except modulos_service.ModuloError as e:
+        return jsonify({"ok": False, "message": e.mensaje,
+                        "bloqueantes": e.bloqueantes}), 409
+    except Exception as e:
+        print("[MODULOS] error cambiando", code, e)
+        return jsonify({"ok": False, "message": "No se pudo guardar el cambio."}), 500
+
+    return jsonify({"ok": True, "code": code, "activo": activar})

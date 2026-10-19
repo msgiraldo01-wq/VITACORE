@@ -26,6 +26,7 @@ from functools import wraps
 from flask import session, g, request, jsonify
 
 from services.supabase_service import get_supabase_admin
+from services import modulos_service
 
 
 # Prefijos de URL -> code del módulo en la tabla `modulos`.
@@ -68,6 +69,10 @@ RUTAS_MODULO = {
     "/hc/configuracion/clientes": "contratos",
     "/hc/configuracion/contratos": "contratos",
     "/hc/configuracion/manuales-tarifarios": "contratos",
+    # Soporte (errores de la aplicación) vive dentro de Configuración por
+    # URL, pero tiene módulo propio: las trazas muestran estructura interna
+    # del sistema y no todo administrador de catálogos debe verlas.
+    "/hc/configuracion/soporte": "soporte",
     "/hc/configuracion": "configuracion",
     "/hc/": "dashboard_clinico",
 
@@ -158,6 +163,12 @@ def puede(modulo_code: str, accion: str = "view") -> bool:
     accion en {"view", "create", "edit", "delete"}."""
     if not modulo_code:
         return True
+
+    # Lo comercial va primero y no lo salta nadie, ni SUPER_ADMIN: si la
+    # empresa no contrató el módulo, no existe para ella. El vendedor lo
+    # activa desde /empresa/modulos, que está fuera de este control.
+    if not modulos_service.tiene(modulo_code):
+        return False
 
     if es_super_admin():
         return True
