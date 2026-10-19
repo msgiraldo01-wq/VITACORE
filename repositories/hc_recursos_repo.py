@@ -1,5 +1,6 @@
 from typing import Any
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table():
@@ -36,6 +37,7 @@ def _normalize(row: dict[str, Any] | None):
 # LISTAR (CON JOIN)
 # ========================
 
+@cacheado()
 def listar():
 
     res = (
@@ -78,6 +80,7 @@ def obtener(id: int):
 
 def crear(data: dict):
 
+    invalidar("hc_recursos_repo")
     return (
         _sb()
         .table(_table())
@@ -92,6 +95,7 @@ def crear(data: dict):
 
 def actualizar(id: int, data: dict):
 
+    invalidar("hc_recursos_repo")
     return (
         _sb()
         .table(_table())
@@ -117,6 +121,7 @@ def toggle(id: int):
 # LISTAR SELECT (para modal de citas)
 # ========================
 
+@cacheado()
 def listar_select(sede_id: int = None, tipo: str = None):
 
     q = (
@@ -145,5 +150,6 @@ def listar_select(sede_id: int = None, tipo: str = None):
     ]
 
 
+@cacheado()
 def listar_por_sede(sede_id: int):
     return listar_select(sede_id=sede_id)

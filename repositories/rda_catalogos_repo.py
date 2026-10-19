@@ -1,5 +1,6 @@
 from typing import Optional
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name():
@@ -27,6 +28,7 @@ def _normalize(row: Optional[dict]) -> Optional[dict]:
 # LISTAR POR TIPO (para los selectores)
 # =========================
 
+@cacheado()
 def listar(tipo: str, solo_activos: bool = True) -> list:
     """Lista las opciones de un catálogo (p.ej. 'causa_externa'),
     por defecto solo las activas, ordenadas."""

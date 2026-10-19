@@ -2,6 +2,7 @@ from typing import Any
 from flask import current_app  # type: ignore
 
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table_name() -> str:
@@ -29,6 +30,7 @@ def _normalize_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+@cacheado()
 def listar():
     response = (
         _sb()
@@ -78,6 +80,7 @@ def existe_codigo(codigo: str, exclude_id: int | None = None):
 
 
 def crear(data: dict):
+    invalidar("hc_sedes_repo")
     payload = {
         "codigo": (data.get("codigo") or "").strip().upper(),
         "nombre": (data.get("nombre") or "").strip(),
@@ -99,6 +102,7 @@ def crear(data: dict):
 
 
 def actualizar(sede_id: int, data: dict):
+    invalidar("hc_sedes_repo")
     payload = {
         "codigo": (data.get("codigo") or "").strip().upper(),
         "nombre": (data.get("nombre") or "").strip(),
@@ -121,6 +125,7 @@ def actualizar(sede_id: int, data: dict):
 
 
 def cambiar_estado(sede_id: int, nuevo_estado: str):
+    invalidar("hc_sedes_repo")
     payload = {
         "estado": (nuevo_estado or "").strip().upper()
     }
@@ -132,6 +137,7 @@ def cambiar_estado(sede_id: int, nuevo_estado: str):
         .eq("id", sede_id)
         .execute()
     )
+@cacheado()
 def listar_select():
     """
     Versión ligera para dropdowns — solo id y nombre, solo ACTIVAS.

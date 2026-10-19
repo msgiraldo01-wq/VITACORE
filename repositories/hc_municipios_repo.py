@@ -2,6 +2,7 @@ import re
 import unicodedata
 from typing import Any
 from services.supabase_service import get_supabase_admin
+from services.cache_service import cacheado, invalidar
 
 
 def _table():
@@ -26,6 +27,7 @@ def normalizar_texto(texto: str) -> str:
 # SINCRONIZACIÓN CON DANE/DIAN (código_dian)
 # ========================
 
+@cacheado()
 def listar_todos_para_sync():
     """id, nombre, departamento_id y codigo_dian de TODOS los municipios
     (sin filtrar por estado), para el proceso de sincronización con la
@@ -48,6 +50,7 @@ def actualizar_codigo_dian(item_id: int, codigo_dian: str, cliente=None):
     el que atendió el request ("Working outside of application context").
     Crea el cliente en el hilo principal (donde sí hay contexto) y pásalo.
     """
+    invalidar("hc_municipios_repo")
     sb = cliente or _sb()
     sb.table(_table()).update({"codigo_dian": codigo_dian}).eq("id", item_id).execute()
 
@@ -112,6 +115,7 @@ def _normalize(row: dict[str, Any] | None):
 # LISTAR
 # ========================
 
+@cacheado()
 def listar():
 
     res = (
@@ -129,6 +133,7 @@ def listar():
 # LISTAR POR DEPARTAMENTO
 # ========================
 
+@cacheado()
 def listar_por_departamento(dep_id):
 
     res = (
@@ -169,6 +174,7 @@ def obtener(item_id: int):
 
 def crear(data: dict):
 
+    invalidar("hc_municipios_repo")
     payload = {
         "departamento_id": data.get("departamento_id"),
         "codigo": (data.get("codigo") or "").strip(),
@@ -187,6 +193,7 @@ def crear(data: dict):
 
 def actualizar(item_id: int, data: dict):
 
+    invalidar("hc_municipios_repo")
     payload = {
         "departamento_id": data.get("departamento_id"),
         "codigo": (data.get("codigo") or "").strip(),
@@ -212,6 +219,7 @@ def actualizar(item_id: int, data: dict):
 
 def cambiar_estado(item_id: int, nuevo_estado: str):
 
+    invalidar("hc_municipios_repo")
     res = (
         _sb()
         .table(_table())

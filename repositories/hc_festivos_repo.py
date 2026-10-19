@@ -7,6 +7,7 @@ Maestra de días festivos (Colombia). Usada por:
 """
 
 from services.supabase_service import get_supabase_public
+from services.cache_service import cacheado, invalidar
 
 
 def _sb():
@@ -17,6 +18,7 @@ def _table():
     return "hc_festivos"
 
 
+@cacheado(3600)
 def listar() -> list:
     """Todos los festivos, ordenados por fecha."""
     res = (
@@ -30,6 +32,7 @@ def listar() -> list:
 
 
 def crear(fecha: str, nombre: str) -> dict:
+    invalidar("hc_festivos_repo")
     payload = {
         "fecha": fecha,
         "nombre": (nombre or "").strip(),
@@ -39,9 +42,11 @@ def crear(fecha: str, nombre: str) -> dict:
 
 
 def eliminar(festivo_id: int):
+    invalidar("hc_festivos_repo")
     _sb().table(_table()).delete().eq("id", festivo_id).execute()
 
 
+@cacheado(3600)
 def es_festivo(fecha: str) -> str | None:
     """Si `fecha` (YYYY-MM-DD) es festivo, retorna su nombre; si no, None."""
     res = (
@@ -55,6 +60,7 @@ def es_festivo(fecha: str) -> str | None:
     return res.data[0]["nombre"] if res.data else None
 
 
+@cacheado(3600)
 def listar_rango(fecha_desde: str, fecha_hasta: str) -> dict:
     """
     Festivos dentro de [fecha_desde, fecha_hasta], como {fecha: nombre}.
