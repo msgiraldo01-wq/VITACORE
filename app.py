@@ -21,7 +21,6 @@ from blueprints.hc_historia_clinica.routes import bp_hc_historia
 from blueprints.hc_medicamentos._ini_ import bp_hc_medicamentos
 from blueprints.citas.routes import bp_citas
 from blueprints.hc_empresa.routes import bp_hc_empresa
-from blueprints.bp_financiero.contratos.contratos import bp_financiero_contratos
 from blueprints.bp_financiero.dashborad.dashboard import bp_financiero_dashboard
 from blueprints.bp_financiero.facturacion.routes import bp_facturacion
 from blueprints.bp_financiero.glosas.glosas import bp_financiero_glosas
@@ -61,7 +60,6 @@ app.register_blueprint(bp_hc_historia)
 app.register_blueprint(bp_hc_medicamentos)
 app.register_blueprint(bp_citas)
 app.register_blueprint(bp_hc_empresa)
-app.register_blueprint(bp_financiero_contratos)
 app.register_blueprint(bp_financiero_dashboard)
 app.register_blueprint(bp_facturacion)
 app.register_blueprint(bp_financiero_glosas)

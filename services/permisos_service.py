@@ -81,7 +81,6 @@ RUTAS_MODULO = {
     "/inventario": "farmacia",
 
     "/financiero/dashboard": "dashboard_financiero",
-    "/financiero/contratos": "contratos",
     # Facturación se parte en 3: el día a día (crear/ver facturas), la
     # configuración de consecutivos/resoluciones, y el panel técnico de
     # diagnóstico Factus -- son prefijos más específicos que "/facturacion",
