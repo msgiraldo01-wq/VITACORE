@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, session
 from blueprints.auth.decorators import login_required
 from services.permisos_service import requiere_permiso
+from services import error_service
 from repositories import hc_evoluciones_repo as repo
 from repositories import hc_evolucion_medicamentos_repo as repo_meds
 from repositories import hc_profesionales_repo as repo_prof
@@ -357,3 +358,52 @@ def formula_pdf(evolucion_id):
         medicamentos=medicamentos,
         medico=medico
     )
+
+
+# =========================
+# ANULAR UNA EVOLUCIÓN
+# =========================
+
+@bp_hc_evoluciones.route("/anular/<int:evolucion_id>", methods=["POST"])
+@login_required
+@requiere_permiso("historia_clinica", "delete")
+def anular_evolucion(evolucion_id):
+    """
+    Marca una evolución como anulada. No la borra: la historia clínica no
+    admite enmendaduras, así que la nota original queda y encima se
+    registra quién la anuló, cuándo y por qué.
+
+    Pide el permiso de "eliminar" del módulo porque es la acción más
+    cercana que existe en la matriz: no debería poder hacerla cualquiera
+    que pueda escribir notas.
+    """
+    datos = request.get_json(silent=True) or request.form or {}
+    motivo = (datos.get("motivo") or "").strip()
+    reemplaza = datos.get("reemplazada_por_id") or None
+
+    if len(motivo) < 10:
+        return jsonify({"ok": False,
+                        "error": "El motivo de la anulación debe explicar qué pasó "
+                                 "(al menos 10 caracteres)."}), 400
+
+    try:
+        evolucion = repo.anular(evolucion_id, motivo,
+                                int(reemplaza) if reemplaza else None)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 409
+    except Exception as e:
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "codigo": codigo,
+                        "error": f"Ocurrió un error inesperado. Código: {codigo}"}), 500
+
+    if not evolucion:
+        return jsonify({"ok": False, "error": "No se encontró la evolución."}), 404
+
+    return jsonify({
+        "ok": True,
+        "anulada": True,
+        # Si su RDA ya estaba en el Ministerio hay que decirlo: allá no se
+        # puede retirar y el usuario tiene que saberlo en ese momento.
+        "rda_pendiente_ministerio": evolucion.get("rda_pendiente_ministerio"),
+        "rda_composition_id": evolucion.get("rda_composition_id"),
+    })

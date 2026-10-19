@@ -386,6 +386,19 @@ Historia clínica
   transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
+.timeline-item.anulada{ opacity:.78; border-left:3px solid var(--danger); }
+.timeline-item.anulada .tl-title{ text-decoration:line-through; text-decoration-thickness:1px; }
+.tl-anulada{
+  display:flex; gap:11px; align-items:flex-start;
+  background:var(--danger-soft); padding:11px 14px;
+  border-bottom:1px solid var(--border); font-size:.84rem;
+}
+.tl-anulada i{ color:var(--danger); margin-top:2px; }
+.tl-anulada b{ display:block; color:var(--danger); font-size:.84rem; }
+.tl-anulada span{ display:block; color:var(--text-soft); font-size:.8rem; margin-top:2px; }
+.tl-anulada .quien{ color:var(--text-faint); font-size:.75rem; }
+.tl-anulada .rda{ color:var(--warn); font-size:.75rem; margin-top:4px; }
+
 .timeline-item:hover{
   border-color:var(--border-strong);
 }
@@ -1061,8 +1074,24 @@ function renderItem(t) {
     `;
   }
 
+  const anulada = tipo === 'evolucion' && data.anulada;
+
   return `
-    <article class="timeline-item ${tipo}" data-type="${tipo}">
+    <article class="timeline-item ${tipo}${anulada ? ' anulada' : ''}" data-type="${tipo}">
+      ${anulada ? `
+        <div class="tl-anulada">
+          <i class="fa-solid fa-ban"></i>
+          <div>
+            <b>Nota anulada</b>
+            <span>${data.anulada_motivo || 'Sin motivo registrado'}</span>
+            <span class="quien">Anulada por ${data.anulada_por || 'desconocido'}${
+              data.anulada_en ? ' el ' + String(data.anulada_en).substring(0,10) : ''}</span>
+            ${data.rda_pendiente_ministerio ? `
+              <span class="rda">Su RDA ya había sido transmitido al Ministerio y allí no puede retirarse.</span>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
       <div class="tl-header" onclick="toggleItem(this)">
         <div class="tl-type ${tipo}">
           <i class="fa-solid ${icon}"></i>

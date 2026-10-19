@@ -7,6 +7,7 @@ from repositories import hc_citas_repo as repo
 from datetime import datetime, timedelta
 from services.pdf_service import PDFService, AssetHelper
 from services import email_service
+from services import auditoria_service
 from postgrest.exceptions import APIError
 import ipaddress
 import os
@@ -22,43 +23,14 @@ bp_citas = Blueprint("citas", __name__, url_prefix="/citas")
 # --------------------------------------------------
 
 def _clasificar_ips(req) -> tuple[str | None, str | None]:
+    """IP privada y pública de quien hace la petición.
+
+    La lógica se movió a services/auditoria_service.py para que la use
+    también la historia clínica: la nota clínica necesita esta misma
+    trazabilidad y no la tenía. Aquí se conserva el nombre para no
+    tocar las llamadas existentes.
     """
-    Un servidor no puede ver, en una sola petición, tanto la IP privada
-    real de alguien detrás de un router NAT como su IP pública: solo ve
-    la que le llega según la topología de red.
-      - Si el navegador entra directo al servidor dentro de la misma red
-        local (típico de una IPS que corre VITACORE en su propia red),
-        lo que llega es la IP privada.
-      - Si hay un proxy/balanceador de por medio (despliegue expuesto a
-        internet), la IP pública real del cliente normalmente viaja en
-        el header X-Forwarded-For, y remote_addr es la del proxy.
-    Aquí se toman todas las IPs que el servidor sí puede ver (cadena de
-    X-Forwarded-For + remote_addr) y se clasifica cada una según si es
-    de rango privado (RFC 1918 / loopback) o pública.
-    """
-    candidatas = []
-
-    xff = req.headers.get("X-Forwarded-For", "")
-    if xff:
-        candidatas.extend([ip.strip() for ip in xff.split(",") if ip.strip()])
-
-    if req.remote_addr:
-        candidatas.append(req.remote_addr)
-
-    ip_privada = None
-    ip_publica = None
-
-    for ip_str in candidatas:
-        try:
-            ip_obj = ipaddress.ip_address(ip_str)
-        except ValueError:
-            continue
-        if ip_obj.is_private or ip_obj.is_loopback:
-            ip_privada = ip_privada or ip_str
-        else:
-            ip_publica = ip_publica or ip_str
-
-    return ip_privada, ip_publica
+    return auditoria_service.clasificar_ips(req)
 
 
 # --------------------------------------------------

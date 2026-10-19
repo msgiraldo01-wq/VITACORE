@@ -1,5 +1,6 @@
 from typing import Any, Optional
 from services.supabase_service import get_supabase_admin
+from services import auditoria_service
 
 
 def _table_name():
@@ -95,7 +96,27 @@ def _normalize(row: Optional[dict]) -> Optional[dict]:
         # =========================
         "estado": row.get("estado") or "ACTIVO",
         "created_at": row.get("created_at"),
-        "created_by": row.get("created_by")
+        "created_by": row.get("created_by"),
+
+        # =========================
+        # AUDITORÍA
+        # =========================
+        "usuario_creacion": row.get("usuario_creacion"),
+        "usuario_creacion_id": row.get("usuario_creacion_id"),
+        "fecha_creacion": row.get("fecha_creacion"),
+        "ip_privada": row.get("ip_privada"),
+        "ip_publica": row.get("ip_publica"),
+
+        # =========================
+        # ANULACIÓN (nunca se borra: se marca)
+        # =========================
+        "anulada": bool(row.get("anulada")),
+        "anulada_motivo": row.get("anulada_motivo"),
+        "anulada_por": row.get("anulada_por"),
+        "anulada_en": row.get("anulada_en"),
+        "reemplazada_por_id": row.get("reemplazada_por_id"),
+        "rda_composition_id": row.get("rda_composition_id"),
+        "rda_pendiente_ministerio": bool(row.get("rda_pendiente_ministerio")),
     }
     
 
@@ -311,15 +332,40 @@ def crear(data: dict) -> Optional[dict]:
 
             # METADATA
             "estado": "ACTIVO",
-            "created_by": data.get("created_by")
+            "created_by": data.get("created_by"),
+
+            # Quién la registró y desde dónde. Una cita ya guardaba esto;
+            # la nota clínica, que es el documento que hay que poder
+            # atribuir, no guardaba nada.
+            **auditoria_service.datos_de_creacion(),
         }
 
-        r = (
-            _sb()
-            .table(_table_name())
-            .insert(insert_data)
-            .execute()
-        )
+        try:
+            r = (
+                _sb()
+                .table(_table_name())
+                .insert(insert_data)
+                .execute()
+            )
+        except Exception as e:
+            # Si la migración de auditoría todavía no se ha corrido, esas
+            # columnas no existen y el insert falla. Registrar una atención
+            # no se puede caer por eso: se reintenta sin los campos de
+            # auditoría y queda constancia en el log.
+            campos_auditoria = ("usuario_creacion", "usuario_creacion_id",
+                                "ip_privada", "ip_publica")
+            if not any(c in str(e) for c in campos_auditoria):
+                raise
+            print("[EVOLUCIONES] faltan las columnas de auditoría "
+                  "(¿migración sin correr?); se guarda la evolución sin ellas:", e)
+            for c in campos_auditoria:
+                insert_data.pop(c, None)
+            r = (
+                _sb()
+                .table(_table_name())
+                .insert(insert_data)
+                .execute()
+            )
 
         if not r or not hasattr(r, 'data') or not r.data:
             return None
@@ -499,3 +545,101 @@ def resumen_evoluciones() -> dict:
     except Exception as e:
         print(f"Error calculando resumen de evoluciones: {e}")
         return {"hoy": 0, "semana": 0, "pacientes_atendidos": 0}
+
+
+# =========================
+# ANULACIÓN
+# =========================
+
+def anular(evolucion_id: int, motivo: str, reemplazada_por_id: int = None) -> Optional[dict]:
+    """
+    Marca una evolución como anulada. NO la borra ni la edita.
+
+    La Resolución 1995 de 1999 no admite enmendaduras en la historia
+    clínica: lo que se corrige se corrige por adición. Por eso aquí la
+    nota original queda intacta y solo se le agrega el registro de que
+    fue anulada, por quién, cuándo y por qué.
+
+    Si esa evolución ya había viajado al Ministerio como RDA, se guarda
+    el composition_id y se marca rda_pendiente_ministerio. Ni la
+    Resolución 1888 de 2025 ni el manual de operaciones del IHCE
+    contemplan retirar un RDA ya aceptado, así que lo único que se puede
+    hacer hoy es dejar constancia de cuáles habría que corregir el día
+    que exista el procedimiento.
+    """
+    if not evolucion_id:
+        return None
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise ValueError("La anulación exige un motivo.")
+
+    actual = obtener(evolucion_id)
+    if not actual:
+        return None
+    if actual.get("anulada"):
+        raise ValueError("Esa evolución ya está anulada.")
+
+    usuario, usuario_id = auditoria_service.usuario_actual()
+    ip_privada, ip_publica = auditoria_service.clasificar_ips()
+
+    # ¿ya se le había enviado un RDA aceptado al Ministerio?
+    composition_id, pendiente = None, False
+    try:
+        envios = (
+            _sb().table("rda_envios")
+            .select("composition_id, estado")
+            .eq("evolucion_id", evolucion_id)
+            .eq("estado", "aceptado")
+            .limit(1)
+            .execute()
+        ).data or []
+        if envios:
+            composition_id = envios[0].get("composition_id")
+            pendiente = True
+    except Exception as e:
+        # que no se pueda consultar el RDA no puede impedir anular una
+        # nota clínica: se deja constancia y se sigue.
+        print(f"[EVOLUCIONES] no se pudo consultar el RDA de {evolucion_id}: {e}")
+
+    datos = {
+        "anulada": True,
+        "anulada_motivo": motivo,
+        "anulada_por": usuario,
+        "anulada_por_id": usuario_id,
+        "anulada_en": datetime.now(timezone.utc).isoformat(),
+        "anulada_ip": ip_publica or ip_privada,
+        "rda_composition_id": composition_id,
+        "rda_pendiente_ministerio": pendiente,
+    }
+    if reemplazada_por_id:
+        datos["reemplazada_por_id"] = reemplazada_por_id
+
+    r = _sb().table(_table_name()).update(datos).eq("id", evolucion_id).execute()
+    return _normalize((r.data or [None])[0])
+
+
+def listar_rda_pendientes_ministerio(limite: int = 200) -> list:
+    """
+    Evoluciones anuladas aquí cuyo RDA sigue en el Ministerio.
+
+    Es la lista que habrá que corregir allá cuando el Ministerio defina
+    el procedimiento. Mientras tanto, sirve para saber de cuántas se
+    trata y poder sustentarlas ante una auditoría.
+    """
+    from flask import session
+    empresa_id = session.get("empresa_id")
+    try:
+        q = (
+            _sb().table(_table_name())
+            .select("id, paciente_id, fecha, anulada_motivo, anulada_por, "
+                    "anulada_en, rda_composition_id")
+            .eq("rda_pendiente_ministerio", True)
+            .order("anulada_en", desc=True)
+            .limit(limite)
+        )
+        if empresa_id:
+            q = q.eq("empresa_id", empresa_id)
+        return q.execute().data or []
+    except Exception as e:
+        print(f"[EVOLUCIONES] no se pudieron listar los RDA pendientes: {e}")
+        return []

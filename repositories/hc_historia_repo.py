@@ -63,7 +63,15 @@ def timeline_paciente(paciente_id: int):
                 ),
                 "motivo_consulta": e.get("motivo_consulta"),
                 "cie10_codigo": e.get("cie10_codigo"),
-                "plan": e.get("plan")
+                "plan": e.get("plan"),
+
+                # Una nota anulada NO desaparece de la historia: sigue
+                # ahí, marcada, con quién la anuló y por qué.
+                "anulada": bool(e.get("anulada")),
+                "anulada_motivo": e.get("anulada_motivo"),
+                "anulada_por": e.get("anulada_por"),
+                "anulada_en": e.get("anulada_en"),
+                "rda_pendiente_ministerio": bool(e.get("rda_pendiente_ministerio")),
             }
         })
 
