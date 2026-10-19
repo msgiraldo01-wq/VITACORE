@@ -167,12 +167,22 @@ def obtener(envio_id: int) -> Optional[dict]:
 # =========================
 
 def listar(estado: str = "", limite: int = 200) -> list:
-    """Lista los envíos para el panel, opcionalmente filtrando por estado."""
+    """Lista los envíos para el panel, opcionalmente filtrando por estado.
+
+    Pide columna por columna a propósito. Con select("*") cada fila traía
+    además bundle_json y acuse_json -- el Bundle FHIR completo y el acuse
+    del Ministerio --, que esta función ni siquiera devuelve: con 13
+    envíos eran 430 KB por abrir el panel, de los cuales 425 se botaban.
+    Y crecía unos 33 KB por cada RDA nuevo. El detalle de un envío sí los
+    necesita, y para eso está obtener(), que trae uno solo.
+    """
     try:
         q = (
             _sb()
             .table(_table_name())
-            .select("*")
+            .select("id, evolucion_id, paciente_id, paciente_doc, paciente_nombre, "
+                    "dx_codigo, estado, http_status, motivo, composition_id, "
+                    "intentos, created_at, updated_at")
             .order("created_at", desc=True)
             .limit(limite)
         )
