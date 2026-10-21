@@ -40,6 +40,10 @@ def _normalize(row: Optional[dict]) -> Optional[dict]:
         "id": row.get("id"),
         "paciente_id": row.get("paciente_id"),
         "fecha": row.get("fecha"),
+        # Cuándo ocurrió la atención. `fecha` es cuándo se insertó la fila,
+        # que no es lo mismo; estas dos son las que van al RDA.
+        "atencion_inicio": row.get("atencion_inicio"),
+        "atencion_fin": row.get("atencion_fin"),
         "tipo_atencion": row.get("tipo_atencion"),
 
         # =========================
@@ -329,6 +333,14 @@ def crear(data: dict) -> Optional[dict]:
             "tipo_diagnostico_codigo": data.get("tipo_diagnostico_codigo") or None,
             "cups_id": data.get("cups_id") or None,
             "entorno_codigo": data.get("entorno_codigo") or None,
+
+            # Cuándo ocurrió la atención de verdad: desde que el médico
+            # abrió la nota hasta que la guardó. El RDA se inventaba esta
+            # ventana contra el reloj del servidor en el momento de enviar,
+            # así que una evolución enviada días después le decía al
+            # Ministerio que la atención había ocurrido hoy.
+            "atencion_inicio": data.get("atencion_inicio") or None,
+            "atencion_fin": data.get("atencion_fin") or None,
 
             # METADATA
             "estado": "ACTIVO",

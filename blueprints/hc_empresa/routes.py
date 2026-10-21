@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from services.supabase_service import get_supabase_admin
 from services import modulos_service
+from services import sesion_service
 from blueprints.auth.decorators import login_required
 
 bp_hc_empresa = Blueprint(
@@ -14,6 +15,21 @@ def es_super_admin():
 
 def es_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _minutos_o_nulo(valor, minimo, maximo):
+    """
+    Un número de la política de sesión, o None si el campo vino vacío.
+
+    Fuera de rango también devuelve None -- es decir, los valores por
+    defecto del sistema -- en vez de guardar un 2 que cerraría la
+    sesión cada dos minutos o un 9999 que la dejaría abierta un año.
+    """
+    try:
+        n = int(str(valor).strip())
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return n if minimo <= n <= maximo else None
 
 
 @bp_hc_empresa.route("/seleccionar")
@@ -176,10 +192,21 @@ def editar_empresa(empresa_id):
             "color_primario": (data.get("color_primario") or "").strip() or None,
             "color_secundario": (data.get("color_secundario") or "").strip() or None,
             "estado": (data.get("estado") or empresa.get("estado") or "ACTIVA").strip() or "ACTIVA",
+
+            # Política de sesión. Vacío = usar los valores por defecto
+            # del sistema, no "sin límite": una historia clínica no se
+            # deja abierta indefinidamente porque alguien borró un campo.
+            "sesion_inactividad_min": _minutos_o_nulo(
+                data.get("sesion_inactividad_min"), 5, 480),
+            "sesion_jornada_horas": _minutos_o_nulo(
+                data.get("sesion_jornada_horas"), 1, 24),
         }
 
         try:
             sb.table("hc_empresas").update(payload).eq("id", empresa_id).execute()
+            # El guardia de app.py cachea esto un minuto; sin esto, el
+            # admin cambiaría la política y no la vería aplicada.
+            sesion_service.invalidar_politica()
 
             if es_ajax():
                 return jsonify({

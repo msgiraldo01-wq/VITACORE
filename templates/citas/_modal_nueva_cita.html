@@ -1655,18 +1655,20 @@ function renderAgenda(lista) {
     let horaKey = "00:00";
 
     if (c.hora_inicio) {
-    const clean = String(c.hora_inicio).trim();
-    const partes = clean.split(":");
+      const clean = String(c.hora_inicio).trim();
+      const partes = clean.split(":");
 
-    // 🔥 ESTE ES EL CAMBIO CLAVE
-    const h = String(parseInt(partes[0] || 0)).padStart(2,'0');
-    const m = String(parseInt(partes[1] || 0)).padStart(2,'0');
+      const h = String(parseInt(partes[0] || 0)).padStart(2,'0');
+      const m = String(parseInt(partes[1] || 0)).padStart(2,'0');
 
-    horaKey = `${h}:${m}`;
+      horaKey = `${h}:${m}`;
+    }
 
+    // Fuera del if a propósito: una cita sin hora cae en el slot "00:00",
+    // que es para lo que horaKey se inicializa ahí arriba.
     if (!citasPorSlot[horaKey]) citasPorSlot[horaKey] = [];
     citasPorSlot[horaKey].push(c);
-    });
+  });
 
   Object.entries(citasPorSlot).forEach(([hora, citas]) => {
 
@@ -1759,7 +1761,14 @@ async function cambiarEstado(id, nuevoEstado, event) {
 
 async function cancelarCita(id, event) {
   event.stopPropagation();
-  if (!confirm('¿Cancelar esta cita?')) return;
+  const ok = await VC.confirmar({
+    titulo: 'Cancelar esta cita',
+    texto:  'La cita queda cancelada y su hueco vuelve a quedar libre en la agenda.',
+    ok:      'Cancelar la cita',
+    cancelar:'Volver',
+    peligro: true,
+  });
+  if (!ok) return;
   try {
     const res = await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });
     const data = await res.json();

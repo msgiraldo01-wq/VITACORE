@@ -1855,19 +1855,17 @@ async function cambiarEstado(id, nuevoEstado, event) {
 async function cancelarCita(id, event) {
   event.stopPropagation();
 
-  const result = await Swal.fire({
-    title: '¿Cancelar cita?',
-    text: 'Esta acción marcará la cita como cancelada.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, cancelar cita',
-    cancelButtonText: 'No, mantener',
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-    reverseButtons: true,
+  // Con Swal esto dependía del CDN: si la red de la clínica lo bloquea,
+  // Swal no existe, la función lanza y la cita no se puede cancelar.
+  const ok = await VC.confirmar({
+    titulo: 'Cancelar esta cita',
+    texto:  'La cita queda cancelada y su hueco vuelve a quedar libre en la agenda.',
+    ok:      'Cancelar la cita',
+    cancelar:'Volver',
+    peligro: true,
   });
 
-  if (!result.isConfirmed) return;
+  if (!ok) return;
 
   try {
     await fetch(`/citas/api/cancelar/${id}`, { method: 'POST' });

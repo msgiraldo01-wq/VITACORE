@@ -44,9 +44,29 @@
     <button class="btn-ax primary"><i class="fa-solid fa-check"></i> Aprobar orden</button></form>
   {% endif %}
   {% if puede('farmacia', 'delete') %}
-  <form method="post" onsubmit="return confirm('¿Anular esta orden?')">
+  <form method="post" id="form-anular-oc">
     <input type="hidden" name="accion" value="anular">
     <button class="btn-ax ghost"><i class="fa-solid fa-ban"></i> Anular</button></form>
+  <script>
+  /* VC responde con una promesa, así que no se puede decidir dentro del
+     submit: se frena siempre el envío y se manda a mano si dice que sí.
+     form.submit() no vuelve a disparar este manejador, no hay bucle. */
+  (function(){
+    const form = document.getElementById('form-anular-oc');
+    if (!form) return;
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const ok = await VC.confirmar({
+        titulo: 'Anular la orden #{{ oc.consecutivo }}',
+        texto:  'La orden deja de estar vigente y ya no se podrá recibir contra ella.\n\n'
+              + 'Esta acción no se puede deshacer.',
+        ok:      'Anular',
+        peligro: true,
+      });
+      if (ok) form.submit();
+    });
+  })();
+  </script>
   {% endif %}
   {% elif oc.estado in ('APROBADA', 'RECIBIDA_PARCIAL') %}
   {% if puede('farmacia', 'create') %}

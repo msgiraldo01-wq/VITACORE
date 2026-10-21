@@ -12,7 +12,7 @@
 {% endblock %}
 {% block content %}
 {% include "inventario/_estilos.html" %}
-<form method="post">
+<form method="post" id="form-recepcion">
   <div class="content-block inv-seccion">
     <h3 style="margin:0 0 10px">Verificación (acta de recepción)</h3>
     <div class="inv-form">
@@ -64,9 +64,27 @@
       (la orden quedará RECIBIDA PARCIAL y podrás hacer otra recepción después).
       "Aceptada" vacía = igual a la recibida.</p>
   </div>
-  <button type="submit" class="btn-ax primary"
-    onclick="return confirm('¿Confirmar recepción? Lo aceptado entrará al inventario.')">
+  <button type="submit" class="btn-ax primary">
     <i class="fa-solid fa-clipboard-check"></i> Confirmar recepción e ingresar al kardex</button>
 </form>
 <style>.inv-tabla input{padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)}</style>
+<script>
+/* VC responde con una promesa, así que no se puede decidir dentro del
+   submit: se frena siempre el envío y se manda a mano si dice que sí.
+   form.submit() no vuelve a disparar este manejador, no hay bucle. */
+(function(){
+  const form = document.getElementById('form-recepcion');
+  if (!form) return;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const ok = await VC.confirmar({
+      titulo: 'Confirmar la recepción',
+      texto:  'Lo aceptado entra al kardex de {{ oc.inv_bodegas.nombre }} y queda en el acta.\n\n'
+            + 'El movimiento de inventario no se puede deshacer.',
+      ok: 'Confirmar recepción',
+    });
+    if (ok) form.submit();
+  });
+})();
+</script>
 {% endblock %}

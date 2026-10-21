@@ -1438,9 +1438,13 @@ async function guardarDocumento(){
 }
 
 async function anularDocumento(numeroDocumento){
-    const confirmar = confirm(
-        `¿Seguro que deseas anular el documento ${numeroDocumento}?\nEsta acción no se puede deshacer.`
-    );
+    const confirmar = await VC.confirmar({
+        titulo: `Anular el documento ${numeroDocumento}`,
+        texto:  'Dejará de contar en la cartera del paciente.\n\n'
+              + 'Esta acción no se puede deshacer.',
+        ok:      'Anular',
+        peligro: true,
+    });
     if(!confirmar) return;
 
     try {

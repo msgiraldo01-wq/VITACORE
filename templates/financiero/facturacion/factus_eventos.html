@@ -297,18 +297,14 @@ async function eliminarPendiente() {
     return;
   }
 
-  let confirmado = false;
-  if (window.Swal) {
-    const r = await Swal.fire({
-      title: '¿Eliminar esta factura pendiente en Factus?',
-      html: `Esto borra en Factus el intento sin validar con referencia <b>${refCode}</b>, para poder crear uno nuevo en ese rango de numeración. Solo funciona si Factus todavía NO la validó.`,
-      icon: 'warning', showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b',
-    });
-    confirmado = r.isConfirmed;
-  } else {
-    confirmado = confirm(`¿Eliminar la factura pendiente con referencia ${refCode} en Factus?`);
-  }
+  const confirmado = await VC.confirmar({
+    titulo: 'Eliminar la factura pendiente en Factus',
+    texto: `Se borra en Factus el intento sin validar con referencia ${refCode}, `
+         + 'para poder crear uno nuevo en ese rango de numeración.\n\n'
+         + 'Solo funciona si Factus todavía NO la validó.',
+    ok: 'Eliminar',
+    peligro: true,
+  });
   if (!confirmado) return;
 
   try {
@@ -415,18 +411,15 @@ async function eliminarPendienteDirecto(i) {
     return;
   }
 
-  let confirmado = false;
-  if (window.Swal) {
-    const r = await Swal.fire({
-      title: '¿Eliminar esta factura pendiente en Factus?',
-      html: `Se eliminará en Factus la factura sin validar con referencia <b>${escapeHtml(refCode)}</b>. Esto no se puede deshacer.`,
-      icon: 'warning', showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar', confirmButtonColor: '#c0392b',
-    });
-    confirmado = r.isConfirmed;
-  } else {
-    confirmado = confirm(`¿Eliminar la factura pendiente con referencia ${refCode} en Factus?`);
-  }
+  // VC pinta el texto con textContent, así que la referencia no necesita
+  // escaparse como hacía falta con el html: de Swal.
+  const confirmado = await VC.confirmar({
+    titulo: 'Eliminar la factura pendiente en Factus',
+    texto: `Se eliminará en Factus la factura sin validar con referencia ${refCode}.\n\n`
+         + 'Esto no se puede deshacer.',
+    ok: 'Eliminar',
+    peligro: true,
+  });
   if (!confirmado) return;
 
   try {

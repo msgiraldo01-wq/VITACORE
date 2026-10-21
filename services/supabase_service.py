@@ -64,17 +64,21 @@ def get_supabase_admin():
     )
 
 
-def get_supabase_auth():
+def get_supabase_auth(url=None, key=None):
     """
     Cliente NUEVO cada vez, para iniciar sesión o cambiar contraseña.
 
     No se comparte a propósito: el cliente guarda adentro la sesión del
     usuario que acaba de autenticarse, y compartirlo haría que la sesión
     de uno viajara en las peticiones de otro.
+
+    `url` y `key` se aceptan para poder crearlo desde un hilo, donde no
+    hay contexto de aplicación y `current_app` no existe. El login los
+    lee antes de lanzar el hilo y los pasa aquí.
     """
     return create_client(
-        current_app.config["SUPABASE_URL"],
-        current_app.config["SUPABASE_ANON_KEY"],
+        url or current_app.config["SUPABASE_URL"],
+        key or current_app.config["SUPABASE_ANON_KEY"],
     )
 
 

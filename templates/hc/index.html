@@ -1,749 +1,610 @@
 {% extends "hc/base.html" %}
 
+{#
+  PANTALLA DE INICIO — un lanzador, no un dashboard.
+
+  Lo que había antes pintaba cuatro contadores (pacientes_hoy,
+  evoluciones_hoy, signos_hoy, consultas_hoy) que la ruta nunca le
+  pasaba, así que mostraba cuatro ceros todos los días. Peor: como la
+  condición del vacío miraba esos mismos cuatro, el mensaje "aún no se
+  registra actividad para hoy" salía siempre, hubieras atendido a
+  cuarenta pacientes o a ninguno.
+
+  Esta versión no muestra ningún número que no pueda sostener. Responde
+  a una sola pregunta: ¿qué tengo que hacer ahora y cómo llego?
+
+  El orden es deliberado: lo primero es buscar un paciente, porque es
+  lo que un médico hace al llegar.
+#}
+
 {% block title %}Inicio · Vitacore{% endblock %}
 
 {% block extra_meta %}
-<meta name="description" content="Panel principal de Vitacore - Sistema clínico integral para gestión de pacientes, historias médicas y operación hospitalaria.">
+<meta name="description" content="Inicio de Vitacore: buscar paciente, pendientes del día y accesos a los módulos.">
 <meta name="theme-color" content="#0d5c63">
-<meta property="og:title" content="Vitacore · Centro de Inicio">
-<meta property="og:description" content="Resumen operativo del sistema clínico, accesos rápidos y actividad del día.">
-<meta property="og:type" content="website">
 {% endblock %}
 
 {% block header_icon %}
 <i class="fa-solid fa-house-medical" aria-hidden="true"></i>
 {% endblock %}
 
-{% block header_title %}
-Centro de inicio
-{% endblock %}
+{% block header_title %}Inicio{% endblock %}
 
 {% block header_subtitle %}
-Resumen operativo del sistema clínico, accesos rápidos y actividad del día.
-{% endblock %}
-
-{% block header_actions %}
-<a class="btn-ax ghost" href="/hc/pacientes" aria-label="Ir al módulo de pacientes">
-  <i class="fa-solid fa-user-injured" aria-hidden="true"></i>
-  Pacientes
-</a>
-<a class="btn-ax primary" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
-  <i class="fa-solid fa-notes-medical" aria-hidden="true"></i>
-  Abrir historia clínica
-</a>
+Lo que tienes pendiente y por dónde empezar
 {% endblock %}
 
 {% block extra_css %}
 <style>
-  /* ============================================
-     VITACORE DASHBOARD - HOME STYLES
-     Rediseño: menos capas repetidas de título/saludo,
-     sin duplicar los mismos 4 números en dos secciones.
-     ============================================ */
+  /* Sin tope propio: lo pone .page-shell de base.html (1440px). Con uno
+     aquí, la cabecera de la página llegaba al borde y el contenido se
+     paraba antes, dejando un hueco en blanco a la derecha. */
+  .inicio{ display:flex; flex-direction:column; gap:18px; }
 
-  /* CSS Custom Properties (fallbacks) */
-  :root {
-    --brand: #0d5c63;
-    --brand-soft: rgba(13, 92, 99, 0.08);
-    --brand-strong: #0a4a50;
-    --surface: #ffffff;
-    --surface-2: #f8fafb;
-    --surface-3: #f1f5f5;
-    --border: #e5e9eb;
-    --border-strong: #d1d7db;
-    --text: #1a1d1f;
-    --text-soft: #5f6b7a;
-    --text-faint: #8e9aa6;
-    --danger: #dc2626;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-    --focus-ring: 0 0 0 3px rgba(13, 92, 99, 0.25);
-    --radius-sm: 14px;
-    --radius-md: 18px;
-    --radius-lg: 24px;
+  .vc-card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+  }
+  .vc-card-head{ padding:16px 18px 0; }
+  .vc-card-head h2{ margin:0; font-size:.95rem; color:var(--text); }
+  .vc-card-head p{ margin:4px 0 0; font-size:.8rem; color:var(--text-faint); }
+
+  /* ── Saludo ──
+     Grande y con aire. Un médico que llega a las 7 de la mañana no
+     quiere una línea de 13 píxeles: quiere que la pantalla lo salude
+     y le diga la hora sin tener que buscarla en la esquina. */
+  .saludo{ padding:6px 2px 2px; }
+  .saludo h1{
+    margin:0; font-size:1.9rem; font-weight:700; color:var(--text);
+    letter-spacing:-.02em; line-height:1.15;
+  }
+  .saludo .cuando{
+    margin:8px 0 0; display:flex; align-items:baseline; gap:10px;
+    flex-wrap:wrap; font-size:.95rem; color:var(--text-soft);
+  }
+  .saludo .reloj{
+    font-size:1.5rem; font-weight:600; color:var(--text);
+    font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  }
+  .saludo .fecha::first-letter{ text-transform:uppercase; }
+  @media (max-width:640px){ .saludo h1{ font-size:1.5rem; } }
+
+  /* ── Acciones grandes ──
+     Verbos, no nombres de módulo. "Pacientes" dice dónde ir;
+     "Atender un paciente" dice qué hacer, que es lo que alguien
+     necesita al abrir el sistema. El tamaño sale del espacio y la
+     tipografía, no de colores fuertes: así siguen siendo grandes sin
+     dejar de ser sobrias. */
+  .acciones{
+    display:grid; gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  }
+  .accion{
+    display:flex; align-items:center; gap:16px; padding:22px 20px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+    text-decoration:none; color:var(--text); cursor:pointer;
+    font-family:inherit; text-align:left; width:100%;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .accion:hover{ border-color:var(--brand); transform:translateY(-1px); }
+  .accion:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+  .accion .ico{
+    width:46px; height:46px; flex-shrink:0; border-radius:var(--radius-md);
+    background:var(--brand-soft); color:var(--brand);
+    display:grid; place-items:center; font-size:1.15rem;
+  }
+  .accion .txt{ flex:1; min-width:0; }
+  .accion strong{ display:block; font-size:1.02rem; font-weight:600; }
+  .accion .sub{ display:block; margin-top:3px; font-size:.82rem; color:var(--text-faint); }
+  .accion > .fa-arrow-right{ color:var(--text-faint); flex-shrink:0; }
+  @media (prefers-reduced-motion: reduce){ .accion{ transition:none; } }
+  @media (max-width:640px){ .accion{ padding:18px 16px; } }
+
+  /* ── Buscador ── */
+  .buscador{ padding:18px; position:relative; }
+  .buscador-campo{ position:relative; }
+  .buscador-campo > i{
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    color:var(--text-faint); font-size:.9rem; pointer-events:none;
+  }
+  .buscador input{
+    width:100%; padding:13px 14px 13px 40px; font-size:.95rem;
+    border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+    background:var(--surface-2); color:var(--text); font-family:inherit;
+  }
+  .buscador input:focus{
+    outline:none; border-color:var(--brand); background:var(--surface);
+    box-shadow:0 0 0 3px var(--brand-soft);
+  }
+  .buscador-ayuda{ display:block; margin-top:7px; font-size:.75rem; color:var(--text-faint); }
+
+  .resultados{
+    list-style:none; margin:10px 0 0; padding:0;
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    overflow:hidden; background:var(--surface);
+  }
+  .resultados:empty{ display:none; border:0; }
+  .resultados li a{
+    display:flex; align-items:center; gap:12px; padding:11px 14px;
+    text-decoration:none; color:var(--text); border-bottom:1px solid var(--border);
+  }
+  .resultados li:last-child a{ border-bottom:0; }
+  .resultados li a:hover, .resultados li a:focus,
+  .resultados li.activo a{ background:var(--surface-3); outline:none; }
+  .resultados .doc{
+    font-family:ui-monospace,Menlo,monospace; font-size:.78rem;
+    color:var(--text-soft); background:var(--surface-3);
+    padding:2px 7px; border-radius:var(--radius-xs); flex-shrink:0;
+  }
+  .resultados .nom{ font-size:.88rem; flex:1; min-width:0;
+                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .buscador-vacio{ margin:10px 0 0; font-size:.82rem; color:var(--text-faint); }
+
+  /* ── Continuar ── */
+  .continuar{ padding:16px 18px; display:flex; flex-direction:column; gap:10px; }
+  .continuar-item{
+    display:flex; align-items:center; gap:12px; padding:11px 13px;
+    border:1px solid var(--border); border-left:3px solid var(--warn);
+    border-radius:var(--radius-sm); text-decoration:none; color:var(--text);
+  }
+  .continuar-item:hover{ background:var(--surface-2); }
+  .continuar-item > i{ color:var(--warn); }
+  .continuar-item .txt{ flex:1; min-width:0; }
+  .continuar-item strong{ display:block; font-size:.87rem; font-weight:600; }
+  .continuar-item span{ font-size:.77rem; color:var(--text-faint); }
+
+  /* ── Pendientes ── */
+  .pendientes{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+  .pendiente{
+    display:flex; align-items:center; gap:14px; padding:16px 16px;
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    border-left:3px solid var(--text-faint); text-decoration:none; color:var(--text);
+  }
+  .pendiente:hover{ background:var(--surface-2); }
+  .pendiente.critico{ border-left-color:var(--danger); }
+  .pendiente.critico > i{ color:var(--danger); }
+  .pendiente.atencion{ border-left-color:var(--warn); }
+  .pendiente.atencion > i{ color:var(--warn); }
+  .pendiente.info{ border-left-color:var(--info); }
+  .pendiente.info > i{ color:var(--info); }
+  .pendiente .txt{ flex:1; min-width:0; }
+  .pendiente strong{ display:block; font-size:.95rem; font-weight:600; }
+  .pendiente span{ font-size:.82rem; color:var(--text-faint); }
+  .pendiente > i{ font-size:1.1rem; }
+  .pendiente .cta{
+    font-size:.78rem; font-weight:600; color:var(--brand);
+    white-space:nowrap; flex-shrink:0;
   }
 
-  .home-dashboard {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    max-width: 1400px;
-    margin: 0 auto;
+  .al-dia{
+    display:flex; align-items:center; gap:10px; padding:14px;
+    font-size:.85rem; color:var(--text-soft);
+    background:var(--success-soft); border-radius:var(--radius-sm);
   }
+  .al-dia i{ color:var(--success); }
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+  /* Esqueleto mientras llegan los pendientes */
+  .hueso{
+    height:48px; border-radius:var(--radius-sm);
+    background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 50%,var(--surface-3) 75%);
+    background-size:200% 100%; animation:hueso 1.3s infinite;
   }
+  @keyframes hueso{ to{ background-position:-200% 0; } }
+  @media (prefers-reduced-motion: reduce){ .hueso{ animation:none; } }
 
-  .section-kicker {
-    margin: 0 0 6px;
-    color: var(--text-faint);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+  .fallo{ font-size:.82rem; color:var(--text-faint); padding:4px 0; }
+
+  /* ── Accesos ── */
+  .accesos{ padding:14px 18px 18px; }
+  .accesos h3{
+    margin:14px 0 8px; font-size:.7rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint);
   }
-
-  .section-title {
-    margin: 0;
-    color: var(--text);
-    font-size: 1rem;
-    font-weight: 800;
+  .accesos h3:first-child{ margin-top:0; }
+  /* Deliberadamente más pequeños que las acciones de arriba: son el
+     índice completo, no por donde se empieza. */
+  .accesos-grid{
+    display:grid; gap:7px;
+    grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
   }
-
-  /* ============================================
-     BARRA DE SALUDO (reemplaza el hero grande +
-     la tarjeta de perfil -- la identidad del
-     usuario ya vive en el pie de la barra lateral)
-     ============================================ */
-  .greet-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+  .acceso{
+    display:flex; align-items:center; gap:9px; padding:9px 11px;
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    text-decoration:none; color:var(--text-soft); font-size:.82rem; font-weight:500;
   }
+  .acceso:hover{ color:var(--text); }
+  .acceso:hover{ background:var(--surface-2); border-color:var(--border-strong); }
+  .acceso i{ color:var(--brand); width:16px; text-align:center; flex-shrink:0; }
 
-  .greet-copy h1 {
-    margin: 0;
-    font-size: 1.4rem;
-    letter-spacing: -0.02em;
-    color: var(--text);
-  }
+  .vc-oculto{ display:none; }
 
-  .greet-copy time {
-    display: block;
-    margin-top: 3px;
-    color: var(--text-soft);
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Menú de usuario, compacto -- único punto de logout de esta página */
-  .userhub { position: relative; flex-shrink: 0; }
-
-  .user-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 12px 6px 6px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    cursor: pointer;
-    color: var(--text);
-    font-family: inherit;
-    transition: background 0.18s ease, border-color 0.18s ease;
-  }
-
-  .user-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
-  .user-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-  .user-btn[aria-expanded="true"] { border-color: var(--brand); background: var(--surface-2); }
-  .user-btn[aria-expanded="true"] .user-caret { transform: rotate(180deg); }
-
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    font-size: 13px;
-    font-weight: 800;
-    color: #fff;
-    background: linear-gradient(135deg, var(--brand), #2d8b93);
-    user-select: none;
-  }
-
-  .user-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    max-width: 160px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .user-caret {
-    color: var(--text-faint);
-    font-size: 11px;
-    transition: transform 0.2s ease;
-  }
-
-  .user-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 8px);
-    width: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-    pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-    z-index: 50;
-  }
-
-  .user-menu.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-
-  .user-menu a {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    text-decoration: none;
-    color: var(--text);
-    font-size: 13.5px;
-    font-weight: 700;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .user-menu a:last-child { border-bottom: none; color: var(--danger); }
-  .user-menu a:hover, .user-menu a:focus-visible { background: var(--surface-2); outline: none; }
-
-  /* ============================================
-     STATS -- solo número + etiqueta, sin frase
-     ============================================ */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  .stat-card {
-    padding: 16px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--radius-sm);
-    background: var(--brand-soft);
-    color: var(--brand);
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  .stat-value {
-    margin: 0;
-    font-size: 1.7rem;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .stat-label {
-    margin-top: 3px;
-    color: var(--text-soft);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .empty-note {
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    background: var(--surface-2);
-    border: 1px dashed var(--border-strong);
-    color: var(--text-soft);
-    font-size: 13.5px;
-  }
-
-  /* ============================================
-     ACCESOS RÁPIDOS
-     ============================================ */
-  .section-card { padding: 20px; }
-
-  .section-head { margin-bottom: 14px; }
-
-  .quick-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .quick-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 14px;
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-  }
-
-  .quick-link:hover {
-    transform: translateY(-1px);
-    border-color: var(--border-strong);
-    background: var(--surface-3);
-  }
-
-  .quick-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-  .quick-icon {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--radius-sm);
-    flex-shrink: 0;
-    background: var(--brand-soft);
-    color: var(--brand);
-    font-size: 14.5px;
-  }
-
-  .quick-copy { min-width: 0; flex: 1; }
-
-  .quick-copy strong {
-    display: block;
-    font-size: 13.5px;
-    color: var(--text);
-  }
-
-  .quick-copy span {
-    display: block;
-    color: var(--text-soft);
-    font-size: 12px;
-    margin-top: 1px;
-  }
-
-  .quick-arrow { color: var(--text-faint); flex-shrink: 0; font-size: 12px; }
-  .quick-link:hover .quick-arrow { color: var(--brand); }
-
-  /* ============================================
-     SKIP LINK / LIVE REGION (accesibilidad)
-     ============================================ */
-  .skip-link {
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: var(--brand);
-    color: #fff;
-    padding: 8px 16px;
-    z-index: 100;
-    transition: top 0.3s;
-    text-decoration: none;
-    font-weight: 700;
-    border-radius: 0 0 4px 0;
-  }
-
-  .skip-link:focus { top: 0; }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-
-  /* ============================================
-     RESPONSIVE
-     ============================================ */
-  @media (max-width: 900px) {
-    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .quick-list { grid-template-columns: 1fr; }
-  }
-
-  @media (max-width: 560px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .greet-bar { align-items: flex-start; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  @media (max-width:640px){
+    .buscador, .pendientes, .accesos, .continuar{ padding-left:14px; padding-right:14px; }
+    .pendiente .cta{ display:none; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Skip Link para accesibilidad -->
-<a href="#main-content" class="skip-link">Ir al contenido principal</a>
+<main class="inicio">
 
-<main id="main-content" class="home-dashboard" role="main" aria-label="Panel principal de Vitacore">
-
-  <!-- Saludo + reloj + menú de usuario (única fila, sin repetir el título de la página) -->
-  <section class="greet-bar" aria-labelledby="greet-heading">
-    <div class="greet-copy">
-      <h1 id="greet-heading">Bienvenido, {{ session['user']['full_name'] }}</h1>
-      <time id="clockNow" datetime="" aria-live="polite" aria-atomic="true">—</time>
-    </div>
-
-    <nav class="userhub" aria-label="Menú de usuario">
-      <button
-        class="user-btn"
-        id="perfilToggle"
-        type="button"
-        aria-expanded="false"
-        aria-haspopup="true"
-        aria-controls="perfilMenu"
-        aria-label="Abrir menú de perfil de {{ session['user']['full_name'] }}"
-      >
-        <span class="user-avatar" aria-hidden="true">{{ session['user']['full_name'][0] }}</span>
-        <span class="user-name">{{ session['user']['full_name'] }}</span>
-        <i class="fa-solid fa-chevron-down user-caret" aria-hidden="true"></i>
-      </button>
-
-      <nav
-        class="user-menu"
-        id="perfilMenu"
-        role="menu"
-        aria-label="Opciones de perfil"
-        aria-hidden="true"
-      >
-        <a href="/auth/mi-perfil" role="menuitem" tabindex="-1">
-          <i class="fa-solid fa-user" aria-hidden="true"></i>
-          <span>Mi perfil</span>
-        </a>
-        <a href="/auth/logout" role="menuitem" tabindex="-1">
-          <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-          <span>Cerrar sesión</span>
-        </a>
-      </nav>
-    </nav>
-  </section>
-
-  <!-- Estadísticas del día -->
-  <section class="stats-grid" aria-labelledby="stats-heading">
-    <h2 id="stats-heading" class="visually-hidden">Estadísticas del día</h2>
-
-    <article class="card stat-card">
-      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-user-injured"></i></div>
-      <div>
-        <p class="stat-value" aria-label="{{ pacientes_hoy or 0 }} pacientes hoy">{{ pacientes_hoy or 0 }}</p>
-        <p class="stat-label">Pacientes hoy</p>
-      </div>
-    </article>
-
-    <article class="card stat-card">
-      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-notes-medical"></i></div>
-      <div>
-        <p class="stat-value" aria-label="{{ evoluciones_hoy or 0 }} evoluciones hoy">{{ evoluciones_hoy or 0 }}</p>
-        <p class="stat-label">Evoluciones hoy</p>
-      </div>
-    </article>
-
-    <article class="card stat-card">
-      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-heart-pulse"></i></div>
-      <div>
-        <p class="stat-value" aria-label="{{ signos_hoy or 0 }} signos vitales hoy">{{ signos_hoy or 0 }}</p>
-        <p class="stat-label">Signos vitales hoy</p>
-      </div>
-    </article>
-
-    <article class="card stat-card">
-      <div class="stat-icon" aria-hidden="true"><i class="fa-solid fa-hospital"></i></div>
-      <div>
-        <p class="stat-value" aria-label="{{ consultas_hoy or 0 }} consultas activas">{{ consultas_hoy or 0 }}</p>
-        <p class="stat-label">Consultas activas</p>
-      </div>
-    </article>
-  </section>
-
-  {% if not pacientes_hoy and not evoluciones_hoy and not signos_hoy and not consultas_hoy %}
-  <div class="empty-note" role="status" aria-live="polite">
-    <i class="fa-solid fa-circle-info" aria-hidden="true" style="margin-right: 6px;"></i>
-    Aún no se registra actividad para hoy. Puedes comenzar desde pacientes, citas o historia clínica.
+  <div class="saludo">
+    <h1 id="inicio-saludo">Hola, {{ session['user']['full_name'].split(' ')[0] }}</h1>
+    <p class="cuando">
+      <span class="reloj" id="inicio-reloj">--:--</span>
+      <time class="fecha" id="inicio-fecha" datetime=""></time>
+    </p>
   </div>
+
+  {# Verbos, no módulos. Cada ficha solo aparece si el rol puede entrar
+     donde lleva: a una recepcionista sin historia clínica no se le
+     ofrece atender, y a un médico sin citas no se le ofrece la agenda. #}
+  <div class="acciones">
+    {% if puede_ver('historia_clinica') or puede_ver('pacientes') %}
+    <button type="button" class="accion" id="accion-atender">
+      <span class="ico" aria-hidden="true"><i class="fa-solid fa-user-doctor"></i></span>
+      <span class="txt">
+        <strong>Atender un paciente</strong>
+        <span class="sub">Busca por cédula y abre su historia</span>
+      </span>
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+    </button>
+    {% endif %}
+
+    {% if puede_ver('citas') %}
+    <a class="accion" href="/citas/">
+      <span class="ico" aria-hidden="true"><i class="fa-solid fa-calendar-day"></i></span>
+      <span class="txt">
+        <strong>Ver la agenda de hoy</strong>
+        <span class="sub" id="accion-agenda-sub">Citas programadas para la jornada</span>
+      </span>
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+    </a>
+    {% endif %}
+  </div>
+
+  {% if puede_ver('historia_clinica') or puede_ver('pacientes') %}
+  <section class="vc-card" aria-labelledby="buscar-titulo">
+    <div class="vc-card-head">
+      <h2 id="buscar-titulo">Buscar paciente</h2>
+    </div>
+    <div class="buscador">
+      <div class="buscador-campo">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="search" id="q" autocomplete="off" spellcheck="false"
+               placeholder="Cédula, nombre o apellido"
+               aria-label="Buscar paciente por documento o nombre"
+               aria-controls="resultados" role="combobox" aria-expanded="false">
+      </div>
+      <small class="buscador-ayuda">Escribe y usa las flechas; Enter abre el primero.</small>
+      <ul class="resultados" id="resultados" role="listbox" aria-label="Pacientes encontrados"></ul>
+      <p class="buscador-vacio vc-oculto" id="buscador-vacio">Ningún paciente coincide.</p>
+    </div>
+  </section>
   {% endif %}
 
-  <!-- Accesos rápidos -->
-  <section class="card section-card" aria-labelledby="quick-heading">
-    <header class="section-head">
-      <p class="section-kicker">Accesos rápidos</p>
-      <h2 id="quick-heading" class="section-title">Ir directo a lo importante</h2>
-    </header>
+  {# Se rellena desde localStorage; si no hay borradores, no se muestra. #}
+  <section class="vc-card vc-oculto" id="continuar-card" aria-labelledby="continuar-titulo">
+    <div class="vc-card-head">
+      <h2 id="continuar-titulo">Continuar donde ibas</h2>
+      <p>Guardado en este equipo, sin enviar todavía.</p>
+    </div>
+    <div class="continuar" id="continuar"></div>
+  </section>
 
-    <nav class="quick-list" aria-label="Navegación rápida">
-      <a class="quick-link" href="/hc/pacientes" aria-label="Gestionar pacientes">
-        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-user-injured"></i></div>
-        <div class="quick-copy">
-          <strong>Pacientes</strong>
-          <span>Buscar y gestionar el listado general</span>
-        </div>
-        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-      </a>
+  <section class="vc-card" aria-labelledby="pend-titulo">
+    <div class="vc-card-head">
+      <h2 id="pend-titulo">Pendientes</h2>
+      <p>Lo que necesita que alguien haga algo.</p>
+    </div>
+    <div class="pendientes" id="pendientes" aria-live="polite" aria-busy="true">
+      <div class="hueso"></div>
+      <div class="hueso" style="width:72%"></div>
+    </div>
+  </section>
 
-      <a class="quick-link" href="/citas" aria-label="Ver agenda de citas">
-        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></div>
-        <div class="quick-copy">
-          <strong>Citas</strong>
-          <span>Agenda y flujo de atención del día</span>
+  <section class="vc-card" aria-labelledby="acc-titulo">
+    <div class="vc-card-head">
+      <h2 id="acc-titulo">Todos los módulos</h2>
+      <p>Solo los que esta institución tiene contratados.</p>
+    </div>
+    <div class="accesos">
+      {% for seccion in menu_modulos() %}
+        <h3>{{ seccion.nombre }}</h3>
+        <div class="accesos-grid">
+          {% for item in seccion.enlaces %}
+          <a class="acceso" href="{{ item.endpoint }}">
+            <i class="fa-solid {{ item.icon }}" aria-hidden="true"></i>
+            <span>{{ item.name }}</span>
+          </a>
+          {% endfor %}
         </div>
-        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-      </a>
-
-      <a class="quick-link" href="/hc/historia-clinica" aria-label="Abrir historia clínica electrónica">
-        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-file-waveform"></i></div>
-        <div class="quick-copy">
-          <strong>Historia clínica</strong>
-          <span>Consulta, evolución y seguimiento</span>
-        </div>
-        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-      </a>
-
-      <a class="quick-link" href="/hc/reportes" aria-label="Ver reportes e indicadores">
-        <div class="quick-icon" aria-hidden="true"><i class="fa-solid fa-chart-column"></i></div>
-        <div class="quick-copy">
-          <strong>Reportes</strong>
-          <span>Indicadores de gestión clínica</span>
-        </div>
-        <i class="fa-solid fa-arrow-right quick-arrow" aria-hidden="true"></i>
-      </a>
-    </nav>
+      {% endfor %}
+    </div>
   </section>
 
 </main>
-
-<!-- Live region para actualizaciones del reloj (accesibilidad) -->
-<div id="clock-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-/**
- * Vitacore Dashboard - Home Module
- * Maneja reloj en tiempo real y menú desplegable accesible
- */
-(function() {
-  'use strict';
+/* ── Saludo, fecha y reloj ────────────────────────────────────────
+   El reloj se refresca cada 15 segundos, no cada segundo: se muestran
+   horas y minutos, así que más frecuencia sería despertar la pestaña
+   para no cambiar nada.
 
-  // ==========================================
-  // RELOJ EN TIEMPO REAL
-  // ==========================================
-  const clockElement = document.getElementById('clockNow');
-  const clockAnnouncer = document.getElementById('clock-announcer');
-  let lastAnnouncedMinute = -1;
+   Sin región aria-live a propósito. La versión anterior le anunciaba
+   "Hora actualizada: 14:32" a los lectores de pantalla cada minuto;
+   la hora está ahí para quien la mire, no para interrumpir a nadie.
+   ─────────────────────────────────────────────────────────────── */
+(function(){
+  const h1    = document.getElementById('inicio-saludo');
+  const fecha = document.getElementById('inicio-fecha');
+  const reloj = document.getElementById('inicio-reloj');
+  if (!fecha || !reloj) return;
 
-  function updateClock() {
-    const now = new Date();
-    
-    // Formato para visualización
-    const displayText = now.toLocaleString('es-CO', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit'
+  const NOMBRE = {{ session['user']['full_name'].split(' ')[0] | tojson }};
+
+  function saludo(h){
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
+
+  function pintar(){
+    const ahora = new Date();
+    if (h1) h1.textContent = saludo(ahora.getHours()) + ', ' + NOMBRE;
+    fecha.dateTime = ahora.toISOString().slice(0, 10);
+    fecha.textContent = ahora.toLocaleDateString('es-CO',
+      {weekday:'long', day:'numeric', month:'long'});
+    reloj.textContent = ahora.toLocaleTimeString('es-CO',
+      {hour:'2-digit', minute:'2-digit', hour12:false});
+  }
+
+  pintar();
+  setInterval(pintar, 15000);
+  // Tras una suspensión el reloj puede llevar horas parado.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') pintar();
+  });
+})();
+
+/* ── "Atender un paciente" lleva al buscador ───────────────────── */
+(function(){
+  const boton = document.getElementById('accion-atender');
+  const campo = document.getElementById('q');
+  if (!boton || !campo) return;
+  boton.addEventListener('click', () => {
+    campo.scrollIntoView({block:'center', behavior:'smooth'});
+    campo.focus();
+  });
+})();
+
+/* ── Buscador de pacientes ────────────────────────────────────────
+   Pega a /hc/pacientes/buscar, que ya filtra por empresa y por estado
+   activo: desde aquí no se puede ver un paciente de otra institución.
+   ─────────────────────────────────────────────────────────────── */
+(function(){
+  const input  = document.getElementById('q');
+  const lista  = document.getElementById('resultados');
+  const vacio  = document.getElementById('buscador-vacio');
+  if (!input) return;
+
+  let reloj = null, activo = -1, ultimaPeticion = 0;
+
+  // El teclado es lo primero que toca un médico al llegar, así que el
+  // foco viene aquí puesto. Con preventScroll para que el saludo y la
+  // hora no se vayan de la pantalla al cargar: enfocar sin eso arrastra
+  // la página hasta el campo. No se hace en pantallas angostas, donde
+  // abriría el teclado del móvil sin que nadie lo pida.
+  if (window.innerWidth > 820){
+    try { input.focus({preventScroll:true}); } catch(e){ input.focus(); }
+  }
+
+  function limpiar(){
+    lista.innerHTML = '';
+    vacio.classList.add('vc-oculto');
+    input.setAttribute('aria-expanded', 'false');
+    activo = -1;
+  }
+
+  function pintar(items){
+    lista.innerHTML = '';
+    activo = -1;
+    if (!items.length){
+      vacio.classList.remove('vc-oculto');
+      input.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    vacio.classList.add('vc-oculto');
+    input.setAttribute('aria-expanded', 'true');
+
+    items.forEach(p => {
+      const nombre = [p.primer_nombre, p.segundo_nombre,
+                      p.primer_apellido, p.segundo_apellido]
+                     .filter(Boolean).join(' ');
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      const a = document.createElement('a');
+      a.href = '/hc/historia/paciente/' + p.id;
+      a.innerHTML = '<span class="doc"></span><span class="nom"></span>'
+                  + '<i class="fa-solid fa-arrow-right" style="color:var(--text-faint)"></i>';
+      // textContent y no innerHTML: el nombre viene de la base y no
+      // tiene por qué ser HTML seguro.
+      a.querySelector('.doc').textContent = p.numero_documento || '—';
+      a.querySelector('.nom').textContent = nombre || 'Sin nombre';
+      li.appendChild(a);
+      lista.appendChild(li);
     });
-
-    // Actualizar atributo datetime para semántica
-    if (clockElement) {
-      clockElement.textContent = displayText;
-      clockElement.setAttribute('datetime', now.toISOString());
-    }
-
-    // Anunciar cambio de hora a lectores de pantalla (solo cuando cambia el minuto)
-    const currentMinute = now.getMinutes();
-    if (clockAnnouncer && currentMinute !== lastAnnouncedMinute) {
-      const timeText = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-      clockAnnouncer.textContent = `Hora actualizada: ${timeText}`;
-      lastAnnouncedMinute = currentMinute;
-    }
   }
 
-  // Inicializar reloj
-  updateClock();
-  setInterval(updateClock, 30000); // Actualizar cada 30 segundos
-
-  // ==========================================
-  // MENÚ DESPLEGABLE ACCESIBLE
-  // ==========================================
-  const toggle = document.getElementById('perfilToggle');
-  const menu = document.getElementById('perfilMenu');
-  
-  if (!toggle || !menu) return;
-
-  const menuItems = menu.querySelectorAll('[role="menuitem"]');
-  let currentFocusIndex = -1;
-
-  function openMenu() {
-    menu.classList.add('show');
-    menu.setAttribute('aria-hidden', 'false');
-    toggle.setAttribute('aria-expanded', 'true');
-    
-    // Focus en el primer elemento del menú
-    if (menuItems.length > 0) {
-      menuItems[0].setAttribute('tabindex', '0');
-      menuItems[0].focus();
-      currentFocusIndex = 0;
+  function marcar(i){
+    const items = [...lista.children];
+    items.forEach(li => li.classList.remove('activo'));
+    if (i >= 0 && items[i]){
+      items[i].classList.add('activo');
+      items[i].scrollIntoView({block:'nearest'});
     }
-    
-    // Prevenir scroll del body en móvil si es necesario
-    document.body.style.overflow = 'hidden';
+    activo = i;
   }
 
-  function closeMenu(returnFocus = true) {
-    menu.classList.remove('show');
-    menu.setAttribute('aria-hidden', 'true');
-    toggle.setAttribute('aria-expanded', 'false');
-    
-    // Reset tabindex de los items
-    menuItems.forEach(item => item.setAttribute('tabindex', '-1'));
-    
-    // Retornar focus al toggle
-    if (returnFocus) {
-      toggle.focus();
-    }
-    
-    document.body.style.overflow = '';
+  async function buscar(q){
+    const mio = ++ultimaPeticion;
+    try{
+      const r = await fetch('/hc/pacientes/buscar?q=' + encodeURIComponent(q),
+                            {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if (!r.ok) return;
+      const datos = await r.json();
+      // Una respuesta vieja que llega tarde no puede pisar a la nueva.
+      if (mio !== ultimaPeticion) return;
+      pintar(Array.isArray(datos) ? datos : []);
+    }catch(e){ /* sin red: el aviso de conexión de base.html ya lo dice */ }
   }
 
-  function toggleMenu() {
-    const isOpen = menu.classList.contains('show');
-    if (isOpen) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  }
-
-  // Navegación con teclado dentro del menú
-  function handleMenuKeydown(e) {
-    if (!menu.classList.contains('show')) return;
-
-    switch(e.key) {
-      case 'Escape':
-        e.preventDefault();
-        closeMenu();
-        break;
-        
-      case 'ArrowDown':
-        e.preventDefault();
-        currentFocusIndex = (currentFocusIndex + 1) % menuItems.length;
-        menuItems[currentFocusIndex].focus();
-        break;
-        
-      case 'ArrowUp':
-        e.preventDefault();
-        currentFocusIndex = (currentFocusIndex - 1 + menuItems.length) % menuItems.length;
-        menuItems[currentFocusIndex].focus();
-        break;
-        
-      case 'Home':
-        e.preventDefault();
-        currentFocusIndex = 0;
-        menuItems[0].focus();
-        break;
-        
-      case 'End':
-        e.preventDefault();
-        currentFocusIndex = menuItems.length - 1;
-        menuItems[currentFocusIndex].focus();
-        break;
-        
-      case 'Tab':
-        // Cerrar menú al salir con Tab
-        closeMenu(false);
-        break;
-    }
-  }
-
-  // Event Listeners
-  toggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleMenu();
+  input.addEventListener('input', () => {
+    clearTimeout(reloj);
+    const q = input.value.trim();
+    if (q.length < 2){ limpiar(); return; }
+    reloj = setTimeout(() => buscar(q), 250);
   });
 
-  toggle.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleMenu();
+  input.addEventListener('keydown', e => {
+    const items = [...lista.children];
+    if (e.key === 'ArrowDown'){ e.preventDefault(); marcar(Math.min(activo + 1, items.length - 1)); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); marcar(Math.max(activo - 1, 0)); }
+    else if (e.key === 'Enter'){
+      const destino = items[activo >= 0 ? activo : 0];
+      if (destino){ e.preventDefault(); destino.querySelector('a').click(); }
     }
+    else if (e.key === 'Escape'){ limpiar(); input.value = ''; }
   });
+})();
 
-  menu.addEventListener('keydown', handleMenuKeydown);
+/* ── Continuar donde ibas ─────────────────────────────────────────
+   Los borradores viven en localStorage, así que esto no cuesta ni una
+   consulta. Caducan a las 48 horas, igual que en el formulario.
+   ─────────────────────────────────────────────────────────────── */
+(function(){
+  const caja  = document.getElementById('continuar');
+  const card  = document.getElementById('continuar-card');
+  const VENCE = 48 * 60 * 60 * 1000;
+  if (!caja) return;
 
-  // Cerrar al hacer click fuera
-  document.addEventListener('click', function(e) {
-    if (menu.classList.contains('show') && !toggle.contains(e.target) && !menu.contains(e.target)) {
-      closeMenu();
-    }
-  });
+  function hace(ts){
+    const min = Math.round((Date.now() - ts) / 60000);
+    if (min < 1)  return 'hace un momento';
+    if (min < 60) return 'hace ' + min + (min === 1 ? ' minuto' : ' minutos');
+    const h = Math.round(min / 60);
+    return 'hace ' + h + (h === 1 ? ' hora' : ' horas');
+  }
 
-  // Cerrar con Escape desde cualquier lugar
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && menu.classList.contains('show')) {
-      closeMenu();
-    }
-  });
+  const encontrados = [];
+  let claves = [];
+  try { claves = Object.keys(localStorage); }
+  catch(e){ return; }   // navegación privada o almacenamiento bloqueado
 
-  // Manejar clicks en items del menú
-  menuItems.forEach((item, index) => {
-    item.addEventListener('click', function() {
-      // Permitir navegación normal, pero cerrar menú
-      closeMenu(false);
+  claves.forEach(clave => {
+    if (!clave.startsWith('evolucion_borrador_')) return;
+    let b;
+    try { b = JSON.parse(localStorage.getItem(clave)); } catch(e){ return; }
+    if (!b || !b.ts || (Date.now() - b.ts) > VENCE) return;
+
+    const id = clave.replace('evolucion_borrador_', '');
+    encontrados.push({
+      titulo: 'Evolución sin terminar' + (b.paciente ? ' · ' + b.paciente : ''),
+      pie: hace(b.ts) + ' en este equipo',
+      url: '/hc/evoluciones/nuevo/' + id,
     });
-    
-    item.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        window.location.href = item.getAttribute('href');
+  });
+
+  try{
+    const cita = JSON.parse(localStorage.getItem('cita_borrador') || 'null');
+    if (cita) encontrados.push({
+      titulo: 'Cita sin agendar',
+      pie: 'Guardada en este equipo',
+      url: '/citas/',
+    });
+  }catch(e){ /* borrador ilegible: no es motivo para romper la pantalla */ }
+
+  if (!encontrados.length) return;
+
+  encontrados.forEach(x => {
+    const a = document.createElement('a');
+    a.className = 'continuar-item';
+    a.href = x.url;
+    a.innerHTML = '<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>'
+                + '<span class="txt"><strong></strong><span></span></span>'
+                + '<i class="fa-solid fa-arrow-right" style="color:var(--text-faint)"></i>';
+    a.querySelector('strong').textContent = x.titulo;
+    a.querySelector('.txt span').textContent = x.pie;
+    caja.appendChild(a);
+  });
+  card.classList.remove('vc-oculto');
+})();
+
+/* ── Pendientes ───────────────────────────────────────────────────
+   Del mismo endpoint que el dashboard clínico, que los arma sin
+   consultas extra y cachea un minuto por empresa y día. Efecto
+   secundario buscado: entrar aquí deja el dashboard ya caliente.
+   ─────────────────────────────────────────────────────────────── */
+(function(){
+  const caja = document.getElementById('pendientes');
+  if (!caja) return;
+
+  const ICONOS = {critico:'fa-circle-exclamation', atencion:'fa-triangle-exclamation',
+                  info:'fa-circle-info'};
+
+  function alDia(){
+    caja.innerHTML = '<div class="al-dia"><i class="fa-solid fa-circle-check"></i>'
+                   + '<span>Todo al día. No hay nada esperando.</span></div>';
+  }
+
+  fetch('/hc/api/dashboard', {headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      caja.setAttribute('aria-busy', 'false');
+
+      // De paso, la ficha de la agenda deja de decir una frase genérica
+      // y dice cuántas citas hay. Mismo viaje, ningún coste.
+      const sub = document.getElementById('accion-agenda-sub');
+      const ag  = d && d.agenda;
+      if (sub && ag && typeof ag.total === 'number'){
+        if (!ag.total){
+          sub.textContent = 'No hay citas para hoy';
+        } else {
+          const n = ag.total + (ag.total === 1 ? ' cita hoy' : ' citas hoy');
+          const sinAdmitir = ag.pendientes_admision;
+          sub.textContent = sinAdmitir
+            ? n + ' · ' + sinAdmitir + ' sin admitir'
+            : n;
+        }
       }
+
+      const lista = (d && d.pendientes) || [];
+      if (!lista.length){ alDia(); return; }
+
+      caja.innerHTML = '';
+      lista.forEach(p => {
+        const a = document.createElement('a');
+        a.className = 'pendiente ' + (p.nivel || 'info');
+        a.href = p.enlace || '#';
+        a.innerHTML = '<i class="fa-solid ' + (ICONOS[p.nivel] || ICONOS.info) + '" aria-hidden="true"></i>'
+                    + '<span class="txt"><strong></strong><span></span></span>'
+                    + '<span class="cta"></span>';
+        a.querySelector('strong').textContent = p.texto || '';
+        a.querySelector('.txt span').textContent = p.detalle || '';
+        a.querySelector('.cta').textContent = p.cta || 'Abrir';
+        caja.appendChild(a);
+      });
+    })
+    .catch(() => {
+      caja.setAttribute('aria-busy', 'false');
+      // No se inventa un "todo al día": no saberlo y que no haya nada
+      // son cosas distintas, y confundirlas aquí es peligroso.
+      caja.innerHTML = '<p class="fallo">No se pudieron cargar los pendientes. '
+                     + 'Recarga la página para reintentar.</p>';
     });
-  });
-
-  // ==========================================
-  // ANIMACIONES DE ENTRADA (Opcional)
-  // ==========================================
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -20px 0px'
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = '1';
-        entry.target.style.transform = 'translateY(0)';
-        observer.unobserve(entry.target);
-      }
-    });
-  }, observerOptions);
-
-  // Aplicar animación sutil a las tarjetas
-  document.querySelectorAll('.card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(12px)';
-    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    observer.observe(el);
-  });
-
 })();
 </script>
 {% endblock %}

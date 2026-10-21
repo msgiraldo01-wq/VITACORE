@@ -553,6 +553,44 @@
     </div>
   </section>
 
+  <!-- SEGURIDAD DE LA SESION -->
+  <section class="form-section">
+    <h3 class="section-title">
+      <i class="fa-solid fa-user-lock"></i>
+      Seguridad de la sesión
+    </h3>
+
+    <div class="form-grid">
+
+      <div class="campo">
+        <label>Cerrar por inactividad</label>
+        <input
+          name="sesion_inactividad_min"
+          type="number" min="5" max="480" step="5"
+          value="{{ empresa.sesion_inactividad_min or '' }}"
+          placeholder="30"
+        >
+        <span class="help-text">Minutos sin que nadie toque la pantalla
+          antes de cerrar la sesión. Se mide por teclado y clic, no por
+          tráfico: una pantalla abierta y sola caduca aunque la página
+          siga consultando al servidor. Entre 5 y 480; vacío usa 30.</span>
+      </div>
+
+      <div class="campo">
+        <label>Máximo de jornada</label>
+        <input
+          name="sesion_jornada_horas"
+          type="number" min="1" max="24" step="1"
+          value="{{ empresa.sesion_jornada_horas or '' }}"
+          placeholder="12"
+        >
+        <span class="help-text">Horas que puede durar una sesión desde
+          que se entra, haya actividad o no. Entre 1 y 24; vacío usa 12.</span>
+      </div>
+
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <div class="form-footer">
     <span class="form-footer-note">

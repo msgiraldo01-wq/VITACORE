@@ -103,7 +103,10 @@ async function guardar() {
   if (data.ok) {
     window.location.href = "/citas/";
   } else {
-    alert(data.error);
+    await VC.avisar({
+      titulo: 'No se pudo crear la cita',
+      texto:  data.error || 'Inténtalo de nuevo.',
+    });
   }
 }
 </script>

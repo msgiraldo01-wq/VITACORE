@@ -21,6 +21,11 @@
   {# Accesos rápidos #}
   <div class="cbl-section">
     <div class="cbl-quick">
+      {# Primero a propósito: es lo único que tiene trabajo esperando. #}
+      <a class="cbl-quick-card" href="{{ url_for('contabilidad.propuestos') }}">
+        <span class="qc-ico"><i class="fa-solid fa-file-circle-check"></i></span>
+        <span class="qc-t">Asientos propuestos</span>
+      </a>
       <a class="cbl-quick-card" href="{{ url_for('contabilidad.puc') }}">
         <span class="qc-ico"><i class="fa-solid fa-list-ol"></i></span>
         <span class="qc-t">Plan de cuentas</span>

@@ -163,6 +163,52 @@ def _cups(cups_id):
     return "890201", "CONSULTA DE PRIMERA VEZ POR MEDICINA GENERAL"
 
 
+def _a_fecha_co(valor):
+    """Una marca de tiempo de la base, convertida a hora de Colombia."""
+    if not valor:
+        return None
+    try:
+        d = datetime.fromisoformat(str(valor).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.astimezone(timezone(timedelta(hours=-5)))
+
+
+def _ventana_atencion(evo, ahora):
+    """
+    Cuándo ocurrió la atención, para el Encounter.period.
+
+    Esto se inventaba: una ventana de 25 minutos que terminaba dos
+    minutos antes de pulsar Enviar. Mientras la nota se enviara
+    enseguida el error era de minutos, pero una evolución reenviada
+    días después le decía al Ministerio que la atención había ocurrido
+    ese día.
+
+    Ahora se usan las horas reales que la evolución guardó: cuándo se
+    abrió la nota y cuándo se guardó. Las evoluciones anteriores a este
+    cambio las tienen en nulo, y para esas se mantiene el cálculo viejo
+    -- es inexacto, pero es lo único que hay y el perfil exige el
+    periodo.
+
+    El perfil pide start <= end <= ahora, así que lo que venga se
+    recorta a ese rango en vez de mandar algo que será rechazado.
+    """
+    inicio = _a_fecha_co(evo.get("atencion_inicio"))
+    fin = _a_fecha_co(evo.get("atencion_fin"))
+
+    if not inicio or not fin:
+        fin_calc = ahora - timedelta(minutes=2)
+        return fin_calc - timedelta(minutes=25), fin_calc
+
+    if fin > ahora:
+        fin = ahora
+    if inicio > fin:
+        inicio = fin
+    return inicio, fin
+
+
 def construir_bundle(evolucion_id, empresa_id):
     """Construye el Bundle FHIR del RDA a partir de una evolución. Devuelve
     (bundle, meta) donde meta trae datos para el registro del envío."""
@@ -271,9 +317,8 @@ def construir_bundle(evolucion_id, empresa_id):
     # por eso se cierra la ventana unos minutos en el pasado.
     tz_co = timezone(timedelta(hours=-5))
     ahora = datetime.now(tz_co)
-    fin = ahora - timedelta(minutes=2)
-    inicio = fin - timedelta(minutes=25)
     fmt = "%Y-%m-%dT%H:%M:%S-05:00"
+    inicio, fin = _ventana_atencion(evo, ahora)
 
     # Datos de la atención tomados de la evolución (con respaldo verificado
     # para evoluciones antiguas que aún no tienen estos campos).

@@ -300,6 +300,53 @@
     .user-role { font-size: 11px; color: var(--text-soft); }
     .sidebar.collapsed .user-info { display: none; }
 
+    /* ── Menú de usuario ──
+       Este bloque era decorativo: avatar, nombre y rol, sin un solo
+       enlace. El único punto de cierre de sesión de toda la aplicación
+       vivía en la pantalla de inicio, lo que obligaba a volver allí
+       para poder salir. Aquí está en todas las pantallas. */
+    .sidebar-user-inner {
+      width: 100%; background: transparent; border: 1px solid transparent;
+      border-radius: var(--radius-sm); padding: 6px; cursor: pointer;
+      font-family: inherit; text-align: left; color: inherit;
+    }
+    .sidebar-user-inner:hover { background: var(--surface-3); }
+    .sidebar-user-inner:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+    .sidebar-user { position: relative; }
+    .user-caret { margin-left: auto; color: var(--text-faint); font-size: 11px; flex-shrink: 0; }
+    .sidebar.collapsed .user-caret { display: none; }
+    .sidebar.collapsed .sidebar-user-inner { justify-content: center; }
+
+    /* Fijo y no absoluto: la barra lateral tiene overflow:auto, y eso
+       recorta a cualquier hijo que se salga de ella. Plegada mide
+       72px, así que un menú absoluto aparecía cortado en "Cer...".
+       Fijo se mide contra la ventana y escapa del recorte.
+
+       En móvil la barra se desplaza con un transform, que crea
+       contenedor para los hijos fijos: el menú viaja con ella y se
+       esconde cuando ella se esconde, que es justo lo que se quiere. */
+    .user-menu {
+      position: fixed; bottom: 78px; left: 12px; width: 232px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+      overflow: hidden; z-index: 60;
+      opacity: 0; transform: translateY(6px); pointer-events: none;
+      transition: opacity .14s ease, transform .14s ease;
+    }
+    .user-menu.abierto { opacity: 1; transform: none; pointer-events: auto; }
+    .sidebar.collapsed .user-menu { width: 190px; }
+    .user-menu a {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      text-decoration: none; border-bottom: 1px solid var(--border);
+    }
+    .user-menu a:last-child { border-bottom: 0; color: var(--danger); }
+    .user-menu a:hover, .user-menu a:focus-visible {
+      background: var(--surface-2); outline: none;
+    }
+    .user-menu i { width: 14px; text-align: center; }
+    @media (prefers-reduced-motion: reduce){ .user-menu { transition: none; } }
+
     /* ══════════════════════════════════════════════════════════════
        TOPBAR
        ══════════════════════════════════════════════════════════════ */
@@ -597,12 +644,26 @@
       </div>
 
       <div class="sidebar-user">
-        <div class="sidebar-user-inner">
-          <div class="user-avatar">{{ session['user']['username'][:2] | upper if session.get('user') else 'VC' }}</div>
-          <div class="user-info">
-            <div class="user-name">{{ session['user']['username'] if session.get('user') else 'Usuario' }}</div>
-            <div class="user-role">{{ session['user'].get('role', 'Administrador') if session.get('user') else 'Administrador' }}</div>
-          </div>
+        <button type="button" class="sidebar-user-inner" id="btn-usuario"
+                aria-haspopup="true" aria-expanded="false" aria-controls="menu-usuario"
+                style="display:flex; align-items:center; gap:10px;">
+          <span class="user-avatar">{{ session['user']['username'][:2] | upper if session.get('user') else 'VC' }}</span>
+          <span class="user-info">
+            <span class="user-name" style="display:block">{{ session['user']['username'] if session.get('user') else 'Usuario' }}</span>
+            <span class="user-role" style="display:block">{{ session['user'].get('role', 'Administrador') if session.get('user') else 'Administrador' }}</span>
+          </span>
+          <i class="fa-solid fa-chevron-up user-caret" aria-hidden="true"></i>
+        </button>
+
+        <div class="user-menu" id="menu-usuario" role="menu" aria-labelledby="btn-usuario">
+          <a href="/auth/mi-perfil" role="menuitem">
+            <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
+            <span>Mi perfil</span>
+          </a>
+          <a href="/auth/logout" role="menuitem">
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span>Cerrar sesión</span>
+          </a>
         </div>
       </div>
     </aside>
@@ -743,7 +804,11 @@
         if (res.status === 401) {
           let data = null;
           try { data = await res.clone().json(); } catch (e) {}
-          window.location.href = (data && data.redirect) ? data.redirect : '/logout?expired=1';
+          // El respaldo apuntaba a /logout, que no existe: el blueprint
+          // de auth cuelga de /auth. Quien cayera aquí sin que el
+          // servidor mandara un redirect se topaba con un 404.
+          window.location.href = (data && data.redirect) ? data.redirect
+                                                         : '/auth/logout?caducada=inactividad';
           return res;
         }
         return res;
@@ -1036,6 +1101,15 @@
       if (!e.defaultPrevented) arrancar();
     }, true);
 
+    // El de arriba va en captura, así que corre ANTES que el manejador del
+    // formulario y no puede saber si lo van a cancelar. Este va en burbuja,
+    // cuando ya se sabe: los formularios que piden confirmación frenan el
+    // envío, preguntan y mandan a mano, y al decir que no la barra se
+    // quedaba girando. Pasaba ya con onsubmit="return confirm(...)".
+    document.addEventListener('submit', e => {
+      if (e.defaultPrevented) detener();
+    });
+
     // si el usuario cancela (Esc) o vuelve con el botón atrás, la barra no
     // puede quedarse colgada en pantalla
     window.addEventListener('pageshow', detener);
@@ -1043,6 +1117,276 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') detener(); });
   })();
   </script>
+
+  {# ──────────────────────────────────────────────────────────────
+     DIÁLOGOS DE LA APLICACIÓN
+
+     Sustituyen a alert(), confirm() y prompt(), que el navegador pinta
+     con su propia caja gris, fuera del diseño, y sin poder poner
+     "Contabilizar" en el botón en vez de "Aceptar".
+
+     Por dentro usan SweetAlert2, que esta aplicación YA carga arriba
+     (línea 12) y que usan unas sesenta plantillas. Hubo una versión de
+     esto con su propio modal, escrita sin haber mirado que la librería
+     ya estaba: dos sistemas de diálogos conviviendo es peor que
+     cualquiera de los dos. Lo que se conserva de aquella es la
+     interfaz, porque ya hay pantallas llamándola y porque decir
+     VC.confirmar({titulo, texto, ok:'Anular'}) se lee mejor que armar
+     un objeto de configuración en cada sitio.
+
+     Si Swal no cargara -- CDN caído o bloqueado -- se cae a los
+     diálogos del navegador. Feos, pero una confirmación que no
+     aparece deja pasar sin preguntar, y eso sí es grave.
+
+     Uso:
+       await VC.avisar({titulo, texto})
+       if (await VC.confirmar({titulo, texto, ok:'Contabilizar', peligro:true})) …
+       const v = await VC.preguntar({titulo, texto});   // null si cancela
+     ────────────────────────────────────────────────────────────── #}
+  <style>
+    /* Swal con las fichas del sistema, para que no desentone ni en
+       claro ni en oscuro. */
+    .vc-swal.swal2-popup{
+      background:var(--surface); color:var(--text);
+      border:1px solid var(--border); border-radius:14px;
+      font-family:inherit; padding:24px;
+    }
+    .vc-swal .swal2-title{
+      color:var(--text); font-size:1.05rem; font-weight:600;
+      padding:0 0 8px; text-align:left;
+    }
+    .vc-swal .swal2-html-container{
+      color:var(--text-soft); font-size:.88rem; line-height:1.55;
+      margin:0; text-align:left;
+      /* los textos llevan saltos de línea escritos a mano */
+      white-space:pre-line;
+    }
+    .vc-swal .swal2-actions{ justify-content:flex-end; gap:10px; margin:18px 0 0; width:100%; }
+    .vc-swal .swal2-styled{
+      margin:0; border-radius:var(--radius-sm); padding:9px 18px;
+      font-size:.86rem; font-weight:600; box-shadow:none;
+    }
+    .vc-swal .swal2-confirm.swal2-styled{ background:var(--brand); color:#fff; }
+    .vc-swal .swal2-confirm.vc-peligro{ background:var(--danger); }
+    .vc-swal .swal2-cancel.swal2-styled{
+      background:transparent; color:var(--text-soft);
+      border:1px solid var(--border-strong);
+    }
+    .vc-swal .swal2-input{
+      background:var(--surface-2); color:var(--text);
+      border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+      font-size:.9rem; box-shadow:none; height:auto; padding:10px 12px;
+    }
+    .vc-swal .swal2-input:focus{ border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-soft); }
+    .vc-swal .swal2-validation-message{ background:transparent; color:var(--danger); font-size:.8rem; }
+  </style>
+
+  <script>
+  window.VC = (function(){
+    const hay = () => typeof window.Swal !== 'undefined';
+
+    const base = cfg => ({
+      title: cfg.titulo || '',
+      text: cfg.texto || '',
+      customClass: {
+        popup: 'vc-swal',
+        confirmButton: cfg.peligro ? 'vc-peligro' : '',
+      },
+      buttonsStyling: true,
+      reverseButtons: true,        // Cancelar a la izquierda, como el resto
+      focusConfirm: !cfg.conCampo,
+      heightAuto: false,           // si no, Swal le mete padding al body
+    });
+
+    async function avisar(cfg){
+      cfg = cfg || {};
+      if (!hay()){ window.alert((cfg.titulo ? cfg.titulo + '\n\n' : '') + (cfg.texto || '')); return; }
+      await Swal.fire({...base(cfg), confirmButtonText: cfg.ok || 'Entendido'});
+    }
+
+    async function confirmar(cfg){
+      cfg = cfg || {};
+      if (!hay()) return window.confirm((cfg.titulo ? cfg.titulo + '\n\n' : '') + (cfg.texto || ''));
+      const r = await Swal.fire({
+        ...base(cfg),
+        showCancelButton: true,
+        confirmButtonText: cfg.ok || 'Aceptar',
+        cancelButtonText: cfg.cancelar || 'Cancelar',
+      });
+      return !!r.isConfirmed;
+    }
+
+    async function preguntar(cfg){
+      cfg = cfg || {};
+      if (!hay()) return window.prompt((cfg.titulo || '') + '\n' + (cfg.texto || ''), cfg.valor || '');
+      const r = await Swal.fire({
+        ...base({...cfg, conCampo: true}),
+        input: 'text',
+        inputValue: cfg.valor || '',
+        showCancelButton: true,
+        confirmButtonText: cfg.ok || 'Guardar',
+        cancelButtonText: cfg.cancelar || 'Cancelar',
+      });
+      // null y no '' cuando se cancela: quien llama distingue "no quiso"
+      // de "lo dejó en blanco".
+      return r.isConfirmed ? (r.value || '') : null;
+    }
+
+    return {avisar, confirmar, preguntar};
+  })();
+  </script>
+
+  <script>
+  /* ── Menú de usuario de la barra lateral ────────────────────────── */
+  (function(){
+    const boton = document.getElementById('btn-usuario');
+    const menu  = document.getElementById('menu-usuario');
+    if (!boton || !menu) return;
+
+    function abrir(si){
+      menu.classList.toggle('abierto', si);
+      boton.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if (si) menu.querySelector('a').focus();
+    }
+
+    boton.addEventListener('click', e => {
+      e.stopPropagation();
+      abrir(!menu.classList.contains('abierto'));
+    });
+
+    // Un clic en cualquier otro sitio lo cierra. El menú se para el
+    // suyo para que pulsar dentro no lo cierre antes de navegar.
+    menu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', () => abrir(false));
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || !menu.classList.contains('abierto')) return;
+      abrir(false);
+      boton.focus();   // el foco vuelve a donde estaba, no al principio
+    });
+
+    // Salir del menú con el tabulador también lo cierra.
+    menu.addEventListener('focusout', e => {
+      if (!menu.contains(e.relatedTarget) && e.relatedTarget !== boton) abrir(false);
+    });
+  })();
+  </script>
+
+  {% if session.user and sesion_politica %}
+  {# ──────────────────────────────────────────────────────────────
+     AVISO DE CADUCIDAD DE LA SESION
+
+     El servidor es quien cierra (app.py). Esto solo avisa, para que
+     nadie pierda un formulario a medio llenar sin verlo venir.
+
+     El contador arranca con la última INTERACCION REAL -- tecla,
+     clic, toque --, nunca con tráfico de red: esta misma página
+     llama a /ping cada 30 segundos, y si eso contara, la sesión no
+     caducaría jamás con la pantalla abierta y nadie delante.
+     ────────────────────────────────────────────────────────────── #}
+  <div id="sesion-aviso" class="sesion-aviso" hidden role="alertdialog"
+       aria-modal="true" aria-labelledby="sesion-titulo">
+    <div class="sesion-caja">
+      <i class="fa-solid fa-user-clock"></i>
+      <h3 id="sesion-titulo">Tu sesión está por cerrarse</h3>
+      <p>Por seguridad cerramos la sesión cuando la pantalla lleva un
+         rato sin usarse. Se cerrará en <b id="sesion-resta">2:00</b>.</p>
+      <div class="sesion-botones">
+        <button type="button" class="sesion-btn primario" id="sesion-seguir">Seguir trabajando</button>
+        <button type="button" class="sesion-btn" id="sesion-salir">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .sesion-aviso{
+      position:fixed; inset:0; z-index:4000; display:grid; place-items:center;
+      background:rgba(15,23,42,.45); padding:20px;
+    }
+    .sesion-aviso[hidden]{ display:none; }
+    .sesion-caja{
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; padding:26px 24px; max-width:380px; width:100%;
+      text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.18);
+    }
+    .sesion-caja > i{ font-size:1.5rem; color:var(--warn); }
+    .sesion-caja h3{ margin:12px 0 8px; font-size:1.05rem; color:var(--text); }
+    .sesion-caja p{ margin:0 0 20px; font-size:.86rem; line-height:1.5;
+                    color:var(--text-soft); }
+    .sesion-caja b{ color:var(--text); font-variant-numeric:tabular-nums; }
+    .sesion-botones{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .sesion-btn{
+      border:1px solid var(--border); background:transparent; color:var(--text-soft);
+      border-radius:8px; padding:9px 16px; font-size:.85rem; font-weight:600;
+      cursor:pointer; font-family:inherit;
+    }
+    .sesion-btn.primario{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  </style>
+
+  <script>
+  (function(){
+    const MINUTOS = {{ sesion_politica.inactividad_min }};
+    const LIMITE  = MINUTOS * 60 * 1000;
+    const AVISAR  = Math.min(2 * 60 * 1000, LIMITE / 3);  // 2 min, o un tercio si la ventana es corta
+
+    const aviso  = document.getElementById('sesion-aviso');
+    const resta  = document.getElementById('sesion-resta');
+    if (!aviso) return;
+
+    let ultima = Date.now();
+
+    // Solo gestos de una persona. 'scroll' queda fuera a propósito:
+    // lo dispara el navegador al restaurar una posición.
+    ['pointerdown','keydown','touchstart'].forEach(ev =>
+      document.addEventListener(ev, () => { ultima = Date.now(); }, {passive:true, capture:true}));
+
+    function mmss(ms){
+      const s = Math.max(0, Math.round(ms / 1000));
+      return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+
+    function revisar(){
+      const queda = LIMITE - (Date.now() - ultima);
+
+      if (queda <= 0){
+        location.href = '/auth/logout?caducada=inactividad';
+        return;
+      }
+      if (queda <= AVISAR){
+        aviso.hidden = false;
+        resta.textContent = mmss(queda);
+      } else if (!aviso.hidden){
+        aviso.hidden = true;
+      }
+    }
+
+    // Cada segundo mientras el aviso está puesto, cada diez el resto del
+    // tiempo: el reloj tiene que verse correr, pero no a costa de
+    // despertar la pestaña sesenta veces por minuto para nada.
+    setInterval(revisar, 1000);
+
+    // Si el equipo estuvo suspendido, al volver puede haberse pasado el
+    // plazo sin que ningún temporizador llegara a dispararse.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') revisar();
+    });
+
+    document.getElementById('sesion-seguir').addEventListener('click', () => {
+      fetch('/sesion/renovar', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(r => {
+          if (!r.ok){ location.href = '/auth/logout?caducada=inactividad'; return; }
+          ultima = Date.now();
+          aviso.hidden = true;
+        })
+        .catch(() => { /* sin red: el contador sigue y el servidor decide */ });
+    });
+
+    document.getElementById('sesion-salir').addEventListener('click', () => {
+      location.href = '/auth/logout';
+    });
+  })();
+  </script>
+  {% endif %}
 
   {% block extra_js %}{% endblock %}
 </body>

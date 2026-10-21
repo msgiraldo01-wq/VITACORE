@@ -1,513 +1,446 @@
 {% extends "hc/base.html" %}
 
+{#
+  MI PERFIL
+
+  La versión anterior mostraba el usuario, el correo, el rol y el ID
+  dentro de cajas con borde y fondo de formulario: parecían editables y
+  no lo eran. El rol salía dos veces, y una caja entera se gastaba en un
+  UUID que solo sirve para pedir soporte.
+
+  Y el historial de accesos, que es lo más valioso de esta pantalla,
+  pintaba las veinte entradas iguales. Un registro de accesos existe
+  para que salte a la vista lo anómalo; si todo pesa lo mismo, no se lee
+  nada. Aquí los intentos fallidos van arriba y aparte.
+#}
+
 {% block title %}Mi perfil · Vitacore{% endblock %}
 
-{% block header_icon %}
-<i class="fa-solid fa-user"></i>
-{% endblock %}
-
-{% block header_title %}
-Mi perfil
-{% endblock %}
-
-{% block header_subtitle %}
-Información de tu cuenta
-{% endblock %}
-
+{% block header_icon %}<i class="fa-solid fa-id-badge" aria-hidden="true"></i>{% endblock %}
+{% block header_title %}Mi perfil{% endblock %}
+{% block header_subtitle %}Tu cuenta, tu sesión y desde dónde se ha entrado{% endblock %}
 
 {% block extra_css %}
 <style>
+  /* Sin tope propio: lo pone .page-shell de base.html, que es de
+     1440px. Cuando cada pantalla se inventaba el suyo (860 aquí, 1100
+     en Inicio) la cabecera llegaba al borde y el contenido se paraba
+     mucho antes, dejando un hueco en blanco a la derecha. */
+  .perfil{ display:flex; flex-direction:column; gap:18px; }
 
-/* ============================================
-   MI PERFIL
-   Reescrito para usar los tokens reales de la app
-   (var(--surface), var(--text), var(--brand)...) en
-   vez de colores fijos -- la versión anterior tenía
-   texto y fondos de color fijo pensados solo para
-   tema claro, por eso se veía casi invisible en
-   modo oscuro.
-   ============================================ */
+  /* El ancho se llena con contenido, no estirando filas: la lista de
+     accesos crece hacia abajo y el formulario de contraseña es
+     estrecho por naturaleza, así que van uno al lado del otro. */
+  .perfil-columnas{
+    display:grid; gap:18px; align-items:start;
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr);
+  }
+  @media (max-width:1000px){
+    .perfil-columnas{ grid-template-columns:1fr; }
+  }
 
-.profile-wrap {
-  max-width: 760px;
-  margin: 0 auto;
-}
+  .vc-card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+  }
+  .vc-card-head{ padding:16px 20px 0; }
+  .vc-card-head h2{ margin:0; font-size:.95rem; color:var(--text); }
+  .vc-card-head p{ margin:4px 0 0; font-size:.8rem; color:var(--text-faint); }
 
-.profile-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  padding: 30px;
-}
+  /* ── Cabecera ── */
+  .perfil-cabecera{
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:22px 20px;
+  }
+  /* En el verde del sistema. Antes era morado, y era el único punto de
+     la aplicación con ese color. */
+  .perfil-avatar{
+    width:64px; height:64px; border-radius:50%; flex-shrink:0;
+    background:var(--brand); color:#fff; display:grid; place-items:center;
+    font-size:1.5rem; font-weight:700;
+  }
+  .perfil-quien{ flex:1; min-width:200px; }
+  .perfil-quien h1{ margin:0; font-size:1.3rem; color:var(--text); letter-spacing:-.01em; }
+  .perfil-meta{ margin:6px 0 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .vc-pill{
+    display:inline-block; padding:3px 10px; border-radius:var(--radius-pill);
+    background:var(--brand-soft); color:var(--brand);
+    font-size:.72rem; font-weight:700; letter-spacing:.03em;
+  }
+  .perfil-empresa{ font-size:.84rem; color:var(--text-soft); }
 
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 26px;
-}
+  .perfil-sesion{
+    border-left:1px solid var(--border); padding-left:18px;
+    font-size:.8rem; color:var(--text-soft); line-height:1.6; min-width:200px;
+  }
+  .perfil-sesion b{ color:var(--text); font-weight:600; }
+  @media (max-width:700px){
+    .perfil-sesion{ border-left:0; border-top:1px solid var(--border);
+                    padding:14px 0 0; width:100%; }
+  }
 
-.profile-avatar {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--accent));
-  box-shadow: var(--shadow-sm);
-}
+  /* ── Datos ──
+     Texto, no cajas. Nada de esto se puede editar aquí, así que nada
+     de esto debe parecer un formulario. */
+  /* Tope de 320px por columna: con 1fr y solo dos datos, cada uno se
+     quedaría con media pantalla para mostrar la palabra "admin". */
+  .datos{ padding:16px 20px 20px; display:grid; gap:16px;
+          grid-template-columns:repeat(auto-fit,minmax(200px,320px)); }
+  .dato .et{ display:block; font-size:.72rem; text-transform:uppercase;
+             letter-spacing:.06em; color:var(--text-faint); margin-bottom:3px; }
+  .dato .val{ font-size:.95rem; color:var(--text); word-break:break-word; }
 
-.profile-name {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text);
-}
+  .pie-id{
+    border-top:1px solid var(--border); padding:12px 20px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    font-size:.74rem; color:var(--text-faint);
+  }
+  .pie-id code{ font-family:ui-monospace,Menlo,monospace; color:var(--text-soft); }
+  .btn-copiar{
+    border:1px solid var(--border); background:transparent; color:var(--text-soft);
+    border-radius:var(--radius-xs); padding:3px 9px; font-size:.72rem;
+    font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .btn-copiar:hover{ background:var(--surface-2); }
 
-.profile-role {
-  display: inline-flex;
-  align-items: center;
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+  /* ── Accesos ── */
+  .alerta-fallidos{
+    margin:16px 20px 0; padding:14px 16px; display:flex; gap:12px;
+    background:var(--danger-soft); border:1px solid var(--danger);
+    border-radius:var(--radius-sm);
+  }
+  .alerta-fallidos > i{ color:var(--danger); font-size:1.05rem; }
+  .alerta-fallidos b{ display:block; font-size:.88rem; color:var(--text); }
+  .alerta-fallidos span{ font-size:.8rem; color:var(--text-soft); }
 
-.profile-section { margin-top: 24px; }
+  .sin-fallidos{
+    margin:16px 20px 0; padding:12px 14px; display:flex; align-items:center; gap:10px;
+    background:var(--success-soft); border-radius:var(--radius-sm);
+    font-size:.84rem; color:var(--text-soft);
+  }
+  .sin-fallidos i{ color:var(--success); }
 
-.profile-section-title {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--text-faint);
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
+  .accesos{ padding:10px 20px 20px; }
+  .dia{
+    margin:16px 0 8px; font-size:.7rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.07em; color:var(--text-faint);
+  }
+  .acceso-fila{
+    display:flex; align-items:center; gap:12px; padding:11px 0;
+    border-bottom:1px solid var(--border); font-size:.85rem;
+  }
+  .acceso-fila:last-child{ border-bottom:0; }
+  .acceso-fila > i{ color:var(--text-faint); width:14px; text-align:center; }
+  .acceso-fila.fallido > i{ color:var(--danger); }
+  .acceso-cuerpo{ flex:1; min-width:0; }
+  .acceso-cuerpo .donde{ color:var(--text); }
+  .acceso-cuerpo .detalle{ font-size:.76rem; color:var(--text-faint); margin-top:2px; }
+  .acceso-hora{ font-size:.78rem; color:var(--text-faint); white-space:nowrap; }
+  .etiqueta-aqui{
+    display:inline-block; margin-left:8px; padding:1px 7px;
+    border-radius:var(--radius-pill); background:var(--brand-soft);
+    color:var(--brand); font-size:.68rem; font-weight:700;
+  }
 
-.profile-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
+  /* ── Contraseña ── */
+  .clave{ padding:16px 20px 20px; }
+  .clave label{ display:block; font-size:.78rem; font-weight:600;
+                color:var(--text-soft); margin:14px 0 5px; }
+  .clave label:first-child{ margin-top:0; }
+  .campo-clave{ position:relative; }
+  .campo-clave input{
+    width:100%; padding:10px 40px 10px 12px; font-size:.9rem;
+    border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+    background:var(--surface-2); color:var(--text); font-family:inherit;
+  }
+  .campo-clave input:focus{ outline:none; border-color:var(--brand);
+                            background:var(--surface); box-shadow:0 0 0 3px var(--brand-soft); }
+  .ver-clave{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    border:0; background:transparent; color:var(--text-faint);
+    cursor:pointer; padding:6px 8px; font-size:.85rem;
+  }
+  /* Las reglas, delante y no después de fallar: antes la única pista
+     llegaba en un alert() cuando ya habías escrito. */
+  .reglas{ list-style:none; margin:12px 0 0; padding:0; }
+  .reglas li{ display:flex; align-items:center; gap:8px; font-size:.78rem;
+              color:var(--text-faint); padding:3px 0; }
+  .reglas li i{ width:12px; font-size:.7rem; }
+  .reglas li.ok{ color:var(--success); }
+  .clave button[type=submit]{
+    margin-top:18px; border:1px solid var(--brand); background:var(--brand);
+    color:#fff; border-radius:var(--radius-sm); padding:10px 18px;
+    font-size:.86rem; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .clave button[type=submit]:disabled{ opacity:.5; cursor:not-allowed; }
 
-.profile-field {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-}
-
-.profile-label {
-  font-size: 11px;
-  color: var(--text-faint);
-  margin-bottom: 3px;
-}
-
-.profile-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  word-break: break-word;
-}
-
-/* ============================================
-   SEGURIDAD -- mismos estilos de campo que el
-   login, para que se vea consistente en toda la app
-   ============================================ */
-.password-box {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-}
-
-.field { margin-bottom: 14px; }
-
-.field label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.input-wrapper { position: relative; }
-
-.field input {
-  width: 100%;
-  height: 44px;
-  padding: 0 42px 0 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  font-family: inherit;
-  transition: border-color .15s ease, box-shadow .15s ease;
-}
-
-.field input:hover { border-color: var(--border-strong); }
-
-.field input:focus {
-  outline: none;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px var(--brand-soft);
-}
-
-.toggle-password {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  border-radius: var(--radius-xs);
-  transition: background .15s ease, color .15s ease;
-}
-
-.toggle-password:hover { background: var(--brand-soft); color: var(--brand); }
-
-.password-strength, .password-match {
-  font-size: 12px;
-  margin: -6px 0 12px;
-  font-weight: 600;
-}
-
-.strength-weak { color: var(--danger); }
-.strength-medium { color: var(--warn); }
-.strength-strong { color: var(--success); }
-
-.match-ok { color: var(--success); }
-.match-bad { color: var(--danger); }
-
-.profile-actions {
-  margin-top: 24px;
-  display: flex;
-  gap: 10px;
-}
-
-.btn-ax.danger { background: var(--danger); color: #fff; box-shadow: var(--shadow-sm); }
-.btn-ax.danger:hover { box-shadow: var(--shadow-md); }
-
-/* ============================================
-   HISTORIAL DE ACCESOS
-   ============================================ */
-.access-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.access-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-}
-
-.access-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-}
-
-.access-icon.ok { background: var(--success-soft); color: var(--success); }
-.access-icon.fail { background: var(--danger-soft); color: var(--danger); }
-
-.access-main { flex: 1; min-width: 0; }
-
-.access-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.access-sub {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--text-soft);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-}
-
-.access-sub i { margin-right: 3px; }
-
-.access-date {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-faint);
-  text-align: right;
-  white-space: nowrap;
-}
-
-.access-empty {
-  padding: 18px;
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  border: 1px dashed var(--border);
-  color: var(--text-soft);
-  font-size: 13px;
-  text-align: center;
-}
-
-@media (max-width: 640px) {
-  .profile-card { padding: 22px 18px; }
-  .profile-header { flex-direction: column; align-items: flex-start; }
-  .profile-grid { grid-template-columns: 1fr; }
-  .profile-actions { flex-direction: column; }
-  .profile-actions .btn-ax { width: 100%; }
-  .access-item { flex-wrap: wrap; }
-  .access-date { width: 100%; text-align: left; margin-left: 44px; }
-}
-
+  .perfil-acciones{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-perfil{
+    border:1px solid var(--border-strong); background:var(--surface);
+    color:var(--text-soft); border-radius:var(--radius-sm);
+    padding:10px 18px; font-size:.86rem; font-weight:600;
+    text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-perfil.salir{ color:var(--danger); border-color:var(--danger); }
+  .btn-perfil:hover{ background:var(--surface-2); }
 </style>
 {% endblock %}
 
-
 {% block content %}
+<main class="perfil">
 
-<div class="profile-wrap">
-  <div class="profile-card">
+  <section class="vc-card">
+    <div class="perfil-cabecera">
+      <div class="perfil-avatar" aria-hidden="true">{{ (user.full_name or user.username or "V")[0] | upper }}</div>
+      <div class="perfil-quien">
+        <h1>{{ user.full_name or user.username }}</h1>
+        <p class="perfil-meta">
+          <span class="vc-pill">{{ user.role or "Usuario" }}</span>
+          {% if empresa_nombre %}<span class="perfil-empresa">{{ empresa_nombre }}</span>{% endif %}
+        </p>
+      </div>
+      <div class="perfil-sesion">
+        {% if entro_en %}
+        Entraste <b><span id="perfil-entro" data-ts="{{ entro_en }}">—</span></b><br>
+        {% endif %}
+        Tu sesión se cierra tras <b>{{ politica.inactividad_min }} minutos</b> sin actividad,
+        y como máximo a las <b>{{ politica.jornada_horas }} horas</b>.
+      </div>
+    </div>
 
-    <div class="profile-header">
-      <div class="profile-avatar" aria-hidden="true">{{ user.full_name[0] if user.full_name else "V" }}</div>
+    <div class="datos">
+      <div class="dato">
+        <span class="et">Usuario</span>
+        <span class="val">{{ user.username }}</span>
+      </div>
+      <div class="dato">
+        <span class="et">Correo</span>
+        <span class="val">{{ user.email or "—" }}</span>
+      </div>
+    </div>
+
+    <div class="pie-id">
+      <span>Identificador de tu cuenta:</span>
+      <code id="perfil-id">{{ user.id }}</code>
+      <button type="button" class="btn-copiar" id="btn-copiar-id">Copiar</button>
+      <span>— dáselo a soporte si pides ayuda.</span>
+    </div>
+  </section>
+
+  <div class="perfil-columnas">
+
+  <section class="vc-card" aria-labelledby="acc-tit">
+    <div class="vc-card-head">
+      <h2 id="acc-tit">Accesos a tu cuenta</h2>
+      <p>Últimos {{ historial | length }} registros.</p>
+    </div>
+
+    {% if fallidos %}
+    <div class="alerta-fallidos" role="alert">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
       <div>
-        <div class="profile-name">{{ user.full_name }}</div>
-        <div class="profile-role">{{ user.role or "Usuario" }}</div>
+        <b>{{ fallidos | length }}
+          {{ "intento fallido" if fallidos | length == 1 else "intentos fallidos" }}
+          de entrar a tu cuenta</b>
+        <span>Si no fuiste tú, cambia tu contraseña aquí abajo y avisa a tu administrador.</span>
       </div>
     </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Información</div>
-      <div class="profile-grid">
-        <div class="profile-field">
-          <div class="profile-label">Usuario</div>
-          <div class="profile-value">{{ user.username }}</div>
+    <div class="accesos">
+      {% for h in fallidos %}
+      <div class="acceso-fila fallido">
+        <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+        <div class="acceso-cuerpo">
+          <div class="donde">{{ h.motivo_label or "Intento fallido" }}</div>
+          <div class="detalle">
+            {% if h.ciudad and h.pais %}{{ h.ciudad }}, {{ h.pais }}
+            {%- elif h.pais %}{{ h.pais }}
+            {%- else %}Ubicación desconocida{% endif %}
+            · {{ h.dispositivo or "Dispositivo desconocido" }}
+            {% if h.ip_address %}· {{ h.ip_address }}{% endif %}
+          </div>
         </div>
-        <div class="profile-field">
-          <div class="profile-label">Correo</div>
-          <div class="profile-value">{{ user.email }}</div>
-        </div>
-        <div class="profile-field">
-          <div class="profile-label">Rol</div>
-          <div class="profile-value">{{ user.role or "—" }}</div>
-        </div>
-        <div class="profile-field">
-          <div class="profile-label">ID usuario</div>
-          <div class="profile-value">{{ user.id }}</div>
-        </div>
+        <div class="acceso-hora">{{ h.creado_en_fmt }}</div>
       </div>
+      {% endfor %}
     </div>
-
-    <div class="profile-section">
-      <div class="profile-section-title">Seguridad</div>
-
-      <div class="password-box">
-        <form method="POST" action="/auth/cambiar-password" onsubmit="return validarPassword()">
-
-          <div class="field">
-            <label for="passActual">Contraseña actual</label>
-            <div class="input-wrapper">
-              <input type="password" name="password_actual" id="passActual" required>
-              <button type="button" class="toggle-password" onclick="togglePass('passActual')" aria-label="Mostrar contraseña actual">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="passNueva">Nueva contraseña</label>
-            <div class="input-wrapper">
-              <input type="password" name="password_nueva" id="passNueva" required onkeyup="checkStrength()">
-              <button type="button" class="toggle-password" onclick="togglePass('passNueva')" aria-label="Mostrar nueva contraseña">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-            <div id="passwordStrength" class="password-strength"></div>
-          </div>
-
-          <div class="field">
-            <label for="passConfirm">Confirmar nueva contraseña</label>
-            <div class="input-wrapper">
-              <input type="password" id="passConfirm" required onkeyup="checkMatch()">
-              <button type="button" class="toggle-password" onclick="togglePass('passConfirm')" aria-label="Mostrar confirmación de contraseña">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-            <div id="passwordMatch" class="password-match"></div>
-          </div>
-
-          <button class="btn-ax primary" type="submit">
-            <i class="fa-solid fa-key"></i>
-            Cambiar contraseña
-          </button>
-        </form>
-      </div>
+    {% else %}
+    {# Decirlo es información; callarlo deja al usuario sin saber si se
+       miró o no. #}
+    <div class="sin-fallidos">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <span>Sin intentos fallidos en los últimos accesos.</span>
     </div>
+    {% endif %}
 
-    <div class="profile-section">
-      <div class="profile-section-title">Historial de accesos</div>
-
-      {% if historial %}
-        <div class="access-list">
-          {% for h in historial %}
-            <div class="access-item">
-              <div class="access-icon {{ 'ok' if h.exito else 'fail' }}">
-                <i class="fa-solid {{ 'fa-circle-check' if h.exito else 'fa-circle-xmark' }}"></i>
-              </div>
-              <div class="access-main">
-                <div class="access-title">{{ h.motivo_label }}</div>
-                <div class="access-sub">
-                  <span><i class="fa-solid fa-location-dot"></i>{% if h.ciudad and h.pais %}{{ h.ciudad }}, {{ h.pais }}{% elif h.pais %}{{ h.pais }}{% else %}Ubicación desconocida{% endif %}</span>
-                  <span><i class="fa-solid fa-desktop"></i>{{ h.dispositivo or "Dispositivo desconocido" }}</span>
-                  {% if h.ip_address %}<span><i class="fa-solid fa-network-wired"></i>{{ h.ip_address }}</span>{% endif %}
-                </div>
-              </div>
-              <div class="access-date">{{ h.creado_en_fmt }}</div>
+    <div class="accesos">
+      {% set ns = namespace(dia=None) %}
+      {% for h in correctos %}
+        {% set dia = (h.creado_en_fmt or "").split(',')[0] %}
+        {% if dia != ns.dia %}
+          <p class="dia">{{ dia }}</p>
+          {% set ns.dia = dia %}
+        {% endif %}
+        <div class="acceso-fila">
+          <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+          <div class="acceso-cuerpo">
+            <div class="donde">
+              {% if h.ciudad and h.pais %}{{ h.ciudad }}, {{ h.pais }}
+              {%- elif h.pais %}{{ h.pais }}
+              {%- else %}Ubicación desconocida{% endif %}
+              {% if h.id == acceso_actual_id %}<span class="etiqueta-aqui">Este equipo</span>{% endif %}
             </div>
-          {% endfor %}
+            <div class="detalle">
+              {{ h.dispositivo or "Dispositivo desconocido" }}
+              {% if h.ip_address %}· {{ h.ip_address }}{% endif %}
+            </div>
+          </div>
+          <div class="acceso-hora">{{ (h.creado_en_fmt or "").split(',')[1] | trim }}</div>
         </div>
       {% else %}
-        <div class="access-empty">Todavía no hay registros de acceso.</div>
-      {% endif %}
+        <p class="dia" style="margin-top:0">Todavía no hay accesos registrados.</p>
+      {% endfor %}
     </div>
+  </section>
 
-    <div class="profile-actions">
-      <a class="btn-ax ghost" href="/">
-        <i class="fa-solid fa-arrow-left"></i>
-        Volver
-      </a>
-      <a class="btn-ax danger logout-btn" href="/auth/logout">
-        <i class="fa-solid fa-power-off"></i>
-        Cerrar sesión
-      </a>
+  <section class="vc-card" aria-labelledby="clave-tit">
+    <div class="vc-card-head">
+      <h2 id="clave-tit">Cambiar contraseña</h2>
+      <p>Al cambiarla seguirás dentro en este equipo.</p>
     </div>
+    <form class="clave" method="POST" action="/auth/cambiar-password" id="form-clave">
+      <label for="passActual">Contraseña actual</label>
+      <div class="campo-clave">
+        <input type="password" name="password_actual" id="passActual" required autocomplete="current-password">
+        <button type="button" class="ver-clave" data-para="passActual" aria-label="Mostrar contraseña actual">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+      </div>
+
+      <label for="passNueva">Contraseña nueva</label>
+      <div class="campo-clave">
+        <input type="password" name="password_nueva" id="passNueva" required autocomplete="new-password">
+        <button type="button" class="ver-clave" data-para="passNueva" aria-label="Mostrar contraseña nueva">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+      </div>
+
+      <label for="passConfirm">Repite la contraseña nueva</label>
+      <div class="campo-clave">
+        <input type="password" id="passConfirm" required autocomplete="new-password">
+        <button type="button" class="ver-clave" data-para="passConfirm" aria-label="Mostrar la repetición">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+      </div>
+
+      <ul class="reglas" aria-live="polite">
+        <li id="regla-largo"><i class="fa-solid fa-circle" aria-hidden="true"></i> Al menos 8 caracteres</li>
+        <li id="regla-igual"><i class="fa-solid fa-circle" aria-hidden="true"></i> Las dos nuevas coinciden</li>
+      </ul>
+
+      <button type="submit" id="btn-clave" disabled>Cambiar contraseña</button>
+    </form>
+  </section>
 
   </div>
-</div>
 
+  <div class="perfil-acciones">
+    <a class="btn-perfil" href="/"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+    <a class="btn-perfil salir" href="/auth/logout" id="btn-salir">
+      <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+    </a>
+  </div>
+
+</main>
 {% endblock %}
-
 
 {% block extra_js %}
 <script>
+/* ── Cuándo entró, en hora local ── */
+(function(){
+  const el = document.getElementById('perfil-entro');
+  if (!el) return;
+  const ts = parseFloat(el.dataset.ts);
+  if (!ts) return;
+  const d = new Date(ts * 1000);
+  const min = Math.round((Date.now() - d.getTime()) / 60000);
+  const hora = d.toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit', hour12:false});
+  el.textContent = min < 60
+    ? 'a las ' + hora + ' (hace ' + (min < 1 ? 'un momento' : min + (min === 1 ? ' minuto' : ' minutos')) + ')'
+    : 'a las ' + hora;
+})();
 
-/* mostrar contraseña */
-function togglePass(id) {
-  const input = document.getElementById(id);
-  input.type = input.type === "password" ? "text" : "password";
-}
+/* ── Copiar el identificador ── */
+(function(){
+  const btn = document.getElementById('btn-copiar-id');
+  const cod = document.getElementById('perfil-id');
+  if (!btn || !cod) return;
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(cod.textContent.trim()).then(() => {
+      btn.textContent = 'Copiado';
+      setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+    }).catch(() => { btn.textContent = 'No se pudo'; });
+  });
+})();
 
-/* fuerza de contraseña */
-function checkStrength() {
-  const pass = document.getElementById("passNueva").value;
-  const meter = document.getElementById("passwordStrength");
+/* ── Contraseña: reglas en vivo ──
+   El botón solo se habilita cuando se cumplen, así que el alert() que
+   había antes -- que llegaba cuando ya habías escrito todo -- sobra. */
+(function(){
+  const nueva   = document.getElementById('passNueva');
+  const repetir = document.getElementById('passConfirm');
+  const boton   = document.getElementById('btn-clave');
+  const actual  = document.getElementById('passActual');
+  const rLargo  = document.getElementById('regla-largo');
+  const rIgual  = document.getElementById('regla-igual');
+  if (!nueva || !repetir || !boton) return;
 
-  let strength = 0;
-  if (pass.length >= 8) strength++;
-  if (/[A-Z]/.test(pass)) strength++;
-  if (/[0-9]/.test(pass)) strength++;
-  if (/[^A-Za-z0-9]/.test(pass)) strength++;
-
-  if (pass.length === 0) {
-    meter.innerHTML = "";
-    meter.className = "password-strength";
-  } else if (strength <= 1) {
-    meter.innerHTML = "Seguridad: débil";
-    meter.className = "password-strength strength-weak";
-  } else if (strength <= 3) {
-    meter.innerHTML = "Seguridad: media";
-    meter.className = "password-strength strength-medium";
-  } else {
-    meter.innerHTML = "Seguridad: fuerte";
-    meter.className = "password-strength strength-strong";
-  }
-}
-
-/* confirmar contraseña */
-function checkMatch() {
-  const pass = document.getElementById("passNueva").value;
-  const confirm = document.getElementById("passConfirm").value;
-  const msg = document.getElementById("passwordMatch");
-
-  if (confirm.length === 0) {
-    msg.innerHTML = "";
-    return;
-  }
-
-  if (pass === confirm) {
-    msg.innerHTML = "Las contraseñas coinciden";
-    msg.className = "password-match match-ok";
-  } else {
-    msg.innerHTML = "Las contraseñas no coinciden";
-    msg.className = "password-match match-bad";
-  }
-}
-
-/* validación antes de enviar */
-function validarPassword() {
-  const pass = document.getElementById("passNueva").value;
-  const confirm = document.getElementById("passConfirm").value;
-
-  if (pass !== confirm) {
-    alert("Las contraseñas no coinciden");
-    return false;
+  function marcar(li, cumple){
+    li.classList.toggle('ok', cumple);
+    li.querySelector('i').className = cumple
+      ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle';
   }
 
-  if (pass.length < 8) {
-    alert("La contraseña debe tener al menos 8 caracteres");
-    return false;
+  function revisar(){
+    const largo = nueva.value.length >= 8;
+    const igual = nueva.value.length > 0 && nueva.value === repetir.value;
+    marcar(rLargo, largo);
+    marcar(rIgual, igual);
+    boton.disabled = !(largo && igual && actual.value.length > 0);
   }
 
-  return true;
-}
+  [nueva, repetir, actual].forEach(c => c.addEventListener('input', revisar));
+  revisar();
+})();
 
-/* confirmar cerrar sesión */
-document.querySelectorAll(".logout-btn").forEach(btn => {
-  btn.addEventListener("click", function (e) {
-    e.preventDefault();
-    const url = this.href;
-
-    Swal.fire({
-      title: "Cerrar sesión",
-      text: "¿Seguro que deseas salir de Vitacore?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#dc3545",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Sí, cerrar sesión",
-      cancelButtonText: "Cancelar",
-      reverseButtons: true
-    }).then((result) => {
-      if (result.isConfirmed) {
-        window.location.href = url;
-      }
+/* ── Mostrar/ocultar contraseñas ── */
+(function(){
+  document.querySelectorAll('.ver-clave').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const campo = document.getElementById(btn.dataset.para);
+      if (!campo) return;
+      const oculto = campo.type === 'password';
+      campo.type = oculto ? 'text' : 'password';
+      btn.querySelector('i').className = oculto
+        ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
     });
   });
-});
+})();
 
+/* ── Confirmar antes de salir ── */
+(function(){
+  const salir = document.getElementById('btn-salir');
+  if (!salir) return;
+  // VC responde con una promesa, así que no se puede decidir dentro del
+  // click: se frena siempre el enlace y se navega a mano si dice que sí.
+  salir.addEventListener('click', async e => {
+    e.preventDefault();
+    const ok = await VC.confirmar({
+      titulo: 'Cerrar sesión',
+      texto: 'Se cerrará tu sesión en este equipo. Lo que tengas sin guardar se pierde.',
+      ok: 'Cerrar sesión',
+    });
+    if (ok) window.location.href = salir.href;
+  });
+})();
 </script>
 {% endblock %}

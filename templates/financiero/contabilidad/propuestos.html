@@ -1,0 +1,351 @@
+{% extends "hc/base.html" %}
+
+{#
+  ASIENTOS PROPUESTOS
+
+  El puente entre facturación y los libros. Antes de esto la clínica
+  tenía 27 facturas emitidas y cero comprobantes contables: no había
+  forma de que los libros se alimentaran solos.
+
+  Nada de lo que se ve aquí está en la contabilidad todavía. Un asiento
+  solo entra cuando alguien lo aprueba, y es en ese momento cuando se
+  consume el número de consecutivo -- por eso los borradores viven en su
+  propia tabla y no en fin_comprobantes.
+#}
+
+{% block title %}Asientos propuestos · Contabilidad{% endblock %}
+
+{% block header_icon %}<i class="fa-solid fa-file-circle-check"></i>{% endblock %}
+{% block header_title %}Asientos propuestos{% endblock %}
+{% block header_subtitle %}Generados desde facturación. Ninguno está en los libros hasta que lo apruebes.{% endblock %}
+
+{% block header_actions %}
+  <a class="btn-ax ghost" href="{{ url_for('contabilidad.index') }}">
+    <i class="fa-solid fa-arrow-left"></i> Volver
+  </a>
+  <button type="button" class="btn-ax ghost" id="btn-generar">
+    <i class="fa-solid fa-rotate"></i> Buscar facturas sin asiento
+  </button>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pro-barra{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:16px;
+  }
+  .pro-barra .cuenta{ font-size:.9rem; color:var(--text); font-weight:600; }
+  .pro-barra .suma{ font-size:.82rem; color:var(--text-faint); }
+  .pro-barra .derecha{ margin-left:auto; display:flex; gap:10px; }
+  .btn-aprobar{
+    border:1px solid var(--brand); background:var(--brand); color:#fff;
+    border-radius:var(--radius-sm); padding:9px 16px; font-size:.85rem;
+    font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .btn-aprobar:disabled{ opacity:.45; cursor:not-allowed; }
+
+  .aviso-fallidos{
+    display:flex; gap:12px; padding:14px 16px; margin-bottom:16px;
+    background:var(--danger-soft); border:1px solid var(--danger);
+    border-radius:var(--radius-sm);
+  }
+  .aviso-fallidos i{ color:var(--danger); }
+  .aviso-fallidos b{ display:block; font-size:.88rem; }
+  .aviso-fallidos span{ font-size:.8rem; color:var(--text-soft); }
+
+  .pro{
+    background:var(--surface); border:1px solid var(--border);
+    border-left:3px solid var(--border-strong);
+    border-radius:var(--radius-sm); margin-bottom:10px; overflow:hidden;
+  }
+  .pro.fallido{ border-left-color:var(--danger); }
+  .pro-cab{
+    display:flex; align-items:center; gap:12px; padding:13px 16px;
+    cursor:pointer; user-select:none;
+  }
+  .pro-cab:hover{ background:var(--surface-2); }
+  .pro-cab input[type=checkbox]{ width:16px; height:16px; cursor:pointer; flex-shrink:0; }
+  .pro-tit{ flex:1; min-width:0; }
+  .pro-tit strong{ display:block; font-size:.9rem; }
+  .pro-tit span{ font-size:.77rem; color:var(--text-faint); }
+  .pro-val{ font-weight:600; font-size:.9rem; white-space:nowrap;
+            font-variant-numeric:tabular-nums; }
+  .pro-flecha{ color:var(--text-faint); font-size:.8rem; transition:transform .15s ease; }
+  .pro.abierto .pro-flecha{ transform:rotate(90deg); }
+
+  /* Plegado con grid-template-rows de 0fr a 1fr: anima hasta la altura
+     real del contenido, que es algo que max-height no sabe hacer sin
+     inventarse un número. display:none no se puede animar. */
+  .pro-lineas{
+    display:grid; grid-template-rows:0fr;
+    transition:grid-template-rows .24s ease;
+  }
+  .pro.abierto .pro-lineas{ grid-template-rows:1fr; }
+  .pro-lineas-int{ overflow:hidden; }
+  .pro.abierto .pro-lineas-int{ padding:0 16px 14px; }
+  @media (prefers-reduced-motion: reduce){
+    .pro-lineas{ transition:none; }
+  }
+
+  /* Botón trabajando */
+  @keyframes vc-girar{ to{ transform:rotate(360deg); } }
+  .girando{ animation:vc-girar .8s linear infinite; display:inline-block; }
+  .pro-tabla{ width:100%; border-collapse:collapse; font-size:.82rem; }
+  .pro-tabla th{
+    text-align:left; font-size:.7rem; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--text-faint); font-weight:700;
+    padding:8px 6px; border-bottom:1px solid var(--border);
+  }
+  .pro-tabla td{ padding:8px 6px; border-bottom:1px solid var(--border); }
+  .pro-tabla td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .pro-tabla tr:last-child td{ border-bottom:0; }
+  .pro-error{
+    margin-top:10px; padding:10px 12px; background:var(--danger-soft);
+    border-radius:var(--radius-xs); font-size:.8rem; color:var(--text);
+  }
+  .pro-acciones{ margin-top:12px; display:flex; gap:8px; }
+  .btn-mini{
+    border:1px solid var(--border-strong); background:transparent;
+    color:var(--text-soft); border-radius:var(--radius-xs);
+    padding:6px 12px; font-size:.78rem; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
+  .btn-mini.si{ border-color:var(--brand); color:var(--brand); }
+  .btn-mini.no{ border-color:var(--danger); color:var(--danger); }
+
+  .vacio{
+    display:flex; align-items:center; gap:12px; padding:22px;
+    background:var(--success-soft); border-radius:var(--radius-lg);
+    font-size:.9rem; color:var(--text-soft);
+  }
+  .vacio i{ color:var(--success); font-size:1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if fallidos %}
+<div class="aviso-fallidos" role="alert">
+  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+  <div>
+    <b>{{ fallidos | length }} {{ "asiento no pudo" if fallidos | length == 1 else "asientos no pudieron" }} registrarse</b>
+    <span>Suele ser parametrización: una cuenta que falta o un periodo cerrado.
+      Abre el asiento para ver el motivo exacto, corrígelo y vuelve a aprobarlo.</span>
+  </div>
+</div>
+{% endif %}
+
+{% if pendientes %}
+<div class="pro-barra">
+  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+    <input type="checkbox" id="todos" style="width:16px;height:16px;">
+    <span class="cuenta"><span id="n-sel">0</span> de {{ pendientes | length }} seleccionados</span>
+  </label>
+  <span class="suma" id="suma-sel"></span>
+  <div class="derecha">
+    <button type="button" class="btn-aprobar" id="btn-aprobar" disabled>
+      Aprobar y contabilizar
+    </button>
+  </div>
+</div>
+
+{% for p in pendientes %}
+<article class="pro {{ 'fallido' if p.estado == 'FALLIDO' }}" data-id="{{ p.id }}"
+         data-total="{{ p.total_debito }}">
+  <div class="pro-cab">
+    <input type="checkbox" class="sel" value="{{ p.id }}" onclick="event.stopPropagation()">
+    <i class="fa-solid fa-chevron-right pro-flecha" aria-hidden="true"></i>
+    <div class="pro-tit">
+      <strong>{{ p.descripcion }}</strong>
+      <span>{{ p.tipo_comprobante }} · {{ p.fecha }}
+        {%- if p.estado == 'FALLIDO' %} · no se pudo registrar{% endif %}</span>
+    </div>
+    <div class="pro-val">{{ "{:,.0f}".format(p.total_debito | float) | replace(",", ".") }}</div>
+  </div>
+
+  <div class="pro-lineas"><div class="pro-lineas-int">
+    <table class="pro-tabla">
+      <thead>
+        <tr><th>Cuenta</th><th>Concepto</th><th style="text-align:right">Débito</th><th style="text-align:right">Crédito</th></tr>
+      </thead>
+      <tbody>
+        {% for l in p.lineas %}
+        <tr>
+          <td><b>{{ l.cuenta_codigo }}</b><br>
+              <span style="font-size:.72rem;color:var(--text-faint)">{{ l.cuenta_nombre }}</span></td>
+          <td>{{ l.descripcion }}</td>
+          <td class="num">{{ "{:,.0f}".format(l.debito | float) | replace(",", ".") if l.debito else "" }}</td>
+          <td class="num">{{ "{:,.0f}".format(l.credito | float) | replace(",", ".") if l.credito else "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if p.error %}
+    <div class="pro-error"><b>Motivo:</b> {{ p.error }}</div>
+    {% endif %}
+
+    <div class="pro-acciones">
+      <button type="button" class="btn-mini si" data-aprobar="{{ p.id }}">Aprobar este</button>
+      <button type="button" class="btn-mini no" data-descartar="{{ p.id }}">Descartar</button>
+    </div>
+    </div>
+  </div>
+</article>
+{% endfor %}
+
+{% else %}
+<div class="vacio">
+  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+  <span>No hay asientos esperando. Toda factura emitida ya tiene el suyo en los libros.</span>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const pesos = n => new Intl.NumberFormat('es-CO').format(Math.round(n));
+
+  /* desplegar el detalle */
+  document.querySelectorAll('.pro-cab').forEach(cab => {
+    cab.addEventListener('click', () => cab.closest('.pro').classList.toggle('abierto'));
+  });
+
+  /* selección */
+  const todos = document.getElementById('todos');
+  const btn   = document.getElementById('btn-aprobar');
+  const nSel  = document.getElementById('n-sel');
+  const suma  = document.getElementById('suma-sel');
+  const casillas = () => [...document.querySelectorAll('.sel')];
+
+  function recontar(){
+    const marcadas = casillas().filter(c => c.checked);
+    if (nSel) nSel.textContent = marcadas.length;
+    if (btn)  btn.disabled = marcadas.length === 0;
+    if (suma){
+      const t = marcadas.reduce((a,c) => a + parseFloat(c.closest('.pro').dataset.total || 0), 0);
+      suma.textContent = marcadas.length ? '· ' + pesos(t) : '';
+    }
+  }
+  casillas().forEach(c => c.addEventListener('change', recontar));
+  if (todos) todos.addEventListener('change', () => {
+    casillas().forEach(c => { c.checked = todos.checked; });
+    recontar();
+  });
+
+  async function pedir(url, cuerpo){
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify(cuerpo || {})
+    });
+    return r.json();
+  }
+
+  /* Aprobar escribe en los libros y consume consecutivo: se confirma
+     siempre, y se dice cuántos y por cuánto. */
+  /* Aprobar escribe en los libros y consume consecutivo: se confirma
+     siempre, y se dice cuántos y por cuánto. */
+  async function aprobar(ids){
+    const t = ids.reduce((a,id) => {
+      const el = document.querySelector('.pro[data-id="'+id+'"]');
+      return a + parseFloat(el ? el.dataset.total : 0);
+    }, 0);
+
+    const ok = await VC.confirmar({
+      titulo: ids.length === 1 ? 'Contabilizar este asiento'
+                               : 'Contabilizar ' + ids.length + ' asientos',
+      texto: (ids.length === 1 ? 'Se registrará en los libros por '
+                               : 'Se registrarán en los libros por ') + pesos(t) + '.\n\n'
+             + 'Para deshacerlo habría que anularlos: los asientos contables no se borran.',
+      ok: 'Contabilizar',
+    });
+    if (!ok) return;
+
+    if (btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch girando"></i> Contabilizando…'; }
+    let d;
+    try { d = await pedir('{{ url_for("contabilidad.propuestos_aprobar") }}', {ids}); }
+    catch (e){ d = {ok:false, error:'Se perdió la conexión. Revisa la pantalla antes de reintentar: puede que alguno sí se haya registrado.'}; }
+
+    if (!d.ok){
+      await VC.avisar({titulo:'No se pudo contabilizar', texto: d.error || 'Inténtalo de nuevo.'});
+      location.reload(); return;
+    }
+
+    const bien = (d.aprobados || []).length, mal = (d.fallidos || []).length;
+    await VC.avisar({
+      titulo: mal ? 'Contabilizado con avisos' : 'Listo',
+      texto: mal
+        ? bien + ' quedaron en los libros y ' + mal + ' no.\nLos que fallaron siguen en la lista con el motivo.'
+        : bien + (bien === 1 ? ' asiento contabilizado.' : ' asientos contabilizados.'),
+    });
+    location.reload();
+  }
+
+  if (btn) btn.addEventListener('click', () =>
+    aprobar(casillas().filter(c => c.checked).map(c => c.value)));
+
+  document.querySelectorAll('[data-aprobar]').forEach(b =>
+    b.addEventListener('click', () => aprobar([b.dataset.aprobar])));
+
+  document.querySelectorAll('[data-descartar]').forEach(b =>
+    b.addEventListener('click', async () => {
+      const motivo = await VC.preguntar({
+        titulo: 'Descartar este asiento',
+        texto: 'Queda registrado quién lo descartó y por qué. La factura no se toca.',
+        ok: 'Descartar',
+      });
+      if (motivo === null) return;
+      await pedir('{{ url_for("contabilidad.propuestos_descartar") }}',
+                  {id: b.dataset.descartar, motivo});
+      location.reload();
+    }));
+
+  /* Buscar facturas sin asiento. Se bloquea mientras trabaja: pulsarlo
+     dos veces lanzaría dos lotes a la vez, y aunque el índice único de
+     la base impide duplicar, el usuario vería errores que no lo son. */
+  const gen = document.getElementById('btn-generar');
+  if (gen){
+    let trabajando = false;
+    const original = gen.innerHTML;
+    gen.addEventListener('click', async () => {
+      if (trabajando) return;
+      trabajando = true;
+      gen.disabled = true;
+      gen.innerHTML = '<i class="fa-solid fa-circle-notch girando"></i> Buscando…';
+
+      let d;
+      try { d = await pedir('{{ url_for("contabilidad.propuestos_generar") }}'); }
+      catch (e){ d = {ok:false, error:'No se pudo consultar. Revisa la conexión.'}; }
+
+      if (!d.ok){
+        await VC.avisar({titulo:'No se pudo buscar', texto: d.error || 'Inténtalo de nuevo.'});
+        trabajando = false; gen.disabled = false; gen.innerHTML = original;
+        return;
+      }
+      if (!d.propuestas){
+        await VC.avisar({
+          titulo: 'Nada nuevo',
+          texto: d.repetidas
+            ? 'Las ' + d.repetidas + ' facturas emitidas ya tienen su asiento.'
+            : 'No hay facturas emitidas pendientes.',
+        });
+        trabajando = false; gen.disabled = false; gen.innerHTML = original;
+        return;
+      }
+      await VC.avisar({
+        titulo: d.propuestas + (d.propuestas === 1 ? ' asiento nuevo' : ' asientos nuevos'),
+        texto: 'Ya puedes revisarlos y aprobarlos.'
+               + (d.fallidas ? '\n' + d.fallidas + ' no se pudieron armar.' : ''),
+      });
+      location.reload();
+    });
+  }
+
+  recontar();
+})();
+</script>
+{% endblock %}

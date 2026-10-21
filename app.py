@@ -8,6 +8,7 @@ from config import Config
 from services import permisos_service
 from services import modulos_service
 from services import error_service
+from services import sesion_service
 from blueprints.auth.routes import bp_auth
 from blueprints.configuracion_roles.routes import bp_roles
 from blueprints.configuracion_usuarios.routes import bp_usuarios
@@ -90,6 +91,30 @@ def ping():
     return '', 204
 
 
+@app.route('/sesion/renovar', methods=["POST"])
+def renovar_sesion():
+    """
+    El botón "Seguir trabajando" del aviso de caducidad.
+
+    No hace nada por sí misma: lo que renueva la sesión es haber
+    llegado hasta aquí, porque esta ruta NO está en la lista de exentas
+    y el guardia de arriba ya le puso la marca de actividad. Si la
+    sesión ya había caducado, el guardia respondió 401 antes y esto no
+    se ejecuta.
+    """
+    if not session.get("user"):
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True})
+
+
+@app.context_processor
+def politica_de_sesion():
+    """La política vigente, para que base.html arme su contador."""
+    if not session.get("user"):
+        return {}
+    return {"sesion_politica": sesion_service.politica(session.get("empresa_id"))}
+
+
 # =========================================================
 # CONTROL DE ACCESO CENTRAL POR MÓDULO
 # =========================================================
@@ -120,6 +145,55 @@ def informar_tiempo_servidor(respuesta):
         # para que el navegador pueda leerla también en peticiones fetch
         respuesta.headers["Timing-Allow-Origin"] = "*"
     return respuesta
+
+
+@app.before_request
+def cerrar_sesion_caducada():
+    """
+    Cierra la sesión por inactividad o por jornada.
+
+    Va ANTES del control de módulos a propósito: a una sesión caducada
+    no hay que decirle qué módulos tiene contratados, hay que sacarla.
+
+    El servidor es la autoridad. El navegador también lleva su contador
+    (base.html) para avisar antes de cortar, pero es solo cortesía: si
+    alguien lo desactiva, manipula el reloj de su máquina o deja un
+    script dando clics, aquí se cierra igual.
+    """
+    if not session.get("user"):
+        return None
+    if sesion_service.es_exenta(request.path):
+        return None
+
+    ahora = time.time()
+    politica = sesion_service.politica(session.get("empresa_id"))
+    motivo = sesion_service.motivo_de_cierre(
+        session.get("ultima_actividad"),
+        session.get("inicio_sesion"),
+        ahora,
+        politica,
+    )
+
+    if motivo:
+        session.clear()
+        destino = url_for("auth.login", caducada=motivo)
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({
+                "error": "La sesión caducó.",
+                "redirect": destino,
+            }), 401
+        return redirect(destino)
+
+    # No se reescribe la cookie en cada petición: con la ventana más
+    # corta que admitimos (5 minutos) medio minuto de desfase no cambia
+    # nada, y evita un Set-Cookie en cada clic.
+    try:
+        if ahora - float(session.get("ultima_actividad") or 0) > 30:
+            session["ultima_actividad"] = ahora
+    except (TypeError, ValueError):
+        session["ultima_actividad"] = ahora
+
+    return None
 
 
 @app.before_request

@@ -481,6 +481,12 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   .vitals-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Nota bajo un campo, para lo que no cabe en la etiqueta */
+.field-ayuda{
+  display:block; margin-top:5px; font-size:.75rem;
+  color:var(--text-faint); line-height:1.4;
+}
+
 /* ── Aviso de borrador recuperable ── */
 .borrador-aviso{
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -488,6 +494,12 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   border-left:3px solid var(--warn); border-radius:var(--radius-lg);
   padding:14px 16px; margin-bottom:18px; box-shadow:var(--shadow-xs);
 }
+/* Sin esto el aviso se ve SIEMPRE: el display:flex de arriba es un
+   selector de clase y le gana al [hidden]{display:none} del navegador.
+   Y cuando se ve sin haber borrador, el botón Recuperar no tiene
+   ningún clic enganchado -- el JS solo lo engancha si hay algo que
+   recuperar --, así que el médico lo pulsa y no pasa nada. */
+.borrador-aviso[hidden]{ display:none; }
 .borrador-aviso > i{ color:var(--warn); font-size:1.05rem; flex-shrink:0; }
 /* el texto necesita al menos 12rem antes de que los botones bajen;
    si no, en la columna angosta se parte palabra por palabra */
@@ -501,6 +513,26 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
   cursor:pointer; font-family:inherit; white-space:nowrap;
 }
 .borrador-btn.recuperar{ background:var(--brand); border-color:var(--brand); color:#fff; }
+
+/* ── Confirmación de que el borrador quedó grabado ──
+   Abajo a la derecha y sin ocupar sitio en el documento: el médico
+   está escribiendo, no queremos que el texto se le mueva. */
+.borrador-ok{
+  position:fixed; right:18px; bottom:18px; z-index:1500;
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid var(--success); border-radius:var(--radius-sm);
+  padding:9px 14px; font-size:.8rem; font-weight:600; color:var(--text-soft);
+  box-shadow:var(--shadow-xs);
+  opacity:0; transform:translateY(6px);
+  transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;   /* que nunca tape un campo ni se pueda pulsar */
+}
+.borrador-ok.visible{ opacity:1; transform:none; }
+.borrador-ok > i{ color:var(--success); }
+@media (prefers-reduced-motion: reduce){
+  .borrador-ok{ transition:none; transform:none; }
+}
 </style>
 {% endblock %}
 
@@ -566,6 +598,11 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
       </div>
       <button type="button" class="borrador-btn recuperar" id="btn-recuperar-borrador">Recuperar</button>
       <button type="button" class="borrador-btn" id="btn-descartar-borrador">Descartar</button>
+    </div>
+
+    <!-- aria-live para que un lector de pantalla también lo anuncie -->
+    <div id="borrador-ok" class="borrador-ok" role="status" aria-live="polite">
+      <i class="fa-solid fa-check"></i><span>Progreso guardado</span>
     </div>
 
     <form id="form-evolucion" method="POST" action="{{ url_for('hc_evoluciones.evolucion_crear', paciente_id=paciente.id) }}">
@@ -647,6 +684,29 @@ input::placeholder, textarea::placeholder { color: var(--text-faint); }
                 {% endfor %}
               </select>
             </div>
+          </div>
+
+          {#
+            INICIO DE LA ATENCION
+
+            Va visible y no oculto a propósito: esta hora acaba en el RDA
+            del Ministerio, y el médico tiene que poder verla y corregirla.
+            El caso real es abrir la nota, salir a atender otra cosa y
+            volver hora y media después; sin este campo quedaría registrada
+            una atención de hora y media.
+
+            La hora la pone el servidor, no el navegador. El fin no se
+            pregunta: es el instante de guardar.
+          #}
+          <div class="field">
+            <label><i class="fa-solid fa-clock"></i> Inicio de la atención</label>
+            <input type="datetime-local" name="atencion_inicio"
+                   id="atencion_inicio"
+                   value="{{ atencion_abierta }}"
+                   min="{{ atencion_abierta[:10] }}T00:00"
+                   max="{{ atencion_abierta }}">
+            <small class="field-ayuda">Se tomó al abrir la nota. Corrígela si
+              la atención empezó antes. El fin se registra al guardar.</small>
           </div>
 
           <!-- MOTIVO Y ENFERMEDAD ACTUAL -->
@@ -1553,12 +1613,28 @@ document.addEventListener('DOMContentLoaded', () => {
    ────────────────────────────────────────────────────────────── */
 (function(){
   const CLAVE   = 'evolucion_borrador_{{ paciente.id }}';
+  // El nombre va dentro del borrador para que la pantalla de inicio
+  // pueda decir "Evolución sin terminar · Diego Ocampo" en vez de
+  // "paciente 2". Es el único sitio donde se sabe de quién es.
+  const PACIENTE = {{ ((paciente.nombres or '') ~ ' ' ~ (paciente.apellidos or '')) | trim | tojson }};
   const VENCE   = 48 * 60 * 60 * 1000;   // 48 horas
   const form    = document.getElementById('form-evolucion');
   const aviso   = document.getElementById('aviso-borrador');
   if (!form || !aviso) return;
 
   const campos = () => form.querySelectorAll('[name]');
+
+  const ok = document.getElementById('borrador-ok');
+  let relojOk = null, saliendo = false;
+
+  function confirmar(){
+    // Al salir de la página no se alcanza a leer, y encima parpadearía
+    // justo cuando la vista ya está cambiando.
+    if (!ok || saliendo) return;
+    ok.classList.add('visible');
+    clearTimeout(relojOk);
+    relojOk = setTimeout(() => ok.classList.remove('visible'), 1800);
+  }
 
   function leer(){
     try{
@@ -1571,6 +1647,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function guardar(){
+    /* Mientras el aviso sigue en pantalla hay un borrador sin decidir,
+       y ese es el bueno: una nota terminada que no alcanzó a guardarse.
+       El formulario que el médico tiene delante está vacío. Si
+       autoguardáramos ahora -- le basta con escribir una letra, o con
+       salirse de la página -- le pasaríamos ese vacío por encima a la
+       nota, y el botón Recuperar no traería nada.
+       Se reanuda en cuanto él decide: Recuperar o Descartar. */
+    if (!aviso.hidden) return;
+
     const datos = {};
     let conContenido = false;
     campos().forEach(el => {
@@ -1585,26 +1670,73 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!conContenido){ return; }
     try{
       localStorage.setItem(CLAVE, JSON.stringify({
-        datos, paso: (typeof CONFIG !== 'undefined' ? CONFIG.pasoActual : 1), ts: Date.now()
+        datos, paciente: PACIENTE,
+        paso: (typeof CONFIG !== 'undefined' ? CONFIG.pasoActual : 1), ts: Date.now()
       }));
+      confirmar();
     }catch(e){ /* sin espacio o almacenamiento bloqueado: no es motivo para romper la nota */ }
   }
 
   function restaurar(b){
+    /* Tres pasadas, a propósito:
+
+       1) Poner los valores, sin avisarle a nadie. Antes esto iba
+          junto con los eventos, y como un forEach se corta en la
+          primera excepción, bastaba con que el IMC, el CIE-10 o la
+          carga de horarios del médico reventara para que los campos
+          siguientes se quedaran vacíos -- sin error visible y sin
+          que el médico supiera por qué "no trajo nada".
+       2) Avisar, cada campo en su propio try/catch.
+       3) Reintentar los selects. Médico, sede y servicio llenan sus
+          opciones por fetch; si todavía no llegaron, asignar .value
+          no hace absolutamente nada y el campo queda vacío en
+          silencio. */
+    const puestos = [];
+
     campos().forEach(el => {
       if (!(el.name in b.datos)) return;
-      if (el.type === 'checkbox' || el.type === 'radio'){
-        el.checked = (el.value === b.datos[el.name]);
-      } else {
-        el.value = b.datos[el.name];
-      }
-      // para que se recalculen IMC, resúmenes y demás
-      el.dispatchEvent(new Event('input',  { bubbles:true }));
-      el.dispatchEvent(new Event('change', { bubbles:true }));
+      try{
+        if (el.type === 'checkbox' || el.type === 'radio'){
+          el.checked = (el.value === b.datos[el.name]);
+        } else {
+          el.value = b.datos[el.name];
+        }
+        puestos.push(el);
+      }catch(e){ console.warn('borrador: no se pudo poner', el.name, e); }
     });
+
+    puestos.forEach(el => {
+      try{
+        el.dispatchEvent(new Event('input',  { bubbles:true }));
+        el.dispatchEvent(new Event('change', { bubbles:true }));
+      }catch(e){ console.warn('borrador: evento de', el.name, e); }
+    });
+
+    const faltan = () => puestos.filter(
+      el => el.tagName === 'SELECT' && el.value !== b.datos[el.name]);
+
+    if (faltan().length){
+      let intentos = 0;
+      const reloj = setInterval(() => {
+        faltan().forEach(el => {
+          try{
+            el.value = b.datos[el.name];
+            if (el.value === b.datos[el.name]){
+              el.dispatchEvent(new Event('change', { bubbles:true }));
+            }
+          }catch(e){ /* la opción aún no existe; se reintenta */ }
+        });
+        // tres segundos de margen: si en ese tiempo el fetch no llegó,
+        // tampoco va a llegar
+        if (++intentos >= 10 || !faltan().length) clearInterval(reloj);
+      }, 300);
+    }
+
     if (typeof Wizard !== 'undefined' && b.paso){
-      CONFIG.pasoActual = b.paso;
-      Wizard.cambiarPaso(b.paso);
+      try{
+        CONFIG.pasoActual = b.paso;
+        Wizard.cambiarPaso(b.paso);
+      }catch(e){ console.warn('borrador: no se pudo volver al paso', b.paso, e); }
     }
     aviso.hidden = true;
   }
@@ -1638,7 +1770,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(reloj);
     reloj = setTimeout(guardar, 1000);
   });
-  window.addEventListener('beforeunload', guardar);
+  window.addEventListener('beforeunload', () => { saliendo = true; guardar(); });
 })();
 </script>
 {% endblock %}

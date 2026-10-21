@@ -27,6 +27,7 @@ from services.contabilidad_service import (
     catalogos_para_formulario,
 )
 from services import error_service
+from services import contabilizacion_service
 
 bp_financiero_contabilidad = Blueprint(
     "contabilidad", __name__, url_prefix="/financiero/contabilidad"
@@ -258,3 +259,95 @@ def api_cambiar_periodo():
     except Exception as e:
         codigo = error_service.registrar(e)
         return jsonify({"ok": False, "error": f"Ocurrió un error inesperado. Código: {codigo}", "codigo": codigo}), 500
+
+
+# --------------------------------------------------
+# ASIENTOS PROPUESTOS
+#
+# El puente entre facturación y los libros. El sistema propone el
+# asiento de cada factura y lo deja aquí; nada entra en la
+# contabilidad hasta que alguien lo aprueba, que es cuando se
+# consume el consecutivo.
+# --------------------------------------------------
+
+@bp_financiero_contabilidad.route("/propuestos")
+@login_required
+@requiere_permiso("contabilidad", "view")
+def propuestos():
+    empresa_id = session.get("empresa_id") or 1
+
+    # Se proponen aquí y no al emitir la factura: hay dos caminos
+    # distintos que crean facturas, y enganchar los dos significaría
+    # tocar código de facturación, que no puede romperse por un fallo
+    # contable. Al abrir esta pantalla el contador ve todo lo que falta,
+    # que para él es lo mismo que si se hubiera hecho solo.
+    try:
+        contabilizacion_service.proponer_lote(empresa_id, _usuario())
+    except Exception as e:
+        # Que falle proponer no puede impedir ver lo que ya hay.
+        error_service.registrar(e)
+
+    pendientes = contabilizacion_service.pendientes(empresa_id)
+
+    # Las líneas guardan cuenta_id, que es un número interno. Un contador
+    # lee "130505 Clientes nacionales (EPS)", no "9".
+    puc = {c["id"]: c for c in listar_puc(empresa_id)}
+    for p in pendientes:
+        for l in (p.get("lineas") or []):
+            cuenta = puc.get(l.get("cuenta_id")) or {}
+            l["cuenta_codigo"] = cuenta.get("codigo") or f"#{l.get('cuenta_id')}"
+            l["cuenta_nombre"] = cuenta.get("nombre") or ""
+
+    return render_template(
+        "financiero/contabilidad/propuestos.html",
+        pendientes=pendientes,
+        fallidos=[p for p in pendientes if p["estado"] == "FALLIDO"],
+    )
+
+
+@bp_financiero_contabilidad.route("/propuestos/generar", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "create")
+def propuestos_generar():
+    """Revisa las facturas emitidas y propone las que aún no tienen asiento."""
+    empresa_id = session.get("empresa_id") or 1
+    try:
+        return jsonify({"ok": True, **contabilizacion_service.proponer_lote(empresa_id, _usuario())})
+    except Exception as e:
+        codigo = error_service.registrar(e)
+        return jsonify({"ok": False, "error": f"Ocurrió un error. Código: {codigo}"}), 500
+
+
+@bp_financiero_contabilidad.route("/propuestos/aprobar", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "create")
+def propuestos_aprobar():
+    """
+    Lleva una propuesta a los libros. Aquí sí se escribe contabilidad:
+    se consume el consecutivo y el asiento queda registrado.
+    """
+    body = request.get_json(silent=True) or {}
+    ids = body.get("ids") or ([body["id"]] if body.get("id") else [])
+    if not ids:
+        return jsonify({"ok": False, "error": "No se indicó qué aprobar."}), 400
+
+    hechos, fallidos = [], []
+    for pid in ids:
+        try:
+            r = contabilizacion_service.aprobar(int(pid), _usuario())
+        except Exception as e:
+            r = {"ok": False, "error": f"Error inesperado. Código: {error_service.registrar(e)}"}
+        (hechos if r.get("ok") else fallidos).append({"id": pid, **r})
+
+    return jsonify({"ok": True, "aprobados": hechos, "fallidos": fallidos})
+
+
+@bp_financiero_contabilidad.route("/propuestos/descartar", methods=["POST"])
+@login_required
+@requiere_permiso("contabilidad", "create")
+def propuestos_descartar():
+    body = request.get_json(silent=True) or {}
+    if not body.get("id"):
+        return jsonify({"ok": False, "error": "Falta la propuesta."}), 400
+    contabilizacion_service.descartar(int(body["id"]), _usuario(), body.get("motivo"))
+    return jsonify({"ok": True})

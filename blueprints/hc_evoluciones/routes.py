@@ -9,6 +9,41 @@ from repositories import hc_sedes_repo as repo_sedes
 from repositories import rda_catalogos_repo as repo_rda_cat
 from repositories import hc_especialidades_repo as repo_especialidades
 
+from datetime import datetime, timedelta, timezone
+
+
+# Colombia no tiene horario de verano, así que un desplazamiento fijo es
+# exacto. El RDA exige las marcas de tiempo en esta zona.
+TZ_CO = timezone(timedelta(hours=-5))
+
+
+def _ahora_co():
+    return datetime.now(TZ_CO)
+
+
+def _inicio_atencion(valor, fin):
+    """
+    La hora de apertura que vuelve del formulario, saneada.
+
+    Nunca en el futuro y nunca de otro día: si llega algo imposible --
+    una pestaña que quedó abierta desde ayer, el reloj del consultorio
+    desajustado, o el campo editado a mano-- se cae al instante de
+    guardado, que es la única hora que el servidor sabe cierta.
+
+    Se prefiere perder precisión antes que mandarle al Ministerio una
+    atención que dice haber empezado mañana.
+    """
+    if not valor:
+        return fin
+    try:
+        d = datetime.fromisoformat(valor)
+    except (ValueError, TypeError):
+        return fin
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=TZ_CO)
+    if d > fin or d.astimezone(TZ_CO).date() != fin.date():
+        return fin
+    return d
 
 
 bp_hc_evoluciones = Blueprint(
@@ -74,6 +109,10 @@ def evolucion_nuevo(paciente_id):
         rda_causas_externas=repo_rda_cat.listar("causa_externa"),
         rda_tipos_diagnostico=repo_rda_cat.listar("tipo_diagnostico"),
         rda_entornos=repo_rda_cat.listar("entorno"),
+        # Momento en que se abrió la nota, medido por el servidor y no por
+        # el navegador: el reloj de un equipo del consultorio puede estar
+        # desajustado, y esta hora acaba en el RDA.
+        atencion_abierta=_ahora_co().strftime("%Y-%m-%dT%H:%M"),
     )
 
 # =========================
@@ -99,10 +138,23 @@ def evolucion_crear(paciente_id):
 
     try:
         # =========================
+        # VENTANA REAL DE LA ATENCION
+        # =========================
+        # El inicio lo trae el formulario (la hora en que el servidor
+        # entregó la página, corregible por el médico); el fin es este
+        # instante, el de guardar. Antes el RDA se inventaba los dos
+        # contra el reloj del servidor en el momento de enviar.
+        atencion_fin = _ahora_co()
+        atencion_inicio = _inicio_atencion(
+            request.form.get("atencion_inicio"), atencion_fin)
+
+        # =========================
         # DATOS PRINCIPALES
         # =========================
         data = {
             "paciente_id": paciente_id,
+            "atencion_inicio": atencion_inicio.isoformat(),
+            "atencion_fin": atencion_fin.isoformat(),
             "medico_id": request.form.get("medico_id"),
             "tipo_atencion": request.form.get("tipo_atencion", "CONSULTA_EXTERNA"),
             "sede_id": request.form.get("sede_id") or None,
